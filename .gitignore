@@ -19,6 +19,7 @@ venv.bak/
 .idea/
 .DS_Store
 Thumbs.db
+__MACOSX/
 
 # Logs
 *.log
