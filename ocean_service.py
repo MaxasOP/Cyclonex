@@ -1,4 +1,5 @@
 import math
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -10,7 +11,8 @@ HYCOM_DEPTH_LEVELS = [
     0, 2, 4, 6, 8, 10, 12, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90,
     100, 125, 150, 200, 250, 300, 350, 400, 500, 600, 700, 800, 900, 1000
 ]
-REQUEST_TIMEOUT_S = 6
+# Fast connection timeout (1s connect, 2s read) for rapid fallback
+REQUEST_TIMEOUT = (1.0, 2.0)
 
 SEAWATER_DENSITY_KG_M3 = 1025
 SEAWATER_SPECIFIC_HEAT_J_KGC = 3850
@@ -52,7 +54,7 @@ def _fetch_hycom_point(lat: float, lon: float, depth_m: float, variable: str) ->
     url = f"{ERDDAP_BASE}?{query}"
 
     try:
-        resp = requests.get(url, timeout=REQUEST_TIMEOUT_S)
+        resp = requests.get(url, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
         data = resp.json()
         value = data["table"]["rows"][0][-1]
@@ -65,19 +67,34 @@ def fetch_live_profile(lat: float, lon: float) -> Optional[dict]:
     temps = {}
     salinities = {}
 
-    for depth in TB_DEPTHS:
+    def _fetch_depth_data(depth: int):
         t = _fetch_hycom_point(lat, lon, depth, "water_temp")
         s = _fetch_hycom_point(lat, lon, depth, "salinity")
-        if t is None:
-            return None
-        temps[depth] = round(t, 2)
-        salinities[depth] = round(s, 2) if s is not None else None
+        return depth, t, s
+
+    with ThreadPoolExecutor(max_workers=len(TB_DEPTHS)) as executor:
+        futures = [executor.submit(_fetch_depth_data, d) for d in TB_DEPTHS]
+        for future in as_completed(futures):
+            try:
+                depth, t, s = future.result()
+                if t is None:
+                    return None
+                temps[depth] = round(t, 2)
+                salinities[depth] = round(s, 2) if s is not None else None
+            except Exception:
+                return None
+
+    if len(temps) != len(TB_DEPTHS):
+        return None
+
+    sorted_temps = {d: temps[d] for d in TB_DEPTHS}
+    sorted_sals = {d: salinities[d] for d in TB_DEPTHS}
 
     return {
         "source": "LIVE",
         "provider": "PacIOOS ERDDAP (HYCOM Global Ocean Forecast System)",
-        "temperature_c": temps,
-        "salinity_psu": salinities,
+        "temperature_c": sorted_temps,
+        "salinity_psu": sorted_sals,
         "fetched_at": datetime.now(timezone.utc).isoformat(),
     }
 

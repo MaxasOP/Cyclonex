@@ -17,6 +17,19 @@ app.add_middleware(
 )
 
 
+@app.get("/")
+def root():
+    return {
+        "service": "CYCLONEX Ocean Data Service",
+        "status": "online",
+        "endpoints": {
+            "ocean_node": "/api/ocean-node?lat={lat}&lon={lon}",
+            "health": "/health",
+            "docs": "/docs",
+        },
+    }
+
+
 def infer_basin(lat: float, lon: float) -> str:
     """Mirrors basin-split logic for North Indian Ocean."""
     if lon >= 77.5 or (lat < 8.0 and lon >= 76.0):
