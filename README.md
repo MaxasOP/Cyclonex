@@ -1,8 +1,7 @@
-# CYCLONEX — Ocean Data Backend (Trial)
+# CYCLONEX - Ocean Data Backend
 
-A small FastAPI service that takes a **map-picked lat/lon** and returns
-real subsurface ocean data, structured exactly per your faculty
-mentor's diagram:
+A FastAPI service that returns subsurface-ocean nodes and creates transparent
+200 m cyclone risk-grid scenarios.
 
 ```
 Water Column
@@ -11,14 +10,34 @@ Water Column
 └── Nodes: one record per (lat, lon)
 ```
 
-## Why this exists
+## API versions
 
-The current CYCLONEX frontend (`predictionEngine.ts`) fakes ocean
-conditions with hand-tuned formulas — there's no real subsurface data
-behind it. This backend is step one of replacing that: given a
-coordinate, it fetches an actual gridded ocean reanalysis (HYCOM, via
-a free public server) and computes the derived vertical features from
-it, instead of guessing.
+`/api/ocean-node` is the stable water-column endpoint. It preserves the
+faculty-mentor model:
+
+`/api/v2/scenarios` creates a cyclone screening scenario with a 200 m GeoJSON
+risk grid. It incorporates wind, central-pressure deficit, rain, surge,
+coastal exposure, assumed vulnerability, a fixed 90-degree wind-incidence
+constraint, and an optional TB/VF ocean-node snapshot.
+
+Risk colours are deterministic:
+
+- Sky blue: no modelled damage
+- Green: low impact / safe
+- Orange: damage occurrence likely
+- Red: severe damage risk
+
+`/api/v2/scenarios/{id}/buildings` imports available OpenStreetMap building
+footprints on demand. Dark blue is the default building state; a cell risk
+colour overrides it. A white outline marks a building recorded as taller than
+at least one neighbour within 15 m.
+
+## Important limitation
+
+This is an explainable screening model, not a structural engineering damage
+certificate. Building height can be absent or estimated in OpenStreetMap, and
+the model's vulnerability factor must be calibrated against historical damage
+before operational use.
 
 ## Data source
 
@@ -48,6 +67,25 @@ Open `http://127.0.0.1:8000/docs` for interactive Swagger UI, or call directly:
 ```bash
 curl "http://127.0.0.1:8000/api/ocean-node?lat=15.2&lon=87.4"
 ```
+
+## Scenario request
+
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v2/scenarios" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Bay of Bengal run","center_lat":15.2,"center_lon":87.4,"max_wind_kph":180,"central_pressure_hpa":940,"rain_rate_mm_hr":70,"storm_surge_m":2.5}'
+```
+
+## Deploying with Vercel and Render
+
+1. Deploy this backend to Render.
+2. Deploy `frontend/` as a separate Vercel project.
+3. In Vercel, set `VITE_API_BASE_URL` to the Render service URL and add the
+   browser-restricted `VITE_GOOGLE_MAPS_API_KEY`.
+4. In Render, set `CORS_ALLOWED_ORIGINS` to the Vercel production URL plus
+   `http://localhost:5173` for development.
+5. Do not add the browser Maps key to Render. A separate server key is needed
+   only if a future backend adapter calls a Google server-side API.
 
 ## Example response
 
