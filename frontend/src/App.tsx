@@ -13,6 +13,17 @@ import {
 import RiskMap from "./RiskMap";
 
 const presets = {
+
+
+  landfall_amphan: {
+
+    name: "Cyclone Amphan Landfall (Coastal West Bengal / Digha 21.6°N, 87.5°E)",
+    lat: "21.62",
+    lon: "87.51",
+    wind: "165",
+    pressure: "950",
+    source: "HURSAT_B1",
+  },
   amphan: {
     name: "Cyclone Amphan (Super Cyclone - Bay of Bengal 2020)",
     lat: "15.5",
@@ -54,6 +65,7 @@ const presets = {
     source: "HURSAT_B1",
   },
 };
+
 
 const legend = [
   ["#75c9f1", "No damage"],
@@ -247,8 +259,10 @@ export default function App() {
                     value={selectedPreset}
                     onChange={(e) => handlePresetChange(e.target.value as keyof typeof presets)}
                   >
-                    <option value="amphan">Cyclone Amphan (Super Cyclone - Bay of Bengal 2020)</option>
+                    <option value="landfall_amphan">Cyclone Amphan Landfall (Coastal West Bengal / Digha)</option>
+                    <option value="amphan">Cyclone Amphan Eye (Super Cyclone - Open Ocean 2020)</option>
                     <option value="fani">Cyclone Fani (Extremely Severe - Bay of Bengal 2019)</option>
+
                     <option value="bulbul">Cyclone Bulbul (Very Severe - Bay of Bengal 2019)</option>
                     <option value="nisarga">Cyclone Nisarga (Severe - Arabian Sea 2020)</option>
                     <option value="custom">Custom Map Coordinate</option>
