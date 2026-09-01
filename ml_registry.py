@@ -41,3 +41,24 @@ def register_best_track_labels(labels: list[BestTrackLabel]) -> int:
         identifier = f"{label.storm_id}:{label.valid_at.isoformat()}"
         BEST_TRACK_LABELS[identifier] = label
     return len(labels)
+
+
+def get_split_summary() -> dict[str, dict[str, int]]:
+    summary: dict[str, dict[str, int]] = {
+        "train": {"samples": 0, "storms": 0},
+        "validation": {"samples": 0, "storms": 0},
+        "test": {"samples": 0, "storms": 0},
+    }
+    storm_counts: dict[str, set[str]] = {
+        "train": set(),
+        "validation": set(),
+        "test": set(),
+    }
+    for sample in SAMPLES.values():
+        if sample.split in summary:
+            summary[sample.split]["samples"] += 1
+            storm_counts[sample.split].add(sample.storm_id)
+    for split in summary:
+        summary[split]["storms"] = len(storm_counts[split])
+    return summary
+
