@@ -32,10 +32,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=list(settings.cors_allowed_origins),
+    allow_origins=list(settings.cors_allowed_origins) if settings.cors_allowed_origins else ["*"],
+    allow_credentials=True if "*" not in settings.cors_allowed_origins else False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 class HursatObservationInput(BaseModel):

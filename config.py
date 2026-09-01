@@ -29,9 +29,10 @@ class Settings:
     database_url: str | None = os.getenv("DATABASE_URL") or None
     cors_allowed_origins: tuple[str, ...] = tuple(
         origin.strip()
-        for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+        for origin in os.getenv("CORS_ALLOWED_ORIGINS", "*").split(",")
         if origin.strip()
     )
+
 
     def validate(self) -> None:
         if self.grid_size_m != 200:
