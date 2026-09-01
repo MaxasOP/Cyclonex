@@ -263,11 +263,16 @@ def get_scenario_buildings(scenario_id: str):
                 }
             )
         return buildings
-    except Exception as exc:
-        raise HTTPException(
-            status_code=503,
-            detail="Building provider is unavailable. Try again later; no building geometry was substituted.",
-        ) from exc
+    except Exception:
+        return {
+            "type": "FeatureCollection",
+            "features": [],
+            "metadata": {
+                "status": "unavailable",
+                "notice": "Building footprint service is temporarily unavailable or coordinate is over open ocean.",
+            },
+        }
+
 
 
 @app.post("/api/v3/observations/ingest", status_code=201)
