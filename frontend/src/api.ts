@@ -107,3 +107,32 @@ export async function runMLStormImpact(stormId: string, horizon: number): Promis
   }
   return response.json() as Promise<ScenarioResult>;
 }
+
+export type DatasetSummary = {
+
+  observations: number;
+  best_track_labels: number;
+  training_samples: number;
+  splits: {
+    train: { samples: number; storms: number };
+    validation: { samples: number; storms: number };
+    test: { samples: number; storms: number };
+  };
+  model_status: string;
+  baseline_model?: {
+    is_trained: boolean;
+    algorithm: string;
+    metrics: Record<string, number> | null;
+  };
+};
+
+export async function fetchDatasetSummary(): Promise<DatasetSummary | null> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v3/dataset-summary`);
+    if (!response.ok) return null;
+    return response.json() as Promise<DatasetSummary>;
+  } catch {
+    return null;
+  }
+}
+
