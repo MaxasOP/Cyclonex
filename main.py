@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Query, Response
+from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -30,10 +30,29 @@ app = FastAPI(
     version="0.2.0",
 )
 
+
+@app.middleware("http")
+async def custom_cors_middleware(request: Request, call_next):
+    if request.method == "OPTIONS":
+        return Response(
+            status_code=200,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "*",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Max-Age": "86400",
+            },
+        )
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=list(settings.cors_allowed_origins) if settings.cors_allowed_origins else ["*"],
-    allow_credentials=True if "*" not in settings.cors_allowed_origins else False,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -42,7 +61,15 @@ app.add_middleware(
 @app.options("/{full_path:path}")
 def options_handler(full_path: str):
     """Fallback OPTIONS handler so preflight requests never hit POST/PUT body validation."""
-    return Response(status_code=200)
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
+
 
 
 
