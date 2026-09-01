@@ -26,7 +26,8 @@ export type BuildingFeature = {
   properties: { display_colour: string; is_locally_taller: boolean };
 };
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "https://cyclonex.onrender.com").replace(/\/$/, "");
+
 
 export async function createScenario(input: Record<string, unknown>): Promise<ScenarioResult> {
   const response = await fetch(`${apiBaseUrl}/api/v2/scenarios`, {
