@@ -76,7 +76,7 @@ class StormImpactRunInput(BaseModel):
     sea_level_rise_m: float = 0.0
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def root():
     return {
         "service": "CYCLONEX Ocean Data Service",
@@ -116,8 +116,9 @@ def ocean_node(
     return result
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health():
+
     return {
         "status": "ok",
         "integrations": {
