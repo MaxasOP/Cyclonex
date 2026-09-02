@@ -10,13 +10,20 @@ import {
   type MLInferenceResult,
   type ScenarioResult,
 } from "./api";
-import RiskMap from "./RiskMap";
+import RiskMap, { type TrajectoryPoint } from "./RiskMap";
+
+import CycloneIntelligencePanel from "./components/CycloneIntelligencePanel";
+import ForecastTimeline from "./components/ForecastTimeline";
+import Header from "./components/Header";
+import HistoricalPresets, { type PresetKey } from "./components/HistoricalPresets";
+import MLSystemStatus from "./components/MLSystemStatus";
+import OceanIntelligencePanel from "./components/OceanIntelligencePanel";
+import RiskIntelligencePanel from "./components/RiskIntelligencePanel";
+import SatelliteBar from "./components/SatelliteBar";
+import SatelliteModal from "./components/SatelliteModal";
 
 const presets = {
-
-
   landfall_amphan: {
-
     name: "Cyclone Amphan Landfall (Coastal West Bengal / Digha 21.6°N, 87.5°E)",
     lat: "21.62",
     lon: "87.51",
@@ -66,17 +73,11 @@ const presets = {
   },
 };
 
-
-const legend = [
-  ["#75c9f1", "No damage"],
-  ["#35a66f", "Safe"],
-  ["#ed8a28", "Damage likely"],
-  ["#d4483b", "Severe risk"],
-];
-
 export default function App() {
   const [activeTab, setActiveTab] = useState<"ml" | "screening">("ml");
-  const [selectedPreset, setSelectedPreset] = useState<keyof typeof presets>("amphan");
+  const [activeNavView, setActiveNavView] = useState<"LIVE" | "FORECAST" | "RISK" | "OCEAN" | "HISTORY">("LIVE");
+
+  const [selectedPreset, setSelectedPreset] = useState<PresetKey>("amphan");
   const [selectedSource, setSelectedSource] = useState<string>("HURSAT_B1");
 
   const [form, setForm] = useState(presets.amphan);
@@ -89,13 +90,16 @@ export default function App() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Fetch backend dataset summary & run initial ML inference on mount
+  // Satellite Modal State
+  const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
+
+  // Initial loading
   useEffect(() => {
     void fetchDatasetSummary().then(setDatasetSummary);
     void handleMLInference("15.5", "87.5", "185", "925");
   }, []);
 
-  async function handlePresetChange(presetKey: keyof typeof presets) {
+  async function handlePresetChange(presetKey: PresetKey) {
     setSelectedPreset(presetKey);
     const p = presets[presetKey];
     setForm(p);
@@ -116,7 +120,6 @@ export default function App() {
         central_pressure_hpa: Number(pressureStr),
       });
       setMlResult(res);
-      // Refresh summary
       void fetchDatasetSummary().then(setDatasetSummary);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "ML inference failed.");
@@ -187,309 +190,311 @@ export default function App() {
     ? { lat: mlResult.identification.centre_lat, lng: mlResult.identification.centre_lon }
     : { lat: Number(form.lat), lng: Number(form.lon) };
 
-  const currentForecast: ForecastHorizon | null = mlResult
-    ? mlResult[`forecast_${selectedHorizon}h`]
-    : null;
-
-  const trajectoryPoints = mlResult
+  const trajectoryPoints: TrajectoryPoint[] = mlResult
     ? [
         { lat: mlResult.identification.centre_lat, lng: mlResult.identification.centre_lon, label: "Present Eye" },
-        { lat: mlResult.forecast_6h.centre_lat, lng: mlResult.forecast_6h.centre_lon, label: "+6h Forecast" },
-        { lat: mlResult.forecast_12h.centre_lat, lng: mlResult.forecast_12h.centre_lon, label: "+12h Forecast" },
-        { lat: mlResult.forecast_24h.centre_lat, lng: mlResult.forecast_24h.centre_lon, label: "+24h Forecast" },
+        {
+          lat: mlResult.forecast_6h.centre_lat,
+          lng: mlResult.forecast_6h.centre_lon,
+          label: "+6h Forecast",
+          uncertaintyKm: mlResult.forecast_6h.track_uncertainty_km,
+        },
+        {
+          lat: mlResult.forecast_12h.centre_lat,
+          lng: mlResult.forecast_12h.centre_lon,
+          label: "+12h Forecast",
+          uncertaintyKm: mlResult.forecast_12h.track_uncertainty_km,
+        },
+        {
+          lat: mlResult.forecast_24h.centre_lat,
+          lng: mlResult.forecast_24h.centre_lon,
+          label: "+24h Forecast",
+          uncertaintyKm: mlResult.forecast_24h.track_uncertainty_km,
+        },
       ]
     : [];
 
   return (
-    <main>
-      <header>
-        <div>
-          <p className="eyebrow">SATELLITE CYCLONE INTELLIGENCE SYSTEM</p>
-          <h1>CYCLONEX</h1>
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", marginBottom: "6px" }}>
-            <span className="badge badge-info">
-              {datasetSummary ? `Status: ${datasetSummary.model_status}` : "Backend Connected"}
-            </span>
-            <span className="badge badge-info">
-              {datasetSummary?.baseline_model?.algorithm || "GradientBoostedEnsemble"}
-            </span>
-          </div>
-          <p className="constraint">Multi-Source Satellite Data · IBTrACS NIO Labels · 200 m Grid</p>
-        </div>
-      </header>
+    <div className="app-shell grid-bg">
+      {/* Header Command Shell */}
+      <Header
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        datasetSummary={datasetSummary}
+        selectedSource={selectedSource}
+        activeNavView={activeNavView}
+        setActiveNavView={setActiveNavView}
+        onOpenSatelliteModal={() => setIsSatelliteModalOpen(true)}
+      />
 
-      <nav className="mode-tabs" aria-label="Workspace Modes">
-        <button
-          className={`tab-btn ${activeTab === "ml" ? "active" : ""}`}
-          onClick={() => setActiveTab("ml")}
-        >
-          🤖 AI/ML Identification & Prediction
-        </button>
-        <button
-          className={`tab-btn ${activeTab === "screening" ? "active" : ""}`}
-          onClick={() => setActiveTab("screening")}
-        >
-          🌐 200m Hazard Screening
-        </button>
-      </nav>
-
-      <section className="workspace">
-        <aside className="controls">
-          {activeTab === "ml" ? (
-            <>
-              <h2>AI/ML Satellite Intelligence</h2>
-              <p>Multi-source satellite feature extraction, pattern classification, & 6–24 h predictive models.</p>
-
-              <div style={{ display: "grid", gap: "10px", marginBottom: "16px" }}>
-                <label>
-                  <span>1. Select Multi-Source Satellite Data</span>
-                  <select value={selectedSource} onChange={(e) => setSelectedSource(e.target.value)}>
-                    <option value="HURSAT_B1">NOAA HURSAT-B1 Historical IR Imagery</option>
-                    <option value="INSAT">INSAT Geostationary IR / Visible</option>
-                    <option value="GPM_IMERG">GPM IMERG Rain Rate Structure</option>
-                    <option value="SENTINEL_1">Sentinel-1 SAR Surface Backscatter</option>
-                  </select>
-                </label>
-
-                <label>
-                  <span>2. Select IBTrACS Historical Storm Preset</span>
-                  <select
-                    value={selectedPreset}
-                    onChange={(e) => handlePresetChange(e.target.value as keyof typeof presets)}
-                  >
-                    <option value="landfall_amphan">Cyclone Amphan Landfall (Coastal West Bengal / Digha)</option>
-                    <option value="amphan">Cyclone Amphan Eye (Super Cyclone - Open Ocean 2020)</option>
-                    <option value="fani">Cyclone Fani (Extremely Severe - Bay of Bengal 2019)</option>
-
-                    <option value="bulbul">Cyclone Bulbul (Very Severe - Bay of Bengal 2019)</option>
-                    <option value="nisarga">Cyclone Nisarga (Severe - Arabian Sea 2020)</option>
-                    <option value="custom">Custom Map Coordinate</option>
-                  </select>
-                </label>
+      {/* Main Workspace Layout */}
+      <main className="workspace-grid">
+        {/* Left Sidebar: Controls & Satellite Ingestion */}
+        <aside className="sidebar-panel">
+          {/* Workspace Mode Tabs */}
+          <div className="eng-card">
+            <div className="panel-header">
+              <div className="panel-title">
+                <i>PROCESSING MODE</i>
               </div>
+            </div>
+            <div style={{ padding: 6, display: "flex", gap: 4 }}>
+              <button
+                type="button"
+                className={`nav-tab-btn ${activeTab === "ml" ? "active" : ""}`}
+                style={{ flex: 1, justifyContent: "center" }}
+                onClick={() => setActiveTab("ml")}
+              >
+                🤖 AI/ML MODEL
+              </button>
+              <button
+                type="button"
+                className={`nav-tab-btn ${activeTab === "screening" ? "active" : ""}`}
+                style={{ flex: 1, justifyContent: "center" }}
+                onClick={() => setActiveTab("screening")}
+              >
+                🌐 200M RISK GRID
+              </button>
+            </div>
+          </div>
 
-              <form onSubmit={handleMLFormSubmit}>
-                <div className="pair">
-                  <label>
-                    <span>Latitude (°N)</span>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={form.lat}
-                      onChange={(e) => setForm({ ...form, lat: e.target.value })}
-                    />
-                  </label>
-                  <label>
-                    <span>Longitude (°E)</span>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={form.lon}
-                      onChange={(e) => setForm({ ...form, lon: e.target.value })}
-                    />
-                  </label>
-                </div>
+          {/* Multi-Source Satellite Selector */}
+          <SatelliteBar
+            selectedSource={selectedSource}
+            setSelectedSource={setSelectedSource}
+            onOpenSatelliteModal={() => setIsSatelliteModalOpen(true)}
+          />
 
-                <div className="pair">
-                  <label>
-                    <span>Max Wind (km/h)</span>
-                    <input
-                      type="number"
-                      value={form.wind}
-                      onChange={(e) => setForm({ ...form, wind: e.target.value })}
-                    />
-                  </label>
-                  <label>
-                    <span>Central Pressure (hPa)</span>
-                    <input
-                      type="number"
-                      value={form.pressure}
-                      onChange={(e) => setForm({ ...form, pressure: e.target.value })}
-                    />
-                  </label>
-                </div>
+          {/* Historical Preset Selector */}
+          <HistoricalPresets
+            presets={presets}
+            selectedPreset={selectedPreset}
+            onSelectPreset={handlePresetChange}
+          />
 
-                <button type="submit" disabled={loading}>
-                  {loading ? "Extracting Features..." : "Run AI/ML Identification & Prediction"}
-                </button>
-              </form>
+          {/* Inputs & Parameters Form */}
+          <div className="eng-card">
+            <div className="corner-marker" />
+            <div className="panel-header">
+              <div className="panel-title">
+                <i>{activeTab === "ml" ? "STORM PARAMETERS" : "SCREENING SCENARIO"}</i>
+              </div>
+              <span className="badge badge-info">INPUT VECTOR</span>
+            </div>
 
-              {mlResult && (
-                <div style={{ marginTop: "18px" }}>
-                  {/* Task 1 & 2 */}
-                  <div className="ml-card">
-                    <div className="ml-card-title">Task 1 & 2: Identification & Pattern</div>
-                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
-                      <span className="badge badge-cyclone">
-                        {mlResult.identification.presence.replaceAll("_", " ")}
-                      </span>
-                      <span className="badge badge-info">
-                        {(mlResult.identification.confidence * 100).toFixed(0)}% Confidence
-                      </span>
-                      {mlResult.pattern_classification.lifecycle_pattern && (
-                        <span className="badge badge-pattern">
-                          PATTERN: {mlResult.pattern_classification.lifecycle_pattern}
-                        </span>
-                      )}
+            <div className="panel-body">
+              {activeTab === "ml" ? (
+                <form onSubmit={handleMLFormSubmit}>
+                  <div className="eng-row-pair">
+                    <div className="eng-form-group">
+                      <label className="eng-label">LATITUDE (°N)</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        className="eng-input"
+                        value={form.lat}
+                        onChange={(e) => setForm({ ...form, lat: e.target.value })}
+                      />
                     </div>
-                    <div style={{ fontSize: "0.8rem", color: "#b3c4d7" }}>
-                      Subsurface Ocean Node: Thermal Buffer <strong>{mlResult.ocean_context.tb_deg_c}°C</strong> · Ventilation Depth <strong>{mlResult.ocean_context.vf_m}m</strong>
+
+                    <div className="eng-form-group">
+                      <label className="eng-label">LONGITUDE (°E)</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        className="eng-input"
+                        value={form.lon}
+                        onChange={(e) => setForm({ ...form, lon: e.target.value })}
+                      />
                     </div>
                   </div>
 
-                  {/* Task 3 */}
-                  <div className="ml-card">
-                    <div className="ml-card-title">Task 3: 6–24 h Predictive Forecast</div>
-                    <div className="horizon-grid">
-                      {([6, 12, 24] as const).map((h) => (
-                        <button
-                          key={h}
-                          type="button"
-                          className={`horizon-btn ${selectedHorizon === h ? "selected" : ""}`}
-                          onClick={() => setSelectedHorizon(h)}
-                        >
-                          +{h} Hours
-                        </button>
-                      ))}
+                  <div className="eng-row-pair">
+                    <div className="eng-form-group">
+                      <label className="eng-label">MAX WIND (KM/H)</label>
+                      <input
+                        type="number"
+                        className="eng-input"
+                        value={form.wind}
+                        onChange={(e) => setForm({ ...form, wind: e.target.value })}
+                      />
                     </div>
 
-                    {currentForecast && (
-                      <div style={{ fontSize: "0.84rem", lineHeight: "1.5", color: "#d7e5f5" }}>
-                        <div>Predicted Position: <strong>{currentForecast.centre_lat}°N, {currentForecast.centre_lon}°E</strong></div>
-                        <div>Projected Max Wind: <strong>{currentForecast.max_sustained_wind_kph} km/h</strong></div>
-                        <div>Central Pressure: <strong>{currentForecast.central_pressure_hpa} hPa</strong></div>
-                        <div style={{ fontSize: "0.76rem", color: "#8fa4bf", marginTop: "4px" }}>
-                          Track Error Uncertainty: ±{currentForecast.track_uncertainty_km} km
-                        </div>
-                      </div>
-                    )}
+                    <div className="eng-form-group">
+                      <label className="eng-label">PRESSURE (HPA)</label>
+                      <input
+                        type="number"
+                        className="eng-input"
+                        value={form.pressure}
+                        onChange={(e) => setForm({ ...form, pressure: e.target.value })}
+                      />
+                    </div>
                   </div>
 
-                  {/* Task 4 Downstream Impact */}
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    style={{ width: "100%" }}
-                    onClick={handleRunMLImpactGrid}
-                    disabled={loading}
-                  >
-                    ⚡ Overlay +{selectedHorizon}h Forecast 200m Building Risk Grid
+                  <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: 6 }}>
+                    {loading ? "EXTRACTING FEATURES..." : "⚡ RUN AI/ML PATTERN INFERENCE"}
                   </button>
+                </form>
+              ) : (
+                <form onSubmit={handleScreeningSubmit}>
+                  <div className="eng-form-group">
+                    <label className="eng-label">SCENARIO NAME</label>
+                    <input
+                      type="text"
+                      className="eng-input"
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="eng-row-pair">
+                    <div className="eng-form-group">
+                      <label className="eng-label">LATITUDE (°N)</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        className="eng-input"
+                        value={form.lat}
+                        onChange={(e) => setForm({ ...form, lat: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="eng-form-group">
+                      <label className="eng-label">LONGITUDE (°E)</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        className="eng-input"
+                        value={form.lon}
+                        onChange={(e) => setForm({ ...form, lon: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="eng-row-pair">
+                    <div className="eng-form-group">
+                      <label className="eng-label">WIND (KM/H)</label>
+                      <input
+                        type="number"
+                        className="eng-input"
+                        value={form.wind}
+                        onChange={(e) => setForm({ ...form, wind: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="eng-form-group">
+                      <label className="eng-label">PRESSURE (HPA)</label>
+                      <input
+                        type="number"
+                        className="eng-input"
+                        value={form.pressure}
+                        onChange={(e) => setForm({ ...form, pressure: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: 6 }}>
+                    {loading ? "CALCULATING GRID..." : "🌐 GENERATE 200M RISK GRID"}
+                  </button>
+                </form>
+              )}
+
+              {error && (
+                <div style={{ color: "#FF3333", fontSize: "0.74rem", fontFamily: "var(--font-mono)", marginTop: 8 }}>
+                  ⚠ {error}
                 </div>
               )}
-            </>
-          ) : (
-            <>
-              <h2>Create a screening scenario</h2>
-              <p>Transparent hazard-screening estimates and building vulnerability inspection.</p>
-              <form onSubmit={handleScreeningSubmit}>
-                <label>
-                  <span>Scenario Name</span>
-                  <input
-                    type="text"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  />
-                </label>
-                <div className="pair">
-                  <label>
-                    <span>Latitude (°N)</span>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={form.lat}
-                      onChange={(e) => setForm({ ...form, lat: e.target.value })}
-                    />
-                  </label>
-                  <label>
-                    <span>Longitude (°E)</span>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={form.lon}
-                      onChange={(e) => setForm({ ...form, lon: e.target.value })}
-                    />
-                  </label>
-                </div>
-
-                <div className="pair">
-                  <label>
-                    <span>Maximum Wind (km/h)</span>
-                    <input
-                      type="number"
-                      value={form.wind}
-                      onChange={(e) => setForm({ ...form, wind: e.target.value })}
-                    />
-                  </label>
-                  <label>
-                    <span>Central Pressure (hPa)</span>
-                    <input
-                      type="number"
-                      value={form.pressure}
-                      onChange={(e) => setForm({ ...form, pressure: e.target.value })}
-                    />
-                  </label>
-                </div>
-
-                <button type="submit" disabled={loading}>
-                  {loading ? "Calculating..." : "Calculate risk grid"}
-                </button>
-              </form>
-            </>
-          )}
-
-          {error && <p className="error" role="alert">{error}</p>}
-
-          <div className="legend" aria-label="Risk legend">
-            {legend.map(([colour, label]) => (
-              <span key={label}>
-                <i style={{ background: colour }} />
-                {label}
-              </span>
-            ))}
+            </div>
           </div>
         </aside>
 
-        <section className="map-shell" aria-label="Cyclone risk map">
-          <RiskMap
-            center={mapCenter}
-            features={scenario?.risk_grid.features ?? []}
-            buildings={buildings}
-            trajectory={trajectoryPoints}
-          />
-          {!scenario && (
-            <div className="map-hint">
-              {activeTab === "ml"
-                ? "Select a forecast horizon (+6h, +12h, +24h) and click 'Overlay Forecast 200m Risk Grid'."
-                : "Enter coordinates to overlay the risk grid."}
+        {/* Center: Map Centerpiece Console */}
+        <section className="map-centerpiece">
+          <div className="map-toolbar">
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span className="badge badge-signal">MAP VIEWPORT</span>
+              <span style={{ fontSize: "0.74rem", fontFamily: "var(--font-mono)", color: "#FFFFFF", fontWeight: 700 }}>
+                {presets[selectedPreset]?.name.split("(")[0] || "Custom Storm Track"}
+              </span>
             </div>
-          )}
-        </section>
-      </section>
 
-      {scenario && (
-        <section className="summary">
-          <div>
-            <span>Grid Cells</span>
-            <strong>{scenario.risk_grid.features.length}</strong>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ padding: "4px 8px", fontSize: "0.68rem" }}
+                onClick={() => setIsSatelliteModalOpen(true)}
+              >
+                🛰️ SATELLITE HUD
+              </button>
+            </div>
           </div>
-          <div>
-            <span>Ocean Basin</span>
-            <strong>{scenario.basin?.replaceAll("_", " ") || "Not in North Indian Ocean"}</strong>
+
+          <div className="map-viewport">
+            {/* Map Telemetry HUD Overlay */}
+            <div className="map-hud-overlay">
+              <div className="hud-box">
+                <div className="hud-title">ACTIVE COORDINATES</div>
+                <div className="hud-value">
+                  {mapCenter.lat.toFixed(4)}°N, {mapCenter.lng.toFixed(4)}°E
+                </div>
+              </div>
+
+              <div className="hud-box">
+                <div className="hud-title">SATELLITE SOURCE</div>
+                <div style={{ color: "#FFFFFF", fontWeight: 700 }}>{selectedSource}</div>
+              </div>
+            </div>
+
+            {/* Map Renderer */}
+            <RiskMap
+              center={mapCenter}
+              features={scenario?.risk_grid.features ?? []}
+              buildings={buildings}
+              trajectory={trajectoryPoints}
+              selectedSource={selectedSource}
+            />
           </div>
-          <div>
-            <span>Ocean Input</span>
-            <strong>{scenario.ocean_node?.meta.source || "Not requested"}</strong>
-          </div>
-          <div>
-            <span>Model Algorithm</span>
-            <strong>{scenario.ml_provenance?.model_algorithm || "Baseline Screening"}</strong>
-          </div>
-          <p>{scenario.model.data_quality}</p>
         </section>
-      )}
-    </main>
+
+        {/* Right Sidebar: Operational Intelligence Panels */}
+        <aside className="sidebar-panel right-sidebar">
+          {/* Cyclone Intelligence Panel */}
+          <CycloneIntelligencePanel
+            mlResult={mlResult}
+            loading={loading}
+            onRunInference={() => handleMLInference(form.lat, form.lon, form.wind, form.pressure)}
+          />
+
+          {/* Forecast Horizon Matrix */}
+          <ForecastTimeline
+            mlResult={mlResult}
+            selectedHorizon={selectedHorizon}
+            setSelectedHorizon={setSelectedHorizon}
+            onOverlayRiskGrid={handleRunMLImpactGrid}
+            loading={loading}
+          />
+
+          {/* Ocean Intelligence Subsurface Context */}
+          <OceanIntelligencePanel mlResult={mlResult} scenario={scenario} />
+
+          {/* Risk Intelligence Panel */}
+          <RiskIntelligencePanel scenario={scenario} buildings={buildings} activeTab={activeTab} />
+
+          {/* ML System & Pipeline Status */}
+          <MLSystemStatus datasetSummary={datasetSummary} />
+        </aside>
+      </main>
+
+      {/* Cinematic SpaceX Satellite Inspector Modal */}
+      <SatelliteModal
+        isOpen={isSatelliteModalOpen}
+        onClose={() => setIsSatelliteModalOpen(false)}
+        selectedSource={selectedSource}
+        stormName={presets[selectedPreset]?.name}
+        centerLat={mapCenter.lat}
+        centerLon={mapCenter.lng}
+      />
+    </div>
   );
 }
