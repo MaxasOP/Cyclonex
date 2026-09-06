@@ -257,7 +257,7 @@ export default function App() {
       "Cyclone Amphan Landfall (Digha)",
       "315",
       "25",
-      "15"
+      "100"
     );
   }, []);
 
@@ -1032,6 +1032,64 @@ export default function App() {
                 </div>
               </div>
             </div>
+
+            {/* Column 4: Live Hydro-Meteorological & Physics Calculation Breakdown */}
+            {scenario && (() => {
+              const vmax = Number(form.wind || 165);
+              const pressureDeficit = Math.max(0, 1010 - Number(form.pressure || 950));
+              const rho = 1.225;
+              const vms = vmax / 3.6;
+              const qmax = Math.round(0.5 * rho * vms * vms);
+              const windLoadMax = Math.round(qmax * 1.3);
+              const radiusKm = Number(form.radius || 100);
+              const rmwKm = Math.round(radiusKm * 0.18 * 10) / 10;
+              const totalCells = scenario.risk_grid.features.length;
+              const landCells = scenario.risk_grid.features.filter((f) => f.properties.land_type !== "OCEAN").length;
+              const severeCells = scenario.risk_grid.features.filter((f) => f.properties.classification === "TOTAL_DESTRUCTION_RISK").length;
+              const moderateCells = scenario.risk_grid.features.filter((f) => f.properties.classification === "MODERATE_DAMAGE").length;
+              const safeCells = scenario.risk_grid.features.filter((f) => f.properties.classification === "SAFE").length;
+
+              return (
+                <div className="ai-ml-card" style={{ gridColumn: "span 4" }}>
+                  <div className="ai-ml-card-header" style={{ color: "#75c9f1" }}>
+                    Live Hydro-Meteorological & Physics Calculation Breakdown
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px", fontSize: "0.82rem", color: "#d7e5f5" }}>
+                    <div style={{ background: "#081628", padding: "10px", borderRadius: "6px", border: "1px solid #1a3557" }}>
+                      <div style={{ fontSize: "0.68rem", color: "#8fa4bf", fontWeight: 700, textTransform: "uppercase" }}>Holland-Rankine Vortex Physics</div>
+                      <div style={{ marginTop: "4px" }}>RMW Radius ($R_{'{'}max{'}'}$): <strong style={{ color: "#75c9f1" }}>{rmwKm} km</strong></div>
+                      <div>Max Sustained Wind ($V_{'{'}max{'}'}$): <strong>{vmax} km/h</strong></div>
+                      <div>Central Pressure Deficit ($\Delta P$): <strong>{pressureDeficit} hPa</strong></div>
+                      <div>Holland $\beta$ Stiffness Parameter: <strong>1.03</strong></div>
+                    </div>
+
+                    <div style={{ background: "#081628", padding: "10px", borderRadius: "6px", border: "1px solid #1a3557" }}>
+                      <div style={{ fontSize: "0.68rem", color: "#8fa4bf", fontWeight: 700, textTransform: "uppercase" }}>Wind Loading & Dynamic Pressure</div>
+                      <div style={{ marginTop: "4px" }}>Peak Dynamic Pressure ($q_{'{'}max{'}'}$): <strong style={{ color: "#ffb05c" }}>{qmax} Pa</strong></div>
+                      <div>Drag Coeff. ($C_d$ IS-875): <strong>1.30</strong></div>
+                      <div>Peak Wind Loading ($q \cdot C_d$): <strong style={{ color: "#ff6b5b" }}>{windLoadMax} N/m²</strong></div>
+                      <div>Forward Asymmetry Boost: <strong>+{(Number(form.speed || 25) * 0.5).toFixed(1)} km/h</strong></div>
+                    </div>
+
+                    <div style={{ background: "#081628", padding: "10px", borderRadius: "6px", border: "1px solid #1a3557" }}>
+                      <div style={{ fontSize: "0.68rem", color: "#8fa4bf", fontWeight: 700, textTransform: "uppercase" }}>IS-875 Building Resistance Thresholds</div>
+                      <div style={{ marginTop: "4px" }}>RCC Frame Concrete ($R_{'{'}RCC{'}'}$): <strong>1500 Pa</strong></div>
+                      <div>Masonry Residential ($R_{'{'}Masonry{'}'}$): <strong>900 Pa</strong></div>
+                      <div>Open Land / Rural ($R_{'{'}Open{'}'}$): <strong>300 Pa</strong></div>
+                      <div>Exceedance Ratio ($LRR_{'{'}max{'}'}$): <strong style={{ color: "#ff6b5b" }}>{(qmax / 900).toFixed(2)}×</strong></div>
+                    </div>
+
+                    <div style={{ background: "#081628", padding: "10px", borderRadius: "6px", border: "1px solid #1a3557" }}>
+                      <div style={{ fontSize: "0.68rem", color: "#8fa4bf", fontWeight: 700, textTransform: "uppercase" }}>200 m Grid Spatial Land Hit Breakdown</div>
+                      <div style={{ marginTop: "4px" }}>Land Hit Cells: <strong style={{ color: "#35a66f" }}>{landCells}</strong> / {totalCells}</div>
+                      <div>🔴 Severe Destruction Risk: <strong style={{ color: "#d4483b" }}>{severeCells} cells</strong></div>
+                      <div>🟠 Moderate Damage Likely: <strong style={{ color: "#ed8a28" }}>{moderateCells} cells</strong></div>
+                      <div>🟢 Safe / Low Impact: <strong style={{ color: "#35a66f" }}>{safeCells} cells</strong></div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </section>
       )}
@@ -1042,7 +1100,7 @@ export default function App() {
         const patternConf = Math.round((mlResult.pattern_classification.confidence || 0.9) * 100);
         const totalCellsConf = scenario.risk_grid.features.length;
         const landCells = scenario.risk_grid.features.filter(
-          (f) => f.properties.land_type !== "ocean"
+          (f) => f.properties.land_type !== "OCEAN"
         ).length;
         const severeCells = scenario.risk_grid.features.filter(
           (f) => (f.properties.risk_score ?? 0) >= 0.55
