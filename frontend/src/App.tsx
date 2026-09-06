@@ -22,7 +22,7 @@ const presets = {
     pressure: "950",
     heading: "315",
     speed: "25",
-    radius: "15",
+    radius: "100",
     source: "HURSAT_B1",
   },
   amphan: {
@@ -33,7 +33,7 @@ const presets = {
     pressure: "925",
     heading: "350",
     speed: "22",
-    radius: "15",
+    radius: "120",
     source: "HURSAT_B1",
   },
   fani: {
@@ -44,7 +44,7 @@ const presets = {
     pressure: "937",
     heading: "340",
     speed: "20",
-    radius: "15",
+    radius: "90",
     source: "INSAT",
   },
   bulbul: {
@@ -55,7 +55,7 @@ const presets = {
     pressure: "970",
     heading: "355",
     speed: "18",
-    radius: "15",
+    radius: "80",
     source: "GPM_IMERG",
   },
   nisarga: {
@@ -66,7 +66,7 @@ const presets = {
     pressure: "984",
     heading: "30",
     speed: "24",
-    radius: "15",
+    radius: "60",
     source: "SENTINEL_1",
   },
   custom: {
@@ -77,7 +77,7 @@ const presets = {
     pressure: "960",
     heading: "315",
     speed: "25",
-    radius: "15",
+    radius: "100",
     source: "HURSAT_B1",
   },
 };
@@ -197,7 +197,7 @@ export default function App() {
     scenarioName: string,
     headingStr: string = "315",
     speedStr: string = "25",
-    radiusStr: string = "15"
+    radiusStr: string = "100"
   ) {
     setLoading(true);
     setError("");
@@ -209,13 +209,15 @@ export default function App() {
       const pressure = Number(pressureStr);
       const heading = Number(headingStr || 315);
       const speed = Number(speedStr || 25);
-      const radius = Number(radiusStr || 15);
+      const radius = Number(radiusStr || 100);
 
       const res = await runMLInference({
         centre_lat: lat,
         centre_lon: lon,
         max_sustained_wind_kph: wind,
         central_pressure_hpa: pressure,
+        heading_deg: heading,
+        speed_kph: speed,
       });
       setMlResult(res);
       void fetchDatasetSummary().then(setDatasetSummary);

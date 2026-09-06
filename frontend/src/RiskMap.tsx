@@ -270,11 +270,12 @@ export default function RiskMap({
                 fillColor = getDamageColor(props.damage_score, props.colour);
               }
 
+              const isOcean = props.land_type === "OCEAN";
               return {
                 fillColor,
-                fillOpacity: 0.65,
-                color: "#ffffff",
-                weight: 0.25,
+                fillOpacity: isOcean ? 0.35 : 0.72,
+                color: isOcean ? "#ffffff" : "#ffffff",
+                weight: isOcean ? 0.15 : 0.35,
               };
             }}
             onEachFeature={(feature, layer) => {

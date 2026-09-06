@@ -102,6 +102,8 @@ class InferenceRequest(BaseModel):
     centre_lon: float | None = Field(default=None, ge=-180, le=180)
     max_sustained_wind_kph: float | None = Field(default=None, ge=0, le=400)
     central_pressure_hpa: float | None = Field(default=None, ge=800, le=1050)
+    heading_deg: float | None = Field(default=315.0, ge=0, le=360)
+    speed_kph: float | None = Field(default=25.0, ge=0, le=120)
 
 
 class StormImpactRunInput(BaseModel):
@@ -374,13 +376,19 @@ def run_inference(request: InferenceRequest):
         basin = infer_basin(lat, lon)
         ocean = get_ocean_node(lat, lon, basin)
 
+        # Extract thermal buffer (SST at 0m) and ventilation depth (D26 isotherm depth)
+        tb_val = float(ocean.get("TB", {}).get(0, 27.5))
+        vf_val = float(ocean.get("VF", {}).get("depth_of_26c_isotherm_m", 45.0))
+
         features = {
             "centre_lat": lat,
             "centre_lon": lon,
             "max_sustained_wind_kph": wind,
             "central_pressure_hpa": pressure,
-            "tb_deg_c": float(ocean.get("tb_deg_c", 27.5)),
-            "vf_m": float(ocean.get("vf_m", 45.0)),
+            "heading_deg": request.heading_deg if request.heading_deg is not None else 315.0,
+            "speed_kph": request.speed_kph if request.speed_kph is not None else 25.0,
+            "tb_deg_c": tb_val,
+            "vf_m": vf_val,
             "obs_count": 4.0,
             "avg_spatial_resolution_km": 8.0,
             "avg_box_width_deg": 4.0,

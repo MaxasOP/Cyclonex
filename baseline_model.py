@@ -143,27 +143,42 @@ class BaselineCyclonePipeline:
             pattern = "FORMATION"
             pattern_conf = 0.89
 
-        # Prediction offsets (using SST/TB, VF depth, pressure deficit)
+        # Prediction offsets (using heading, speed, SST/TB, VF depth, pressure deficit)
+        heading_deg = features.get("heading_deg", 315.0)
+        speed_kph = features.get("speed_kph", 25.0)
+
+        # Convert heading (0=N, 90=E, 180=S, 270=W) to trigonometric radians
+        # Math angle = 90 - heading
+        heading_rad = math.radians((90.0 - heading_deg) % 360.0)
+
         pressure_deficit = max(0.0, 1013.25 - pressure)
         intensification_factor = 1.0 + (tb - 26.0) * 0.05 + (vf / 100.0) * 0.1
+
+        # Distance moved in km over h hours: speed_kph * h
+        # 1 deg lat ≈ 111.0 km, 1 deg lon ≈ 111.0 * cos(lat) km
+        cos_lat = max(0.2, math.cos(math.radians(lat)))
+
+        def project_pos(hours: float) -> tuple[float, float]:
+            dist_km = speed_kph * hours
+            d_lat = (dist_km * math.sin(heading_rad)) / 111.0
+            d_lon = (dist_km * math.cos(heading_rad)) / (111.0 * cos_lat)
+            return round(lat + d_lat, 3), round(lon + d_lon, 3)
+
+        lat_6h, lon_6h = project_pos(6.0)
+        lat_12h, lon_12h = project_pos(12.0)
+        lat_24h, lon_24h = project_pos(24.0)
 
         # 6h Forecast
         wind_6h = round(min(300.0, wind + 4.5 * intensification_factor), 1)
         pressure_6h = round(max(880.0, pressure - 2.8 * intensification_factor), 1)
-        lat_6h = round(lat + 0.15, 3)
-        lon_6h = round(lon - 0.20, 3)
 
         # 12h Forecast
         wind_12h = round(min(300.0, wind + 9.0 * intensification_factor), 1)
         pressure_12h = round(max(880.0, pressure - 6.5 * intensification_factor), 1)
-        lat_12h = round(lat + 0.35, 3)
-        lon_12h = round(lon - 0.45, 3)
 
         # 24h Forecast
         wind_24h = round(min(300.0, wind + 14.0 * intensification_factor), 1)
         pressure_24h = round(max(880.0, pressure - 11.5 * intensification_factor), 1)
-        lat_24h = round(lat + 0.75, 3)
-        lon_24h = round(lon - 0.95, 3)
 
         return {
             "identification": {
