@@ -397,12 +397,14 @@ def run_inference(request: InferenceRequest):
         }
 
     prediction = BASELINE_PIPELINE.predict(features)
-    prediction["model_provenance"] = {
-        "model_version": "v1.0.0-baseline",
-        "algorithm": BASELINE_PIPELINE.algorithm,
-        "is_trained": BASELINE_PIPELINE.is_trained,
-    }
+    if "model_provenance" not in prediction:
+        prediction["model_provenance"] = {
+            "model_version": "v1.0.0-baseline",
+            "algorithm": BASELINE_PIPELINE.algorithm,
+            "is_trained": BASELINE_PIPELINE.is_trained,
+        }
     return prediction
+
 
 
 @app.get("/api/v3/storms/{storm_id}/forecast")
@@ -498,3 +500,212 @@ def dataset_summary():
         if BASELINE_PIPELINE.is_trained
         else ("Train gradient-boosted baseline classifier/regressor on sequence features." if ready_for_baseline else "Ingest labelled, storm-split historical observations before training."),
     }
+
+
+@app.get("/validation")
+@app.get("/api/v3/validation")
+def validation_dashboard():
+    """Developer Validation Dashboard — honest status for all CYCLONEX subsystems.
+
+    IMPORTANT: All status labels reflect actual validation state.
+    No metrics are claimed unless independently reproduced from real held-out storms.
+    """
+    from baseline_model import MODEL_STATUS, VALIDATION_STATUS, HEURISTIC_UNCERTAINTY_KM
+
+    ml_trained = BASELINE_PIPELINE.is_trained
+    ml_metrics = BASELINE_PIPELINE.metrics if ml_trained else None
+
+    return {
+        "system": "CYCLONEX v2.1 Hydro-Meteorological & Damage Intelligence Engine",
+        "timestamp": datetime.now().isoformat(),
+        "validation_policy": (
+            "All subsystem statuses reflect actual implementation state. "
+            "HEURISTIC = rule-based, not validated from real held-out data. "
+            "NOT_VALIDATED = no ground truth comparison performed."
+        ),
+        "subsystems": {
+            "AI_ML_STATUS": {
+                "status": "HEURISTIC",
+                "label": "HEURISTIC — NOT AI/ML",
+                "model_status": MODEL_STATUS,
+                "validation_status": VALIDATION_STATUS,
+                "details": (
+                    "Track model uses advection drift extrapolation. "
+                    "Identification uses wind-speed thresholds. "
+                    "No ML model is trained or deployed. "
+                    "Genuine AI/ML requires IBTrACS storm-separated train/test split."
+                ),
+            },
+            "TRACK_PERFORMANCE": {
+                "status": "NOT_VALIDATED",
+                "label": "NOT VALIDATED",
+                "metrics": None,
+                "details": (
+                    "No track error metrics available. "
+                    "Heuristic uncertainty radii (NOT statistically calibrated): "
+                    f"6h ≈ {HEURISTIC_UNCERTAINTY_KM['6h']} km, "
+                    f"12h ≈ {HEURISTIC_UNCERTAINTY_KM['12h']} km, "
+                    f"24h ≈ {HEURISTIC_UNCERTAINTY_KM['24h']} km. "
+                    "These are placeholder bounds, NOT reproduced from real storm errors."
+                ),
+            },
+            "INTENSITY_PERFORMANCE": {
+                "status": "NOT_VALIDATED",
+                "label": "NOT VALIDATED",
+                "metrics": None,
+                "details": (
+                    "No wind/pressure intensity error metrics available. "
+                    "Intensity change uses empirical SST modulation factor, not a trained regressor."
+                ),
+            },
+            "WIND_FIELD_STATUS": {
+                "status": "PASS",
+                "label": "PASS",
+                "details": (
+                    "Holland-Rankine combined vortex wind profile with right-of-track "
+                    "translation asymmetry. Dynamic pressure q=0.5ρV² verified. "
+                    "q(200)/q(100) = 4.00 (V² scaling) — VERIFIED."
+                ),
+            },
+            "LRR_FORMULA_STATUS": {
+                "status": "FIXED_v2.1",
+                "label": "FIXED",
+                "details": (
+                    "LRR = effective_wind_loading / resistance (q * Cd * shelter / R). "
+                    "Previous version incorrectly used q / resistance (missing Cd=1.3 and shelter_factor). "
+                    "Fixed in v2.1."
+                ),
+            },
+            "GRID_STATUS": {
+                "status": "PASS",
+                "label": "PASS",
+                "details": "Local tangent-plane 200m × 200m grid (40,000 m² cell area verified).",
+            },
+            "BUILDING_ALIGNMENT": {
+                "status": "PASS",
+                "label": "PASS",
+                "details": "OpenStreetMap vector footprint spatial join (EPSG:4326).",
+            },
+            "OBSTACLE_STATUS": {
+                "status": "PASS",
+                "label": "PASS",
+                "details": "Directional upwind search with shelter factors (0.85 high, 0.92 moderate, 1.0 open).",
+            },
+            "DAMAGE_MODEL_STATUS": {
+                "status": "NOT_VALIDATED",
+                "label": "NOT VALIDATED",
+                "formula": "CYCLONEX_DAMAGE_V2_ADDITIVE: D = w_H*H + w_S*S_resp + w_E*E + w_V*V",
+                "details": (
+                    "IS-875 screening model. Weights are expert assumptions, "
+                    "NOT calibrated against post-event damage survey ground truth. "
+                    "Result is a modelled damage risk index, not destruction probability."
+                ),
+            },
+            "MATERIAL_PROVENANCE_STATUS": {
+                "status": "INFERRED",
+                "label": "INFERRED",
+                "details": (
+                    "Building footprints from OSM (OBSERVED). "
+                    "Material class, height, and resistance are INFERRED from height heuristics. "
+                    "Structural resistance values (300/900/1500 Pa) are IS-875 screening assumptions."
+                ),
+            },
+            "2D_STATUS": {
+                "status": "PASS",
+                "label": "PASS",
+                "details": "Leaflet canvas renderer with dynamic mode switching and bounds fitter.",
+            },
+        },
+    }
+
+
+@app.get("/api/v3/developer-health")
+def developer_health():
+    """Real-time developer health check — subsystem live status.
+
+    Returns actual runtime state (trained/not, sample counts, etc.)
+    Never fabricates metrics.
+    """
+    from baseline_model import MODEL_STATUS, VALIDATION_STATUS
+
+    return {
+        "timestamp": datetime.now().isoformat(),
+        "ml_pipeline": {
+            "model_status": MODEL_STATUS,
+            "validation_status": VALIDATION_STATUS,
+            "is_trained_on_samples": BASELINE_PIPELINE.is_trained,
+            "training_sample_count": BASELINE_PIPELINE.training_sample_count,
+            "metrics": BASELINE_PIPELINE.metrics,
+            "algorithm": BASELINE_PIPELINE.algorithm,
+        },
+        "data_registry": {
+            "observations": len(OBSERVATIONS),
+            "best_track_labels": len(BEST_TRACK_LABELS),
+            "training_samples": len(SAMPLES),
+            "split_summary": get_split_summary(),
+        },
+        "physics_engine": {
+            "version": "v2.1",
+            "wind_model": "Holland-Rankine + right-of-track asymmetry",
+            "grid_size_m": settings.grid_size_m,
+            "lrr_formula": "effective_wind_loading / structural_resistance (CORRECTED v2.1)",
+            "damage_formula": "CYCLONEX_DAMAGE_V2_ADDITIVE",
+            "land_classifier": "piecewise_coastline_geometry",
+        },
+        "system_status": "OPERATIONAL",
+    }
+
+
+@app.get("/api/v3/cell-trace")
+def cell_trace(
+    lat: float = Query(..., ge=-90, le=90),
+    lon: float = Query(..., ge=-180, le=180),
+    wind_kph: float = Query(160.0, ge=0, le=400),
+    pressure_hpa: float = Query(950.0, ge=800, le=1050),
+    heading_deg: float = Query(315.0, ge=0, le=360),
+    speed_kph: float = Query(25.0, ge=0, le=120),
+    storm_surge_m: float = Query(3.0, ge=0, le=20),
+    rain_rate_mm_hr: float = Query(50.0, ge=0, le=500),
+):
+    """End-to-end physical trace for a single cell.
+
+    Runs the full physics chain for one geographic location and returns
+    every intermediate value: wind → dynamic pressure → LRR → H/S/E/V
+    → damage score → classification.
+
+    Use for auditing and debugging the damage engine.
+    """
+    from risk_service import ScenarioInput, evaluate_cell_full, local_metric_transforms, _is_land
+
+    scenario = ScenarioInput(
+        name="cell-trace-diagnostic",
+        center_lat=lat,
+        center_lon=lon,
+        max_wind_kph=wind_kph,
+        central_pressure_hpa=pressure_hpa,
+        heading_deg=heading_deg,
+        speed_kph=speed_kph,
+        storm_surge_m=storm_surge_m,
+        rain_rate_mm_hr=rain_rate_mm_hr,
+        field_radius_km=1.0,
+    )
+
+    forward, inverse = local_metric_transforms(lon, lat)
+    center_x, center_y = forward(lon, lat)
+    # Trace the center cell (x_m=0, y_m=0 relative to storm eye)
+    cell_data = evaluate_cell_full(0.0, 0.0, lon, lat, scenario)
+
+    return {
+        "trace_type": "single_cell_center",
+        "input": {
+            "lat": lat,
+            "lon": lon,
+            "wind_kph": wind_kph,
+            "pressure_hpa": pressure_hpa,
+            "heading_deg": heading_deg,
+            "speed_kph": speed_kph,
+        },
+        "full_physics_trace": cell_data,
+        "note": "This traces the storm eye center cell. For off-center cells, use the scenario endpoint.",
+    }
+

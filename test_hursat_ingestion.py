@@ -30,7 +30,7 @@ class TestHursatIngestion(unittest.TestCase):
             acquired_at=datetime(2020, 5, 18, 12, 0, tzinfo=timezone.utc),
             centre_lat=15.5,
             centre_lon=87.5,
-            asset_url="https://noaa.hursat.gov/b1/2020/NI_AMPHAN.nc",
+            asset_url="http://noaa.hursat.gov/b1/2020/NI_AMPHAN.nc",
             box_size_deg=4.0,
             spatial_resolution_km=8.0,
         )

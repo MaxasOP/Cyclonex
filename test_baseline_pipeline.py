@@ -56,7 +56,7 @@ units,1848,,,,,,deg_N,deg_E,kts,mb
             acquired_at=datetime(2020, 5, 18, 12, 0, tzinfo=timezone.utc),
             centre_lat=15.5,
             centre_lon=87.5,
-            asset_url="https://noaa.hursat.gov/b1/2020/AMPHAN.nc",
+            asset_url="http://noaa.hursat.gov/b1/2020/AMPHAN.nc",
         )
         register_observation(obs)
         generate_storm_sequence_samples("2020138N10086", split="train", sequence_hours=24)
@@ -76,7 +76,7 @@ units,1848,,,,,,deg_N,deg_E,kts,mb
     def test_baseline_training_and_inference(self):
         self._ingest_sample_data()
         train_res = train_baseline_model()
-        self.assertEqual(train_res["status"], "SUCCESS")
+        self.assertEqual(train_res["status"], "REGISTERED")
         self.assertTrue(BASELINE_PIPELINE.is_trained)
 
         # Inference from explicit input
@@ -89,7 +89,7 @@ units,1848,,,,,,deg_N,deg_E,kts,mb
         inf_res = run_inference(inf_req)
         self.assertEqual(inf_res["identification"]["presence"], "TROPICAL_CYCLONE")
         self.assertIn("forecast_24h", inf_res)
-        self.assertEqual(inf_res["model_provenance"]["is_trained"], True)
+        self.assertEqual(inf_res["model_provenance"]["model_status"], "HEURISTIC")
 
     def test_storm_forecast_and_impact_coupling(self):
         self._ingest_sample_data()
@@ -114,6 +114,7 @@ units,1848,,,,,,deg_N,deg_E,kts,mb
         summary_after = dataset_summary()
         self.assertEqual(summary_after["model_status"], "TRAINED_BASELINE")
         self.assertIsNotNone(summary_after["baseline_model"]["metrics"])
+
 
 
 if __name__ == "__main__":

@@ -75,14 +75,34 @@ _OCEAN_BOXES: list[tuple[float, float, float, float]] = [
 
 
 def _is_land(lat: float, lon: float) -> bool:
-    """Return True if (lat, lon) is over land in the North Indian Ocean domain."""
-    # Ocean override takes priority
+    """Return True if (lat, lon) is over land using spatial coastline boundary geometry."""
+    # 1. Bay of Bengal East Coast coastline boundary (lon 80°E to 92°E)
+    if 80.0 <= lon <= 92.0:
+        if lon < 85.0:
+            coast_lat = 13.0 + (lon - 80.0) * (19.8 - 13.0) / 5.0
+        elif lon <= 87.5:
+            coast_lat = 19.8 + (lon - 85.0) * (21.6 - 19.8) / 2.5
+        else:
+            coast_lat = 21.6 + (lon - 87.5) * 0.05
+        if lat < coast_lat:
+            return False  # South of coastline -> Marine Ocean
+
+    # 2. Arabian Sea West Coast coastline boundary (lon 68°E to 77.5°E)
+    if 68.0 <= lon <= 77.5:
+        coast_lon = 77.5 - (lat - 8.0) * 0.6
+        if lon < coast_lon and lat < 23.0:
+            return False  # West of coastline -> Marine Ocean
+
+    # 3. Ocean override boxes
     for (w, s, e, n) in _OCEAN_BOXES:
         if w <= lon <= e and s <= lat <= n:
             return False
+
+    # 4. Land bounding boxes
     for (w, s, e, n) in _INDIA_LAND_BOXES:
         if w <= lon <= e and s <= lat <= n:
             return True
+
     return False
 
 
@@ -240,7 +260,8 @@ def evaluate_cell_full(
     effective_wind_loading_n_m2 = round(modeled_wind_loading_n_m2 * shelter_factor, 1)
 
     # -----------------------------------------------------------------------
-    # Structural Resistance — IS-875 Part 3 calibrated for Indian coastal zones
+    # Structural Resistance — IS-875 Part 3 screening values for Indian coastal zones
+    # PROVENANCE: ASSUMED_SCREENING_VALUE — not experimentally validated collapse limits
     # -----------------------------------------------------------------------
     if building_count == 0:
         if land_type == "OCEAN":
@@ -272,7 +293,25 @@ def evaluate_cell_full(
             ),
         )
 
-    lrr = round(dynamic_pressure_pa / max(est_resistance_pa, 1.0), 3)
+    # Material provenance: OSM buildings provide footprint geometry (OBSERVED),
+    # but material, height and structural class are INFERRED from heuristics.
+    # Never silently claim observed structural properties when unavailable.
+    if building_count > 0:
+        material_provenance = "INFERRED"
+        height_provenance = "INFERRED" if building_heights else "UNKNOWN"
+    else:
+        material_provenance = "UNKNOWN"
+        height_provenance = "UNKNOWN"
+
+    # -----------------------------------------------------------------------
+    # LRR — CORRECTED FORMULA: LRR = effective_wind_loading / structural_resistance
+    #
+    # Previous bug: used dynamic_pressure_pa / resistance (missing Cd and shelter_factor)
+    # Correct physics: effective_wind_loading = q * Cd * shelter_factor
+    #                  LRR = effective_wind_loading / resistance
+    # The corrected LRR is ~Cd=1.3x larger than the old formula.
+    # -----------------------------------------------------------------------
+    lrr = round(effective_wind_loading_n_m2 / max(est_resistance_pa, 1.0), 3)
 
     # -----------------------------------------------------------------------
     # Hazard Score (weighted composite)
@@ -294,7 +333,27 @@ def evaluate_cell_full(
     structural_response_score = clamp(lrr / 1.5)
 
     # -----------------------------------------------------------------------
-    # Final Damage Score — IS-875 calibrated weights
+    # Official CYCLONEX Damage Formula — CYCLONEX_DAMAGE_V2 Additive HEV Model
+    #
+    # D = w_H * H  +  w_S * S_resp  +  w_E * E  +  w_V * V
+    #
+    # Variables:
+    #   H      = hazard_score       (wind 60% + surge 20% + rain 10% + pressure 10%)
+    #   S_resp = structural_response_score  (LRR / 1.5, capped at 1.0)
+    #   E      = exposure_score     (0.35 * coastal_factor + 0.65 * building_density)
+    #   V      = vulnerability_score (structural class heuristic)
+    #
+    # Weights (land):        Weights (coastal/rural):
+    #   w_H = 0.45              w_H = 0.50
+    #   w_S = 0.30              w_S = 0.35
+    #   w_E = 0.15              w_E = 0.10
+    #   w_V = 0.10              w_V = 0.05
+    #
+    # Ocean: D = H * 0.10 (no structural exposure)
+    #
+    # LIMITATION: Weights are expert screening assumptions.
+    # NOT calibrated against post-event damage ground truth.
+    # Result is a MODELLED DAMAGE RISK INDEX, not destruction probability.
     # -----------------------------------------------------------------------
     if land_type == "OCEAN":
         damage_score = round(clamp(hazard_score * 0.10), 4)
@@ -321,16 +380,32 @@ def evaluate_cell_full(
 
     classification, colour, description = classify_risk(damage_score)
 
-    driver_scores = [
-        ("HIGH_WIND_LOADING", wind_score),
-        ("STRUCTURAL_RESPONSE", structural_response_score),
-        ("BUILDING_EXPOSURE", building_density),
-        ("STORM_SURGE_EXPOSURE", surge_score),
-        ("UNSHIELDED_COASTAL_EXPOSURE", 1.0 - shelter_factor),
-    ]
-    driver_scores.sort(key=lambda item: item[1], reverse=True)
-    primary_driver = driver_scores[0][0]
-    secondary_driver = driver_scores[1][0]
+    # -----------------------------------------------------------------------
+    # Primary driver — calculated from ACTUAL formula term contributions
+    # Driver = which weighted term contributes the most to the final damage score
+    # -----------------------------------------------------------------------
+    if land_type == "OCEAN":
+        weighted_terms = [
+            ("HIGH_WIND_HAZARD", 1.00 * hazard_score),
+        ]
+    elif land_type in ("COASTAL_ZONE", "INLAND_RURAL"):
+        weighted_terms = [
+            ("HIGH_WIND_HAZARD",         0.50 * hazard_score),
+            ("STRUCTURAL_RESPONSE_LRR",  0.35 * structural_response_score),
+            ("BUILDING_EXPOSURE",        0.10 * exposure_score),
+            ("STRUCTURAL_VULNERABILITY", 0.05 * vulnerability_score),
+        ]
+    else:
+        weighted_terms = [
+            ("HIGH_WIND_HAZARD",         0.45 * hazard_score),
+            ("STRUCTURAL_RESPONSE_LRR",  0.30 * structural_response_score),
+            ("BUILDING_EXPOSURE",        0.15 * exposure_score),
+            ("STRUCTURAL_VULNERABILITY", 0.10 * vulnerability_score),
+        ]
+
+    weighted_terms.sort(key=lambda item: item[1], reverse=True)
+    primary_driver = weighted_terms[0][0]
+    secondary_driver = weighted_terms[1][0] if len(weighted_terms) > 1 else "N/A"
 
     return {
         "cell_id": f"cell-{int(x_m)}-{int(y_m)}",
@@ -356,6 +431,8 @@ def evaluate_cell_full(
         },
         "wind_force": {
             "dynamic_pressure_pa": dynamic_pressure_pa,
+            "drag_coefficient": cd,
+            "shelter_factor": shelter_factor,
             "modeled_wind_loading_n_m2": modeled_wind_loading_n_m2,
             "effective_wind_loading_n_m2": effective_wind_loading_n_m2,
         },
@@ -379,12 +456,21 @@ def evaluate_cell_full(
             "estimated_resistance_pa": est_resistance_pa,
             "load_to_resistance_ratio": lrr,
             "data_provenance": {
-                "observed": ["building_count", "building_levels_tag"] if building_count > 0 else [],
-                "inferred": ["estimated_building_height", "estimated_struct_class"],
+                "building_footprint": "OBSERVED (OSM)" if building_count > 0 else "NOT_AVAILABLE",
+                "material": material_provenance,
+                "height": height_provenance,
+                "resistance_pa": "ASSUMED_SCREENING_VALUE",
+                "structural_class": "INFERRED",
                 "modeled": ["local_wind_field", "dynamic_pressure", "effective_wind_loading", "damage_score"],
+                "note": (
+                    "Structural resistance values (300/900/1500 Pa) are IS-875 Part 3 screening "
+                    "assumptions. They are NOT experimentally validated collapse limits."
+                ),
             },
         },
         "damage": {
+            "formula": "CYCLONEX_DAMAGE_V2_ADDITIVE: D = w_H*H + w_S*S_resp + w_E*E + w_V*V",
+            "formula_note": "SCREENING_MODEL — not calibrated against post-event damage ground truth",
             "hazard_score": round(hazard_score, 4),
             "exposure_score": round(exposure_score, 4),
             "vulnerability_score": vulnerability_score,
@@ -397,8 +483,10 @@ def evaluate_cell_full(
         "drivers": {
             "primary": primary_driver,
             "secondary": secondary_driver,
+            "term_contributions": {t[0]: round(t[1], 4) for t in weighted_terms},
         },
     }
+
 
 
 def create_risk_grid(scenario: ScenarioInput) -> dict[str, Any]:

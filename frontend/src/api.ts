@@ -21,6 +21,8 @@ export type FullCellAnalysis = {
   };
   wind_force: {
     dynamic_pressure_pa: number;
+    drag_coefficient?: number;
+    shelter_factor?: number;
     modeled_wind_loading_n_m2: number;
     effective_wind_loading_n_m2: number;
   };
@@ -44,12 +46,22 @@ export type FullCellAnalysis = {
     estimated_resistance_pa: number;
     load_to_resistance_ratio: number;
     data_provenance: {
-      observed: string[];
-      inferred: string[];
-      modeled: string[];
+      // New provenance shape (v2.1)
+      building_footprint?: string;
+      material?: string;
+      height?: string;
+      resistance_pa?: string;
+      structural_class?: string;
+      modeled?: string[];
+      note?: string;
+      // Legacy shape (backwards compatible)
+      observed?: string[];
+      inferred?: string[];
     };
   };
   damage: {
+    formula?: string;
+    formula_note?: string;
     hazard_score: number;
     exposure_score: number;
     vulnerability_score: number;
@@ -62,6 +74,7 @@ export type FullCellAnalysis = {
   drivers: {
     primary: string;
     secondary: string;
+    term_contributions?: Record<string, number>;
   };
 };
 
@@ -149,24 +162,41 @@ export type ForecastHorizon = {
   central_pressure_hpa: number;
   track_uncertainty_km: number;
   wind_uncertainty_kph: number;
+  uncertainty_status?: string;
+  method?: string;
 };
 
 export type MLInferenceResult = {
+  model_provenance: {
+    model_name: string;
+    model_version: string;
+    model_status: string;
+    validation_status: string;
+    uncertainty_status: string;
+    is_trained_ml_model: boolean;
+    is_trained_on_samples: boolean;
+    warning: string;
+  };
   identification: {
     presence: "NO_CYCLONE" | "TROPICAL_DISTURBANCE" | "TROPICAL_CYCLONE";
-    confidence: number;
+    method?: string;
+    data_status?: string;
     centre_lat: number;
     centre_lon: number;
+    /** @deprecated use model_provenance */
+    confidence?: number;
   };
   pattern_classification: {
     lifecycle_pattern: "FORMATION" | "INTENSIFYING" | "MATURE" | "WEAKENING" | "LANDFALLING" | null;
-    confidence: number | null;
+    method?: string;
+    data_status?: string;
+    /** @deprecated use model_provenance */
+    confidence?: number | null;
   };
   forecast_6h: ForecastHorizon;
   forecast_12h: ForecastHorizon;
   forecast_24h: ForecastHorizon;
-  ocean_context: { tb_deg_c: number; vf_m: number };
-  model_provenance: { model_version: string; algorithm: string; is_trained: boolean };
+  ocean_context: { tb_deg_c: number; vf_m: number; data_status?: string };
 };
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");

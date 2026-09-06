@@ -188,6 +188,7 @@ export default function App() {
 
   const [analysisMode, setAnalysisMode] = useState<MapAnalysisMode>("DAMAGE");
   const [selectedCell, setSelectedCell] = useState<FullCellAnalysis | null>(null);
+  const [showDevPanel, setShowDevPanel] = useState(false);
 
   async function runFullPipeline(
     latStr: string,
@@ -429,6 +430,44 @@ export default function App() {
   const summaryStats = scenario?.risk_grid?.summary;
   const totalCells = scenario?.risk_grid?.features?.length || 0;
   const tallerBuildingsCount = buildings.filter((b) => b.properties.is_locally_taller).length;
+
+  // Developer Health Panel — all values derived from API response, never hardcoded
+  const devPanelStats = (() => {
+    const features = scenario?.risk_grid?.features ?? [];
+    if (features.length === 0) return null;
+    const scores = features.map((f) => f.properties?.damage_score ?? 0);
+    const allLats = features.flatMap((f) => f.geometry?.coordinates?.[0]?.map((c: number[]) => c[1]) ?? []);
+    const allLons = features.flatMap((f) => f.geometry?.coordinates?.[0]?.map((c: number[]) => c[0]) ?? []);
+    const landCells = features.filter((f) => f.properties?.land_type !== "OCEAN");
+    const oceanCells = features.filter((f) => f.properties?.land_type === "OCEAN");
+    const buildingCells = features.filter((f) => (f.properties?.building_count ?? 0) > 0);
+    const redCells = scores.filter((s) => s >= 0.55).length;
+    const orangeCells = scores.filter((s) => s >= 0.25 && s < 0.55).length;
+    const greenCells = scores.filter((s) => s >= 0.10 && s < 0.25).length;
+    const blueCells = scores.filter((s) => s < 0.10).length;
+    const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+    return {
+      totalCells: features.length,
+      minDamage: Math.min(...scores).toFixed(4),
+      maxDamage: Math.max(...scores).toFixed(4),
+      meanDamage: mean.toFixed(4),
+      landCells: landCells.length,
+      oceanCells: oceanCells.length,
+      buildingCells: buildingCells.length,
+      redCells,
+      orangeCells,
+      greenCells,
+      blueCells,
+      gridBounds: {
+        south: allLats.length ? Math.min(...allLats).toFixed(4) : "N/A",
+        north: allLats.length ? Math.max(...allLats).toFixed(4) : "N/A",
+        west: allLons.length ? Math.min(...allLons).toFixed(4) : "N/A",
+        east: allLons.length ? Math.max(...allLons).toFixed(4) : "N/A",
+      },
+      mlModelStatus: mlResult?.model_provenance?.model_status ?? "UNKNOWN",
+      mlValidation: mlResult?.model_provenance?.validation_status ?? "UNKNOWN",
+    };
+  })();
 
   return (
     <main>
@@ -818,6 +857,60 @@ export default function App() {
               </span>
             ))}
           </div>
+
+          {/* Developer Health Panel — data from API response only */}
+          <div className="dev-panel-toggle">
+            <button
+              type="button"
+              className="dev-panel-btn"
+              onClick={() => setShowDevPanel((v) => !v)}
+              title="Toggle developer diagnostic panel"
+            >
+              {showDevPanel ? "▲ Hide" : "▼ Show"} Developer Health Panel
+            </button>
+          </div>
+
+          {showDevPanel && (
+            <div className="dev-panel" role="region" aria-label="Developer Health Panel">
+              <div className="dev-panel-title">🔬 DEVELOPER HEALTH PANEL</div>
+              <div className="dev-panel-note">
+                All values sourced from API response. Never hardcoded.
+              </div>
+
+              {devPanelStats ? (
+                <>
+                  <div className="dev-section-label">GRID RESPONSE</div>
+                  <div className="dev-row"><span>Cell Count</span><strong>{devPanelStats.totalCells.toLocaleString()}</strong></div>
+                  <div className="dev-row"><span>Grid Bounds S/N</span><strong>{devPanelStats.gridBounds.south}° / {devPanelStats.gridBounds.north}°</strong></div>
+                  <div className="dev-row"><span>Grid Bounds W/E</span><strong>{devPanelStats.gridBounds.west}° / {devPanelStats.gridBounds.east}°</strong></div>
+
+                  <div className="dev-section-label">DAMAGE SCORES</div>
+                  <div className="dev-row"><span>Min Damage Score</span><strong>{devPanelStats.minDamage}</strong></div>
+                  <div className="dev-row"><span>Max Damage Score</span><strong style={{ color: Number(devPanelStats.maxDamage) >= 0.55 ? "#d4483b" : "#ed8a28" }}>{devPanelStats.maxDamage}</strong></div>
+                  <div className="dev-row"><span>Mean Damage Score</span><strong>{devPanelStats.meanDamage}</strong></div>
+
+                  <div className="dev-section-label">CELL CLASSIFICATION</div>
+                  <div className="dev-row"><span>🔴 Severe (≥0.55)</span><strong style={{ color: "#d4483b" }}>{devPanelStats.redCells}</strong></div>
+                  <div className="dev-row"><span>🟠 Damage (0.25–0.55)</span><strong style={{ color: "#ed8a28" }}>{devPanelStats.orangeCells}</strong></div>
+                  <div className="dev-row"><span>🟢 Safe (0.10–0.25)</span><strong style={{ color: "#35a66f" }}>{devPanelStats.greenCells}</strong></div>
+                  <div className="dev-row"><span>🩵 No Damage (&lt;0.10)</span><strong style={{ color: "#75c9f1" }}>{devPanelStats.blueCells}</strong></div>
+
+                  <div className="dev-section-label">LAND / EXPOSURE</div>
+                  <div className="dev-row"><span>Land Cells</span><strong>{devPanelStats.landCells}</strong></div>
+                  <div className="dev-row"><span>Ocean Cells</span><strong>{devPanelStats.oceanCells}</strong></div>
+                  <div className="dev-row"><span>Cells w/ Buildings</span><strong>{devPanelStats.buildingCells}</strong></div>
+
+                  <div className="dev-section-label">ML PROVENANCE</div>
+                  <div className="dev-row"><span>Model Status</span><strong style={{ color: "#ffb05c" }}>{devPanelStats.mlModelStatus}</strong></div>
+                  <div className="dev-row" style={{ fontSize: "0.68rem", wordBreak: "break-all" }}><span>Validation</span><strong style={{ color: "#ffb05c", fontSize: "0.65rem" }}>{devPanelStats.mlValidation}</strong></div>
+                </>
+              ) : (
+                <div className="dev-row" style={{ color: "#8fa4bf" }}>
+                  No scenario loaded. Run a simulation to see diagnostics.
+                </div>
+              )}
+            </div>
+          )}
         </aside>
 
         <section className="map-shell" aria-label="Cyclone risk map">
