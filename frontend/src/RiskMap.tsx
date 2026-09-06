@@ -1,155 +1,395 @@
-import { APIProvider, Map, useMap } from "@vis.gl/react-google-maps";
-import { useEffect } from "react";
-import { CircleMarker, GeoJSON, MapContainer, Polyline, Popup, TileLayer, useMap as useLeafletMap } from "react-leaflet";
+import { useEffect, useState } from "react";
+import L from "leaflet";
+import {
+  CircleMarker,
+  GeoJSON,
+  MapContainer,
+  Polyline,
+  Popup,
+  TileLayer,
+  useMap as useLeafletMap,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import type { BuildingFeature, RiskFeature } from "./api";
+import type { BuildingFeature, RiskFeature, FullCellAnalysis } from "./api";
+
+export type MapAnalysisMode = "DAMAGE" | "HIT" | "WIND" | "EXPOSURE" | "BUILDINGS" | "OBSTACLES";
 
 type RiskMapProps = {
+  scenarioId?: string;
   center: { lat: number; lng: number };
   features: RiskFeature[];
   buildings: BuildingFeature[];
   trajectory?: { lat: number; lng: number; label: string }[];
+  headingDeg?: number;
+  speedKph?: number;
+  analysisMode?: MapAnalysisMode;
+  onSelectCell?: (cell: FullCellAnalysis | null) => void;
 };
 
-function GoogleDataLayer({
+type BasemapType = "osm" | "esri" | "carto";
+
+const BASEMAPS: Record<BasemapType, { name: string; url: string; attribution: string }> = {
+  osm: {
+    name: "OpenStreetMap",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  },
+  esri: {
+    name: "Esri Satellite",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution:
+      "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+  },
+  carto: {
+    name: "Carto Positron",
+    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  },
+};
+
+function getDamageColor(score?: number, fallbackColour?: string): string {
+  if (fallbackColour && fallbackColour !== "#75c9f1") return fallbackColour;
+  if (score === undefined || score === null) return fallbackColour || "#75c9f1";
+  if (score >= 0.55) return "#d4483b"; // 🔴 Red — Severe / Total Destruction Risk
+  if (score >= 0.25) return "#ed8a28"; // 🟠 Orange — Damage Likely
+  if (score >= 0.10) return "#35a66f"; // 🟢 Green — Safe
+  return "#75c9f1"; // 🩵 Sky Blue — No Damage
+}
+
+function getHitColor(score?: number, landType?: string): string {
+  if (landType === "OCEAN") return "#75c9f1"; // 🩵 Marine / Ocean (No direct land hit)
+  if (score === undefined || score === null) return "#75c9f1";
+  if (score >= 0.55) return "#d4483b"; // 🔴 Red — Direct Severe Land Hit
+  if (score >= 0.25) return "#ed8a28"; // 🟠 Orange — Moderate Land Impact Hit
+  if (score >= 0.10) return "#35a66f"; // 🟢 Green — Low Peripheral Land Hit
+  return "#75c9f1";
+}
+
+function getWindColor(windKph?: number): string {
+  if (!windKph) return "#75c9f1";
+  if (windKph >= 180) return "#8b0000"; // Deep Red
+  if (windKph >= 140) return "#d4483b"; // Red
+  if (windKph >= 100) return "#ed8a28"; // Orange
+  if (windKph >= 60) return "#f7d070";  // Yellow
+  return "#35a66f";                    // Green
+}
+
+function getExposureColor(density?: number): string {
+  if (density === undefined || density === null || density === 0) return "#75c9f1"; // Open Land
+  if (density >= 0.5) return "#d4483b";
+  if (density >= 0.2) return "#ed8a28";
+  if (density >= 0.05) return "#35a66f";
+  return "#75c9f1";
+}
+
+function getObstacleColor(level?: string): string {
+  if (level === "HIGH") return "#8b0000";
+  if (level === "MODERATE") return "#ed8a28";
+  return "#35a66f";
+}
+
+function LeafletBoundsFitter({
+  center,
   features,
-  kind,
+  trajectory,
+  scenarioId,
 }: {
-  features: RiskFeature[] | BuildingFeature[];
-  kind: "risk" | "building";
+  center: { lat: number; lng: number };
+  features: RiskFeature[];
+  buildings?: BuildingFeature[];
+  trajectory?: { lat: number; lng: number; label: string }[];
+  scenarioId?: string;
 }) {
-  const map = useMap();
+  const map = useLeafletMap();
 
   useEffect(() => {
-    if (!map || !features.length) return;
-    const added = map.data.addGeoJson({ type: "FeatureCollection", features } as never);
-    map.data.setStyle((feature: google.maps.Data.Feature) => ({
-      fillColor: String(feature.getProperty(kind === "risk" ? "colour" : "display_colour")),
-      fillOpacity: kind === "risk" ? 0.56 : 0.88,
-      strokeColor:
-        kind === "building" && feature.getProperty("is_locally_taller") ? "#ffffff" : "#0a2a57",
-      strokeOpacity: kind === "risk" ? 0.52 : 1,
-      strokeWeight: kind === "risk" ? 0.6 : 1.5,
-      clickable: true,
-    }));
-    return () => added.forEach((feature) => map.data.remove(feature));
-  }, [map, features]);
+    if (!map) return;
+
+    // If 200m damage grid features are present, fit tightly to the grid bounds!
+    if (features && features.length > 0) {
+      let minLat = 90;
+      let maxLat = -90;
+      let minLng = 180;
+      let maxLng = -180;
+      for (let i = 0; i < features.length; i++) {
+        const ring = features[i].geometry?.coordinates?.[0];
+        if (ring && ring.length > 0) {
+          const c0 = ring[0];
+          const c2 = ring[2] || ring[1];
+          if (c0[1] < minLat) minLat = c0[1];
+          if (c2[1] > maxLat) maxLat = c2[1];
+          if (c0[0] < minLng) minLng = c0[0];
+          if (c2[0] > maxLng) maxLng = c2[0];
+        }
+      }
+      const gridBounds = L.latLngBounds([minLat, minLng], [maxLat, maxLng]);
+      if (gridBounds.isValid()) {
+        map.fitBounds(gridBounds, { padding: [30, 30], maxZoom: 13 });
+        return;
+      }
+    }
+
+    // If no grid features yet, fit to the regional storm track
+    if (trajectory && trajectory.length > 0) {
+      const trackBounds = L.latLngBounds([]);
+      trajectory.forEach((t) => trackBounds.extend([t.lat, t.lng]));
+      trackBounds.extend([center.lat, center.lng]);
+      if (trackBounds.isValid()) {
+        map.fitBounds(trackBounds, { padding: [40, 40], maxZoom: 8 });
+        return;
+      }
+    }
+
+    map.setView([center.lat, center.lng], 9);
+  }, [map, center.lat, center.lng, features, trajectory, scenarioId]);
 
   return null;
 }
 
-function LeafletRecenter({ center }: { center: { lat: number; lng: number } }) {
+function LeafletViewUpdater({
+  center,
+  scenarioId,
+}: {
+  center: { lat: number; lng: number };
+  scenarioId?: string;
+}) {
   const map = useLeafletMap();
   useEffect(() => {
-    map.setView([center.lat, center.lng], 10);
-  }, [map, center]);
+    if (map) {
+      map.panTo([center.lat, center.lng], { animate: true, duration: 0.6 });
+      map.invalidateSize();
+    }
+  }, [map, center.lat, center.lng, scenarioId]);
   return null;
 }
 
-function LeafletRiskMap({ center, features, buildings, trajectory }: RiskMapProps) {
-  const polylineCoords = (trajectory || []).map((t) => [t.lat, t.lng] as [number, number]);
-
-  return (
-    <MapContainer
-      center={[center.lat, center.lng]}
-      zoom={10}
-      scrollWheelZoom={true}
-      style={{ width: "100%", height: "100%", minHeight: "680px" }}
-    >
-      <LeafletRecenter center={center} />
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-
-      {/* Storm Centre Marker */}
-      <CircleMarker
-        center={[center.lat, center.lng]}
-        radius={12}
-        pathOptions={{ fillColor: "#d4483b", color: "#ffffff", weight: 2, fillOpacity: 0.9 }}
-      >
-        <Popup>
-          <strong>Storm Eye Centre</strong>
-          <br />
-          Lat: {center.lat}°N, Lon: {center.lng}°E
-        </Popup>
-      </CircleMarker>
-
-      {/* Forecast Trajectory Line */}
-      {polylineCoords.length > 1 && (
-        <Polyline
-          positions={polylineCoords}
-          pathOptions={{ color: "#75c9f1", weight: 3, dashArray: "6, 6" }}
-        />
-      )}
-
-      {/* Forecast Trajectory Points */}
-      {(trajectory || []).map((t, idx) => (
-        <CircleMarker
-          key={`traj-${idx}`}
-          center={[t.lat, t.lng]}
-          radius={6}
-          pathOptions={{ fillColor: "#ed8a28", color: "#081729", weight: 1.5, fillOpacity: 0.9 }}
-        >
-          <Popup>
-            <strong>{t.label}</strong>
-            <br />
-            Lat: {t.lat}°N, Lon: {t.lng}°E
-          </Popup>
-        </CircleMarker>
-      ))}
-
-      {/* Risk Grid Cells */}
-      {features.length > 0 && (
-        <GeoJSON
-          key={`risk-${features.length}-${center.lat}-${center.lng}`}
-          data={{ type: "FeatureCollection", features } as never}
-          style={(feature) => ({
-            fillColor: String(feature?.properties?.colour || "#75c9f1"),
-            fillOpacity: 0.56,
-            color: "#0a2a57",
-            weight: 0.8,
-          })}
-        />
-      )}
-
-      {/* Building Footprints */}
-      {buildings.length > 0 && (
-        <GeoJSON
-          key={`bldg-${buildings.length}-${center.lat}-${center.lng}`}
-          data={{ type: "FeatureCollection", features: buildings } as never}
-          style={(feature) => ({
-            fillColor: String(feature?.properties?.display_colour || "#0a2a57"),
-            fillOpacity: 0.88,
-            color: feature?.properties?.is_locally_taller ? "#ffffff" : "#0a2a57",
-            weight: 1.5,
-          })}
-        />
-      )}
-    </MapContainer>
-  );
+function LeafletResizer({ analysisMode }: { analysisMode: string }) {
+  const map = useLeafletMap();
+  useEffect(() => {
+    if (map) {
+      map.invalidateSize();
+    }
+  }, [map, analysisMode]);
+  return null;
 }
 
-export default function RiskMap({ center, features, buildings, trajectory }: RiskMapProps) {
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+export default function RiskMap({
+  scenarioId,
+  center,
+  features,
+  buildings,
+  trajectory,
+  headingDeg = 315,
+  speedKph = 25,
+  analysisMode = "DAMAGE",
+  onSelectCell,
+}: RiskMapProps) {
+  const [activeBasemap, setActiveBasemap] = useState<BasemapType>("osm");
+  const polylineCoords = (trajectory || []).map((t) => [t.lat, t.lng] as [number, number]);
 
-  if (!apiKey) {
-    return <LeafletRiskMap center={center} features={features} buildings={buildings} trajectory={trajectory} />;
-  }
+  useEffect(() => {
+    console.log("[CYCLONEX MAP DEBUG]", {
+      basemapLoaded: true,
+      featureCount: features.length,
+      buildingCount: buildings.length,
+      analysisMode,
+      center,
+      firstFeature: features[0] ? features[0].properties : null,
+    });
+  }, [features, buildings, analysisMode, center]);
+
+  // Compute movement direction vector endpoint (15 km length vector)
+  const vectorLengthKm = 0.15; // ~15 km vector length in degrees lat/lon
+  const headingVectorEnd = [
+    center.lat + vectorLengthKm * Math.cos((((90 - headingDeg) % 360) * Math.PI) / 180),
+    center.lng + vectorLengthKm * Math.sin((((90 - headingDeg) % 360) * Math.PI) / 180),
+  ] as [number, number];
 
   return (
-    <APIProvider apiKey={apiKey}>
-      <Map
-        center={center}
+    <div className="leaflet-map-wrapper">
+      {/* Floating Basemap Selector */}
+      <div className="basemap-selector" aria-label="Basemap selector">
+        {(Object.keys(BASEMAPS) as BasemapType[]).map((key) => (
+          <button
+            key={key}
+            type="button"
+            className={`basemap-btn ${activeBasemap === key ? "active" : ""}`}
+            onClick={() => setActiveBasemap(key)}
+          >
+            {BASEMAPS[key].name}
+          </button>
+        ))}
+      </div>
+
+      <MapContainer
+        center={[center.lat, center.lng]}
         zoom={10}
-        gestureHandling="greedy"
-        disableDefaultUI={false}
-        mapTypeId="hybrid"
-        mapId={import.meta.env.VITE_GOOGLE_MAP_ID || undefined}
+        scrollWheelZoom={true}
+        preferCanvas={true}
+        style={{ width: "100%", height: "100%", minHeight: "620px" }}
       >
-        <GoogleDataLayer features={features} kind="risk" />
-        <GoogleDataLayer features={buildings} kind="building" />
-      </Map>
-    </APIProvider>
+        <LeafletResizer analysisMode={analysisMode} />
+        <LeafletViewUpdater center={center} scenarioId={scenarioId} />
+        <LeafletBoundsFitter
+          center={center}
+          features={features}
+          buildings={buildings}
+          trajectory={trajectory}
+          scenarioId={scenarioId}
+        />
+
+        <TileLayer
+          key={activeBasemap}
+          attribution={BASEMAPS[activeBasemap].attribution}
+          url={BASEMAPS[activeBasemap].url}
+        />
+
+        {/* 1. 200 m Spatial Damage & Hazard Grid (Underneath tracks/markers) */}
+        {features.length > 0 && (
+          <GeoJSON
+            key={`risk-${scenarioId || "live"}-${features[0]?.id || "f0"}-${analysisMode}`}
+            data={{ type: "FeatureCollection", features } as never}
+            style={(feature) => {
+              const props = feature?.properties || {};
+              let fillColor = "#75c9f1";
+
+              if (analysisMode === "DAMAGE") {
+                const score = props.damage_score ?? props.risk_score;
+                fillColor = getDamageColor(score, props.colour);
+              } else if (analysisMode === "HIT") {
+                const score = props.damage_score ?? props.risk_score;
+                fillColor = getHitColor(score, props.land_type);
+              } else if (analysisMode === "WIND") {
+                fillColor = getWindColor(props.wind_kph);
+              } else if (analysisMode === "EXPOSURE") {
+                fillColor = getExposureColor(props.building_density);
+              } else if (analysisMode === "OBSTACLES") {
+                fillColor = getObstacleColor(props.obstruction_level);
+              } else {
+                fillColor = getDamageColor(props.damage_score, props.colour);
+              }
+
+              return {
+                fillColor,
+                fillOpacity: 0.65,
+                color: "#ffffff",
+                weight: 0.25,
+              };
+            }}
+            onEachFeature={(feature, layer) => {
+              layer.on("click", () => {
+                if (onSelectCell && feature.properties?.full_cell_analysis) {
+                  onSelectCell(feature.properties.full_cell_analysis);
+                }
+              });
+
+              const props = feature.properties || {};
+              const score = props.damage_score ?? props.risk_score ?? 0;
+              layer.bindPopup(
+                `<div>
+                  <strong>200m Cell Damage Inspection</strong><br/>
+                  <span>Damage Score: <strong>${score}</strong> (${props.classification || "N/A"})</span><br/>
+                  <span>Local Wind: ${props.wind_kph || 0} km/h (${props.wind_ms || 0} m/s)</span><br/>
+                  <span>Wind Loading: ${props.effective_wind_loading_n_m2 || 0} N/m²</span><br/>
+                  <span>Land Type: ${props.land_type || "N/A"}</span><br/>
+                  <span>Primary Driver: <strong>${props.primary_driver || "N/A"}</strong></span><br/>
+                  <em style="font-size:0.75rem; color:#8fa4bf;">Click cell for detailed explainable inspection card</em>
+                </div>`
+              );
+            }}
+          />
+        )}
+
+        {/* 2. Building Footprints Layer */}
+        {(analysisMode === "BUILDINGS" || buildings.length > 0) && (
+          <GeoJSON
+            key={`bldg-${buildings.length}-${center.lat}-${center.lng}`}
+            data={{ type: "FeatureCollection", features: buildings } as never}
+            style={(feature) => ({
+              fillColor: String(feature?.properties?.display_colour || "#0a2a57"),
+              fillOpacity: 0.88,
+              color: feature?.properties?.is_locally_taller ? "#ffffff" : "#0a2a57",
+              weight: 1.5,
+            })}
+            onEachFeature={(feature, layer) => {
+              const props = feature.properties || {};
+              layer.bindPopup(
+                `<div>
+                  <strong>Building Footprint Inspection</strong><br/>
+                  <span>Height: ${props.height_m ? props.height_m + " m" : "Unknown / Inferred"}</span><br/>
+                  <span>Locally Taller / Exposed: ${props.is_locally_taller ? "Yes (High Vulnerability)" : "No"}</span>
+                </div>`
+              );
+            }}
+          />
+        )}
+
+        {/* 3. Forecast Trajectory Polyline */}
+        {polylineCoords.length > 1 && (
+          <Polyline
+            positions={polylineCoords}
+            pathOptions={{ color: "#75c9f1", weight: 3.5, dashArray: "6, 8" }}
+          />
+        )}
+
+        {/* 4. Storm Movement Direction Vector Line */}
+        <Polyline
+          positions={[[center.lat, center.lng], headingVectorEnd]}
+          pathOptions={{ color: "#ff6b5b", weight: 4, opacity: 0.9 }}
+        />
+
+        {/* 5. Forecast Trajectory Waypoints */}
+        {(trajectory || []).map((t, idx) => (
+          <CircleMarker
+            key={`traj-${idx}`}
+            center={[t.lat, t.lng]}
+            radius={7}
+            pathOptions={{
+              fillColor: idx === 0 ? "#d4483b" : "#ed8a28",
+              color: "#ffffff",
+              weight: 2,
+              fillOpacity: 0.95,
+            }}
+          >
+            <Popup>
+              <strong>{t.label}</strong>
+              <br />
+              Lat: {t.lat.toFixed(2)}°N, Lon: {t.lng.toFixed(2)}°E
+            </Popup>
+          </CircleMarker>
+        ))}
+
+        {/* 6. Storm Eye Dominant Marker (On Top) */}
+        <CircleMarker
+          center={[center.lat, center.lng]}
+          radius={24}
+          pathOptions={{
+            fillColor: "#d4483b",
+            color: "#ff8c7a",
+            weight: 2.5,
+            fillOpacity: 0.25,
+          }}
+        />
+        <CircleMarker
+          center={[center.lat, center.lng]}
+          radius={12}
+          pathOptions={{
+            fillColor: "#d4483b",
+            color: "#ffffff",
+            weight: 3,
+            fillOpacity: 0.95,
+          }}
+        >
+          <Popup>
+            <strong>Storm Eye Center</strong>
+            <br />
+            Position: {center.lat}°N, {center.lng}°E
+            <br />
+            Movement Heading: {headingDeg}° ({speedKph} km/h)
+          </Popup>
+        </CircleMarker>
+      </MapContainer>
+    </div>
   );
 }
