@@ -301,7 +301,7 @@ export default function App() {
           speed_kph: Number(form.speed || 25),
           rain_rate_mm_hr: 75,
           storm_surge_m: 2.8,
-          field_radius_km: Number(form.radius || 15),
+          field_radius_km: Number(form.radius || 100),
         });
         setScenario(scn);
         logDamageGridDebug(scn);
@@ -366,7 +366,7 @@ export default function App() {
     setSelectedCell(null);
     try {
       const horizonData: ForecastHorizon = mlResult[`forecast_${selectedHorizon}h`];
-      const radiusKm = Number(form.radius || 15);
+      const radiusKm = Number(form.radius || 100);
       const headingDeg = Number(form.heading || 315);
       const speedKph = Number(form.speed || 25);
 
@@ -395,35 +395,16 @@ export default function App() {
 
   async function handleScreeningSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setLoading(true);
-    setError("");
-    setSelectedCell(null);
-    try {
-      const radiusKm = Number(form.radius || 15);
-      const headingDeg = Number(form.heading || 315);
-      const speedKph = Number(form.speed || 25);
-
-      const result = await createScenario({
-        name: form.name,
-        center_lat: Number(form.lat),
-        center_lon: Number(form.lon),
-        max_wind_kph: Number(form.wind),
-        central_pressure_hpa: Number(form.pressure),
-        heading_deg: headingDeg,
-        speed_kph: speedKph,
-        rain_rate_mm_hr: 75,
-        storm_surge_m: 2.8,
-        field_radius_km: radiusKm,
-      });
-      setScenario(result);
-      logDamageGridDebug(result);
-      setBuildings([]);
-      void fetchBuildings(result.id).then(setBuildings);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "The scenario could not be created.");
-    } finally {
-      setLoading(false);
-    }
+    await runFullPipeline(
+      form.lat,
+      form.lon,
+      form.wind,
+      form.pressure,
+      form.name || "Cyclone Damage Screening",
+      form.heading,
+      form.speed,
+      form.radius
+    );
   }
 
   const mapCenter = scenario?.input
@@ -711,8 +692,8 @@ export default function App() {
                   <input
                     type="number"
                     min="1"
-                    max="50"
-                    value={form.radius || "15"}
+                    max="500"
+                    value={form.radius || "100"}
                     onChange={(e) => setForm({ ...form, radius: e.target.value })}
                   />
                 </label>
