@@ -176,6 +176,7 @@ export type MLInferenceResult = {
     is_trained_ml_model: boolean;
     is_trained_on_samples: boolean;
     warning: string;
+    algorithm?: string;
   };
   identification: {
     presence: "NO_CYCLONE" | "TROPICAL_DISTURBANCE" | "TROPICAL_CYCLONE";

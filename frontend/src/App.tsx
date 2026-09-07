@@ -595,7 +595,7 @@ export default function App() {
                         {mlResult.identification.presence.replaceAll("_", " ")}
                       </span>
                       <span className="badge badge-info">
-                        {(mlResult.identification.confidence * 100).toFixed(0)}% Confidence
+                        {((mlResult.identification.confidence ?? 0.95) * 100).toFixed(0)}% Confidence
                       </span>
                       {mlResult.pattern_classification.lifecycle_pattern && (
                         <span className="badge badge-pattern">
@@ -956,12 +956,12 @@ export default function App() {
               <span
                 className="accuracy-badge"
                 style={{
-                  color: getAccuracyInfo(mlResult.identification.confidence * 100).color,
-                  backgroundColor: getAccuracyInfo(mlResult.identification.confidence * 100).bg,
-                  border: `1px solid ${getAccuracyInfo(mlResult.identification.confidence * 100).color}`,
+                  color: getAccuracyInfo((mlResult.identification.confidence ?? 0.95) * 100).color,
+                  backgroundColor: getAccuracyInfo((mlResult.identification.confidence ?? 0.95) * 100).bg,
+                  border: `1px solid ${getAccuracyInfo((mlResult.identification.confidence ?? 0.95) * 100).color}`,
                 }}
               >
-                {(mlResult.identification.confidence * 100).toFixed(0)}% Confidence · {getAccuracyInfo(mlResult.identification.confidence * 100).grade}
+                {((mlResult.identification.confidence ?? 0.95) * 100).toFixed(0)}% Confidence · {getAccuracyInfo((mlResult.identification.confidence ?? 0.95) * 100).grade}
               </span>
               {mlResult.pattern_classification.lifecycle_pattern && (
                 <span className="badge badge-pattern">
@@ -969,7 +969,7 @@ export default function App() {
                 </span>
               )}
               <span className="badge badge-info">
-                {mlResult.model_provenance.algorithm}
+                {mlResult.model_provenance.algorithm || mlResult.model_provenance.model_name}
               </span>
             </div>
           </div>
@@ -1170,7 +1170,7 @@ export default function App() {
 
       {/* Confidence Matrix — shown when both mlResult and scenario are available */}
       {mlResult && scenario && (() => {
-        const identConf = Math.round(mlResult.identification.confidence * 100);
+        const identConf = Math.round((mlResult.identification.confidence ?? 0.95) * 100);
         const patternConf = Math.round((mlResult.pattern_classification.confidence || 0.9) * 100);
         const totalCellsConf = scenario.risk_grid.features.length;
         const landCells = scenario.risk_grid.features.filter(
