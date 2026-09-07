@@ -288,8 +288,10 @@ export default function RiskMap({
               layer.on("click", () => {
                 if (!onSelectCell) return;
                 const props = feature.properties || {};
-                const analysis: FullCellAnalysis = props.full_cell_analysis || {
-                  cell_id: feature.id || "cell",
+                // Build FullCellAnalysis from flattened props (full_cell_analysis no longer
+                // sent in grid response to prevent O(N×2KB) server memory blow-up).
+                const analysis: FullCellAnalysis = {
+                  cell_id: (feature.id as string) || "cell",
                   lat: props.lat,
                   lon: props.lon,
                   cyclone_heading_deg: props.cyclone_heading_deg,
@@ -301,11 +303,11 @@ export default function RiskMap({
                     wind_direction_deg: props.wind_direction_deg || 0,
                     distance_to_eye_m: props.distance_to_cyclone_m || 0,
                     bearing_from_eye_deg: props.bearing_from_eye_deg || 0,
-                    pressure_hpa: 960,
-                    pressure_deficit_hpa: 50,
-                    rain_rate_mm_hr: 0,
-                    storm_surge_m: 0,
-                    hazard_score: props.damage_score || 0,
+                    pressure_hpa: props.pressure_hpa || 960,
+                    pressure_deficit_hpa: props.pressure_deficit_hpa || 50,
+                    rain_rate_mm_hr: props.rain_rate_mm_hr || 0,
+                    storm_surge_m: props.storm_surge_m || 0,
+                    hazard_score: props.hazard_score || props.damage_score || 0,
                   },
                   wind_force: {
                     dynamic_pressure_pa: props.dynamic_pressure_pa || 0,
@@ -314,44 +316,46 @@ export default function RiskMap({
                   exposure: {
                     building_count: props.building_count || 0,
                     building_density: props.building_density || 0,
-                    avg_building_height_m: 6.0,
-                    max_building_height_m: 12.0,
+                    avg_building_height_m: props.avg_building_height_m ?? 0,
+                    max_building_height_m: props.max_building_height_m ?? 0,
                     taller_building_count: 0,
-                    exposure_score: 0.5,
+                    exposure_score: props.exposure_score ?? 0,
                   },
                   obstacles: {
-                    avg_upwind_height_m: 0,
+                    avg_upwind_height_m: props.avg_upwind_height_m ?? 0,
                     max_upwind_height_m: 0,
-                    obstruction_level: props.obstruction_level || "LOW",
-                    shelter_factor: 1.0,
+                    obstruction_level: props.obstruction_level || "LOW_OPEN",
+                    shelter_factor: props.shelter_factor ?? 1.0,
                   },
                   structure: {
-                    estimated_class: props.estimated_class || "RESIDENTIAL_MASONRY",
-                    vulnerability_score: 0.8,
-                    estimated_resistance_pa: 900,
+                    estimated_class: props.estimated_class || "OPEN_LAND_INFERRED",
+                    vulnerability_score: props.vulnerability_score ?? 0,
+                    estimated_resistance_pa: props.estimated_resistance_pa ?? 300,
                     load_to_resistance_ratio: props.load_to_resistance_ratio || 0,
                     data_provenance: {
-                      building_footprint: "ESTIMATED",
-                      material: "MIXED",
-                      height: "ESTIMATED",
+                      building_footprint: props.building_count > 0 ? "OBSERVED (OSM)" : "NOT_AVAILABLE",
+                      material: "INFERRED",
+                      height: "INFERRED",
                       resistance_pa: "ASSUMED_SCREENING_VALUE",
                       structural_class: "INFERRED",
                       modeled: ["local_wind_field", "dynamic_pressure", "effective_wind_loading", "damage_score"],
                     },
                   },
                   damage: {
-                    hazard_score: props.damage_score || 0,
-                    exposure_score: 0.5,
-                    vulnerability_score: 0.8,
-                    structural_response_score: 0.5,
+                    hazard_score: props.hazard_score || props.damage_score || 0,
+                    exposure_score: props.exposure_score ?? 0,
+                    vulnerability_score: props.vulnerability_score ?? 0,
+                    structural_response_score: props.load_to_resistance_ratio
+                      ? Math.min(1, props.load_to_resistance_ratio / 1.5)
+                      : 0,
                     damage_score: props.damage_score || 0,
                     classification: props.classification || "SAFE",
                     colour: props.colour || "#35a66f",
                     description: props.description || "",
                   },
                   drivers: {
-                    primary: props.primary_driver || "WIND",
-                    secondary: props.secondary_driver || "EXPOSURE",
+                    primary: props.primary_driver || "HIGH_WIND_HAZARD",
+                    secondary: props.secondary_driver || "STRUCTURAL_RESPONSE_LRR",
                   },
                 };
                 onSelectCell(analysis);

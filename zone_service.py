@@ -116,6 +116,9 @@ def _ring_area_approx(ring: list[list[float]]) -> float:
 def fetch_zones(south: float, west: float, north: float, east: float) -> dict[str, Any]:
     """Fetch land-use zones from Overpass within a bounding box.
 
+    Args:
+        south, west, north, east: Geographic bounding box in EPSG:4326.
+
     Returns a GeoJSON FeatureCollection where each feature has properties
     describing its zone type, vulnerability score, and display colour.
     """
@@ -196,3 +199,7 @@ def fetch_zones(south: float, west: float, north: float, east: float) -> dict[st
             "note": "Vulnerability scores are screening-level estimates based on land-use type.",
         },
     }
+
+
+# Alias kept for backwards-compatibility with callers using the old name.
+fetch_zones_in_bbox = fetch_zones

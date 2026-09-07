@@ -491,14 +491,26 @@ def evaluate_cell_full(
 
 def create_risk_grid(scenario: ScenarioInput) -> dict[str, Any]:
     forward, inverse = local_metric_transforms(scenario.center_lon, scenario.center_lat)
-    center_x, center_y = forward(scenario.center_lon, scenario.center_lat)
+    # center always maps to (0, 0) in local metric space
+    center_x, center_y = 0.0, 0.0
     radius_m = scenario.field_radius_km * 1000.0
-    base_grid = settings.grid_size_m
-    if radius_m > 25_000.0:
+    base_grid = settings.grid_size_m  # 200 m
+
+    # ── Hard memory guard ──────────────────────────────────────────────────
+    # At MAX_GRID_CELLS cells × ~500 B per GeoJSON feature ≈ 25 MB peak.
+    # This prevents OOM on Render's 512 MB free-tier for any radius.
+    MAX_GRID_CELLS = 50_000
+    estimated_cells = math.pi * (radius_m / base_grid) ** 2
+    if estimated_cells > MAX_GRID_CELLS:
+        # Scale grid so circle contains at most MAX_GRID_CELLS cells
+        grid = int(math.ceil(radius_m * math.sqrt(math.pi / MAX_GRID_CELLS) / 50) * 50)
+        grid = max(base_grid, grid)
+    elif radius_m > 25_000.0:
         calculated_step = int((radius_m / 25_000.0) * base_grid)
         grid = max(base_grid, (calculated_step // 50) * 50)
     else:
         grid = base_grid
+
     start_x = math.floor((center_x - radius_m) / grid) * grid
     start_y = math.floor((center_y - radius_m) / grid) * grid
     end_x = math.ceil((center_x + radius_m) / grid) * grid
@@ -511,13 +523,15 @@ def create_risk_grid(scenario: ScenarioInput) -> dict[str, Any]:
     min_lon, max_lon = min(sw_lon, ne_lon), max(sw_lon, ne_lon)
 
     # Fetch land-use zones from zone_service if available
+    # Cap zone fetch to <= 10 km radius to avoid Overpass memory spikes
     zones: list[dict[str, Any]] = []
-    try:
-        from zone_service import fetch_zones_in_bbox
-        zone_fc = fetch_zones_in_bbox(min_lat, min_lon, max_lat, max_lon)
-        zones = zone_fc.get("features", [])
-    except Exception:
-        zones = []
+    if scenario.field_radius_km <= 10.0:
+        try:
+            from zone_service import fetch_zones  # function is named fetch_zones
+            zone_fc = fetch_zones(min_lat, min_lon, max_lat, max_lon)
+            zones = zone_fc.get("features", [])
+        except Exception:
+            zones = []
 
     features: list[dict[str, Any]] = []
     severe_count = 0
@@ -616,17 +630,34 @@ def create_risk_grid(scenario: ScenarioInput) -> dict[str, Any]:
                             "wind_ms": cell_data["hazard"]["wind_ms"],
                             "wind_direction_deg": cell_data["hazard"]["wind_direction_deg"],
                             "bearing_from_eye_deg": cell_data["hazard"]["bearing_from_eye_deg"],
+                            "cyclone_heading_deg": cell_data["cyclone_heading_deg"],
+                            "relative_direction_deg": cell_data["relative_direction_deg"],
+                            "rmw_m": cell_data["hazard"]["rmw_m"],
+                            "pressure_hpa": cell_data["hazard"]["pressure_hpa"],
+                            "pressure_deficit_hpa": cell_data["hazard"]["pressure_deficit_hpa"],
+                            "rain_rate_mm_hr": cell_data["hazard"]["rain_rate_mm_hr"],
+                            "storm_surge_m": cell_data["hazard"]["storm_surge_m"],
+                            "hazard_score": cell_data["hazard"]["hazard_score"],
                             "land_type": cell_data["land_type"],
                             "dynamic_pressure_pa": cell_data["wind_force"]["dynamic_pressure_pa"],
+                            "drag_coefficient": cell_data["wind_force"]["drag_coefficient"],
+                            "shelter_factor": cell_data["wind_force"]["shelter_factor"],
                             "effective_wind_loading_n_m2": cell_data["wind_force"]["effective_wind_loading_n_m2"],
                             "building_count": cell_data["exposure"]["building_count"],
                             "building_density": cell_data["exposure"]["building_density"],
+                            "avg_building_height_m": cell_data["exposure"]["avg_building_height_m"],
+                            "max_building_height_m": cell_data["exposure"]["max_building_height_m"],
+                            "exposure_score": cell_data["exposure"]["exposure_score"],
                             "obstruction_level": cell_data["obstacles"]["obstruction_level"],
+                            "avg_upwind_height_m": cell_data["obstacles"]["avg_upwind_height_m"],
                             "estimated_class": cell_data["structure"]["estimated_class"],
+                            "vulnerability_score": cell_data["structure"]["vulnerability_score"],
+                            "estimated_resistance_pa": cell_data["structure"]["estimated_resistance_pa"],
                             "load_to_resistance_ratio": cell_data["structure"]["load_to_resistance_ratio"],
                             "primary_driver": cell_data["drivers"]["primary"],
                             "secondary_driver": cell_data["drivers"]["secondary"],
-                            "full_cell_analysis": cell_data,
+                            # full_cell_analysis intentionally omitted — fetch via /api/v3/cell-trace
+                            # for single-cell inspection to avoid O(N) memory blow-up in the grid.
                         },
                     }
                 )
@@ -646,9 +677,12 @@ def create_risk_grid(scenario: ScenarioInput) -> dict[str, Any]:
             "no_damage_cells": no_damage_count,
             "storm_heading_deg": scenario.heading_deg,
             "storm_speed_kph": scenario.speed_kph,
+            "actual_grid_size_m": grid,
+            "grid_auto_scaled": grid > base_grid,
         },
         "metadata": {
             "grid_size_m": grid,
+            "base_grid_size_m": base_grid,
             "crs": "LOCAL_TANGENT_PLANE_METERS (GeoJSON output: EPSG:4326)",
             "model_type": "spatial_damage_screening_v2",
             "limitation": "Risk and damage classes are scenario-screening estimates, not engineering damage certificates.",
