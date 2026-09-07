@@ -31,7 +31,7 @@ class ScenarioInput(BaseModel):
     speed_kph: float = Field(default=25.0, ge=0, le=120)
     rain_rate_mm_hr: float = Field(default=0, ge=0, le=500)
     storm_surge_m: float = Field(default=0, ge=0, le=20)
-    field_radius_km: float = Field(default=100.0, ge=0.2, le=500.0)
+    field_radius_km: float = Field(default=25.0, ge=0.2, le=500.0)
     coastal_exposure_factor: float = Field(default=0.7, ge=0, le=1)
     assumed_vulnerability_score: float = Field(default=0.8, ge=0, le=1)
     include_ocean_node: bool = True
@@ -493,7 +493,12 @@ def create_risk_grid(scenario: ScenarioInput) -> dict[str, Any]:
     forward, inverse = local_metric_transforms(scenario.center_lon, scenario.center_lat)
     center_x, center_y = forward(scenario.center_lon, scenario.center_lat)
     radius_m = scenario.field_radius_km * 1000.0
-    grid = settings.grid_size_m
+    base_grid = settings.grid_size_m
+    if radius_m > 25_000.0:
+        calculated_step = int((radius_m / 25_000.0) * base_grid)
+        grid = max(base_grid, (calculated_step // 50) * 50)
+    else:
+        grid = base_grid
     start_x = math.floor((center_x - radius_m) / grid) * grid
     start_y = math.floor((center_y - radius_m) / grid) * grid
     end_x = math.ceil((center_x + radius_m) / grid) * grid

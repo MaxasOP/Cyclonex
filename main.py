@@ -208,6 +208,10 @@ def create_scenario(scenario: ScenarioInput):
             ocean_node = get_ocean_node(scenario.center_lat, scenario.center_lon, basin)
 
     record = new_scenario_record(scenario, basin, ocean_node)
+    if len(SCENARIOS) >= 10:
+        oldest_keys = list(SCENARIOS.keys())[: -5]
+        for k in oldest_keys:
+            SCENARIOS.pop(k, None)
     SCENARIOS[record["id"]] = record
     return record
 
