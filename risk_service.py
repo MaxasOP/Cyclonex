@@ -504,6 +504,21 @@ def create_risk_grid(scenario: ScenarioInput) -> dict[str, Any]:
     end_x = math.ceil((center_x + radius_m) / grid) * grid
     end_y = math.ceil((center_y + radius_m) / grid) * grid
 
+    # Calculate geographic bounding box for zone lookup
+    sw_lon, sw_lat = inverse(start_x, start_y)
+    ne_lon, ne_lat = inverse(end_x, end_y)
+    min_lat, max_lat = min(sw_lat, ne_lat), max(sw_lat, ne_lat)
+    min_lon, max_lon = min(sw_lon, ne_lon), max(sw_lon, ne_lon)
+
+    # Fetch land-use zones from zone_service if available
+    zones: list[dict[str, Any]] = []
+    try:
+        from zone_service import fetch_zones_in_bbox
+        zone_fc = fetch_zones_in_bbox(min_lat, min_lon, max_lat, max_lon)
+        zones = zone_fc.get("features", [])
+    except Exception:
+        zones = []
+
     features: list[dict[str, Any]] = []
     severe_count = 0
     moderate_count = 0
@@ -521,6 +536,21 @@ def create_risk_grid(scenario: ScenarioInput) -> dict[str, Any]:
             distance_m = math.hypot(midpoint_x - center_x, midpoint_y - center_y)
             if distance_m <= radius_m:
                 cell_lon, cell_lat = inverse(midpoint_x, midpoint_y)
+
+                # Match zone for cell
+                matched_zone_vuln = 0.0
+                matched_zone_type = None
+                if zones:
+                    for z in zones:
+                        props = z.get("properties", {})
+                        centroid = props.get("centroid")
+                        if centroid:
+                            cz_lon, cz_lat = centroid
+                            if abs(cz_lat - cell_lat) < 0.005 and abs(cz_lon - cell_lon) < 0.005:
+                                matched_zone_vuln = props.get("base_vulnerability", 0.0)
+                                matched_zone_type = props.get("zone_type")
+                                break
+
                 cell_data = evaluate_cell_full(
                     midpoint_x - center_x,
                     midpoint_y - center_y,
@@ -528,6 +558,12 @@ def create_risk_grid(scenario: ScenarioInput) -> dict[str, Any]:
                     cell_lat,
                     scenario,
                 )
+
+                # If zone data enriched exposure/vulnerability
+                if matched_zone_vuln > 0:
+                    cell_data["structure"]["vulnerability_score"] = round(
+                        max(cell_data["structure"]["vulnerability_score"], matched_zone_vuln), 2
+                    )
 
                 damage_score = cell_data["damage"]["damage_score"]
                 classification = cell_data["damage"]["classification"]

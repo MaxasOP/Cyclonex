@@ -75,15 +75,21 @@ function getWindColor(windKph?: number): string {
   return "#35a66f";                    // Green
 }
 
-function getExposureColor(density?: number): string {
-  if (density === undefined || density === null || density === 0) return "#75c9f1"; // Open Land
-  if (density >= 0.5) return "#d4483b";
-  if (density >= 0.2) return "#ed8a28";
-  if (density >= 0.05) return "#35a66f";
-  return "#75c9f1";
+function getExposureColor(density?: number, landType?: string): string {
+  if (landType === "OCEAN") return "#75c9f1";
+  if (density === undefined || density === null || density === 0) return "#35a66f"; // Low asset density / open land
+  if (density >= 0.5) return "#d4483b"; // 🔴 High Density Urban
+  if (density >= 0.2) return "#ed8a28"; // 🟠 Moderate Density
+  if (density >= 0.05) return "#f7d070"; // 🟡 Low Density
+  return "#35a66f"; // 🟢 Open / Minimal Asset Density
 }
 
-function getObstacleColor(level?: string): string {
+function getObstacleColor(level?: string, shelterFactor?: number): string {
+  if (shelterFactor !== undefined && shelterFactor !== null) {
+    if (shelterFactor <= 0.85) return "#8b0000"; // Deep Red — High Sheltering
+    if (shelterFactor <= 0.92) return "#ed8a28"; // Orange — Moderate Sheltering
+    return "#35a66f"; // Green — Open / Low Sheltering
+  }
   if (level === "HIGH") return "#8b0000";
   if (level === "MODERATE") return "#ed8a28";
   return "#35a66f";
@@ -263,9 +269,9 @@ export default function RiskMap({
               } else if (analysisMode === "WIND") {
                 fillColor = getWindColor(props.wind_kph);
               } else if (analysisMode === "EXPOSURE") {
-                fillColor = getExposureColor(props.building_density);
+                fillColor = getExposureColor(props.building_density, props.land_type);
               } else if (analysisMode === "OBSTACLES") {
-                fillColor = getObstacleColor(props.obstruction_level);
+                fillColor = getObstacleColor(props.obstruction_level, props.full_cell_analysis?.obstacles?.shelter_factor);
               } else {
                 fillColor = getDamageColor(props.damage_score, props.colour);
               }
