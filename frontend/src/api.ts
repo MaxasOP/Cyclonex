@@ -222,6 +222,16 @@ export async function fetchBuildings(scenarioId: string): Promise<BuildingFeatur
   return result.features as BuildingFeature[];
 }
 
+export async function fetchRiskGrid(
+  scenarioId: string
+): Promise<{ type: string; features: RiskFeature[]; summary?: RiskSummary }> {
+  const response = await fetch(`${apiBaseUrl}/api/v2/scenarios/${scenarioId}/risk-grid`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch risk grid");
+  }
+  return response.json() as Promise<{ type: string; features: RiskFeature[]; summary?: RiskSummary }>;
+}
+
 export async function runMLInference(input: Record<string, unknown>): Promise<MLInferenceResult> {
   const response = await fetch(`${apiBaseUrl}/api/v3/inference`, {
     method: "POST",

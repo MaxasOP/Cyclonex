@@ -95,6 +95,10 @@ function getObstacleColor(level?: string, shelterFactor?: number): string {
   return "#35a66f";
 }
 
+function isOceanStrokeFor(landType?: string): boolean {
+  return landType === "OCEAN";
+}
+
 function LeafletBoundsFitter({
   center,
   features,
@@ -281,10 +285,39 @@ export default function RiskMap({
                 fillColor,
                 fillOpacity: isOcean ? 0.35 : 0.72,
                 color: isOcean ? "#ffffff" : "#ffffff",
-                weight: isOcean ? 0.15 : 0.35,
+                weight: 1,
               };
             }}
             onEachFeature={(feature, layer) => {
+              const props = feature.properties || {};
+              const score = props.damage_score ?? props.risk_score ?? 0;
+              const scorePct = (score * 100).toFixed(0);
+              const windKph = (props.wind_kph || 0).toFixed(0);
+              const landType = props.land_type || "LAND";
+              const tooltipText = `<div style="font-family: -apple-system, system-ui, sans-serif; font-size: 0.78rem;">
+                <div style="font-weight: 700; color: ${props.colour || '#75c9f1'}; margin-bottom: 2px;">⚡ ${scorePct}% damage</div>
+                <div style="color: #d6e3f5;">💨 ${windKph} km/h · ${landType}</div>
+                <div style="color: #8fa4bf; font-size: 0.7rem; margin-top: 2px;">Click for full analysis</div>
+              </div>`;
+              layer.bindTooltip(tooltipText, {
+                sticky: true,
+                direction: "top",
+                offset: [0, -4],
+                className: "cyclonex-cell-tooltip",
+                opacity: 0.95,
+              });
+              layer.on("mouseover", () => {
+                (layer as L.Path & { setStyle?: (s: Record<string, unknown>) => void }).setStyle?.({
+                  weight: 2.5,
+                  color: "#ffffff",
+                });
+              });
+              layer.on("mouseout", () => {
+                (layer as L.Path & { setStyle?: (s: Record<string, unknown>) => void }).setStyle?.({
+                  weight: 1,
+                  color: isOceanStrokeFor(props.land_type) ? "#ffffff" : "#ffffff",
+                });
+              });
               layer.on("click", () => {
                 if (!onSelectCell) return;
                 const props = feature.properties || {};
@@ -357,19 +390,100 @@ export default function RiskMap({
                 onSelectCell(analysis);
               });
 
-              const props = feature.properties || {};
-              const score = props.damage_score ?? props.risk_score ?? 0;
+              // Wrap popup-building in an IIFE to scope variables (avoids duplicates with
+              // the tooltip variables declared earlier in the same onEachFeature scope).
+              ((p: Record<string, unknown>) => {
+              const score = Number(p.damage_score ?? p.risk_score ?? 0);
+              const scorePct = (score * 100).toFixed(1);
+              const windKph = Number(p.wind_kph || 0);
+              const windMs = Number(p.wind_ms || 0);
+              const windLoading = Number(p.effective_wind_loading_n_m2 || 0);
+              const dynamicPa = Number(p.dynamic_pressure_pa || 0);
+              const lrRatio = Number(p.load_to_resistance_ratio || 0);
+              const lrPct = (lrRatio * 100).toFixed(1);
+              const distKm = ((Number(p.distance_to_cyclone_m) || 0) / 1000).toFixed(2);
+              const cellColor = String(p.colour || "#75c9f1").toLowerCase();
+              const isLand = String(p.land_type || "LAND") !== "OCEAN";
               layer.bindPopup(
-                `<div>
-                  <strong>200m Cell Damage Inspection</strong><br/>
-                  <span>Damage Score: <strong>${score}</strong> (${props.classification || "N/A"})</span><br/>
-                  <span>Local Wind: ${props.wind_kph || 0} km/h (${props.wind_ms || 0} m/s)</span><br/>
-                  <span>Wind Loading: ${props.effective_wind_loading_n_m2 || 0} N/m²</span><br/>
-                  <span>Land Type: ${props.land_type || "N/A"}</span><br/>
-                  <span>Primary Driver: <strong>${props.primary_driver || "N/A"}</strong></span><br/>
-                  <em style="font-size:0.75rem; color:#8fa4bf;">Click cell for detailed explainable inspection card</em>
+                `<div style="min-width: 280px; font-family: -apple-system, system-ui, sans-serif;">
+                  <div style="background: ${cellColor}; color: #0a1a2e; padding: 8px 10px; border-radius: 6px 6px 0 0; margin: -10px -10px 8px -10px; font-weight: 700; font-size: 0.95rem;">
+                    🌀 200m Cell Damage Inspection
+                  </div>
+                  <div style="background: rgba(255,255,255,0.04); padding: 8px 10px; border-radius: 6px; margin-bottom: 6px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                      <span style="color: #8fa4bf; font-size: 0.78rem;">DAMAGE SCORE</span>
+                      <strong style="color: ${cellColor}; font-size: 1.05rem;">${scorePct}%</strong>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.4); height: 8px; border-radius: 4px; overflow: hidden;">
+                      <div style="background: ${cellColor}; height: 100%; width: ${Math.min(score * 100, 100)}%; transition: width 0.3s;"></div>
+                    </div>
+                    <div style="margin-top: 4px; font-size: 0.78rem; color: #d6e3f5;">Classification: <strong>${p.classification || "N/A"}</strong></div>
+                  </div>
+
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 6px;">
+                    <div style="background: rgba(255,255,255,0.04); padding: 6px 8px; border-radius: 4px;">
+                      <div style="color: #8fa4bf; font-size: 0.7rem;">💨 LOCAL WIND</div>
+                      <div style="font-weight: 600; color: #f7d070; font-size: 0.92rem;">${windKph.toFixed(1)} km/h</div>
+                      <div style="font-size: 0.72rem; color: #d6e3f5;">${windMs.toFixed(1)} m/s</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.04); padding: 6px 8px; border-radius: 4px;">
+                      <div style="color: #8fa4bf; font-size: 0.7rem;">🧭 BEARING</div>
+                      <div style="font-weight: 600; color: #75c9f1; font-size: 0.92rem;">${(Number(p.bearing_from_eye_deg) || 0).toFixed(0)}°</div>
+                      <div style="font-size: 0.72rem; color: #d6e3f5;">${distKm} km from eye</div>
+                    </div>
+                  </div>
+
+                  <div style="background: rgba(255,255,255,0.04); padding: 6px 10px; border-radius: 4px; margin-bottom: 6px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 2px;">
+                      <span style="color: #8fa4bf;">Dynamic Pressure</span>
+                      <strong style="color: #d6e3f5;">${dynamicPa.toFixed(1)} Pa</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 2px;">
+                      <span style="color: #8fa4bf;">Effective Wind Loading</span>
+                      <strong style="color: #d6e3f5;">${windLoading.toFixed(1)} N/m²</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 2px;">
+                      <span style="color: #8fa4bf;">Load/Resistance Ratio</span>
+                      <strong style="color: ${lrRatio >= 1 ? '#d4483b' : lrRatio >= 0.55 ? '#ed8a28' : '#35a66f'};">${lrPct}%</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+                      <span style="color: #8fa4bf;">Land Type</span>
+                      <strong style="color: ${isLand ? '#35a66f' : '#75c9f1'};">${p.land_type || "N/A"}</strong>
+                    </div>
+                  </div>
+
+                  <div style="background: rgba(255,255,255,0.04); padding: 6px 10px; border-radius: 4px; margin-bottom: 6px;">
+                    <div style="color: #8fa4bf; font-size: 0.7rem; margin-bottom: 3px;">DRIVERS</div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+                      <span style="color: #d6e3f5;">Primary</span>
+                      <strong style="color: #ff6b5b;">${p.primary_driver || "N/A"}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+                      <span style="color: #d6e3f5;">Secondary</span>
+                      <strong style="color: #f7d070;">${p.secondary_driver || "N/A"}</strong>
+                    </div>
+                  </div>
+
+                  <div style="background: rgba(255,255,255,0.04); padding: 6px 10px; border-radius: 4px; margin-bottom: 6px;">
+                    <div style="color: #8fa4bf; font-size: 0.7rem; margin-bottom: 3px;">STRUCTURE & EXPOSURE</div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+                      <span style="color: #d6e3f5;">Estimated Class</span>
+                      <strong style="color: #d6e3f5;">${p.estimated_class || "N/A"}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+                      <span style="color: #d6e3f5;">Building Count</span>
+                      <strong style="color: #d6e3f5;">${p.building_count || 0}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+                      <span style="color: #d6e3f5;">Obstruction Level</span>
+                      <strong style="color: #d6e3f5;">${p.obstruction_level || "N/A"}</strong>
+                    </div>
+                  </div>
+
+                  <em style="font-size: 0.72rem; color: #8fa4bf; display: block; text-align: center; margin-top: 4px;">Click cell for full explainable inspection card →</em>
                 </div>`
               );
+              })(props);
             }}
           />
         )}
@@ -387,11 +501,36 @@ export default function RiskMap({
             })}
             onEachFeature={(feature, layer) => {
               const props = feature.properties || {};
+              const bColor = (props.display_colour || "#0a2a57").toLowerCase();
+              const heightM = props.height_m ? props.height_m.toFixed(1) + " m" : "Unknown / Inferred";
+              const damageScore = props.damage_score;
+              const damagePct = damageScore !== null && damageScore !== undefined ? (damageScore * 100).toFixed(1) + "%" : "N/A";
               layer.bindPopup(
-                `<div>
-                  <strong>Building Footprint Inspection</strong><br/>
-                  <span>Height: ${props.height_m ? props.height_m + " m" : "Unknown / Inferred"}</span><br/>
-                  <span>Locally Taller / Exposed: ${props.is_locally_taller ? "Yes (High Vulnerability)" : "No"}</span>
+                `<div style="min-width: 240px; font-family: -apple-system, system-ui, sans-serif;">
+                  <div style="background: ${bColor}; color: #0a1a2e; padding: 8px 10px; border-radius: 6px 6px 0 0; margin: -10px -10px 8px -10px; font-weight: 700; font-size: 0.95rem;">
+                    🏢 Building Footprint Inspection
+                  </div>
+                  <div style="background: rgba(255,255,255,0.04); padding: 6px 10px; border-radius: 4px; margin-bottom: 4px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 2px;">
+                      <span style="color: #8fa4bf;">Height</span>
+                      <strong style="color: #d6e3f5;">${heightM}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 2px;">
+                      <span style="color: #8fa4bf;">Locally Taller / Exposed</span>
+                      <strong style="color: ${props.is_locally_taller ? '#d4483b' : '#35a66f'};">${props.is_locally_taller ? "Yes (High Vulnerability)" : "No"}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 2px;">
+                      <span style="color: #8fa4bf;">Damage Score (parent cell)</span>
+                      <strong style="color: ${bColor};">${damagePct}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.78rem;">
+                      <span style="color: #8fa4bf;">Classification</span>
+                      <strong style="color: ${bColor};">${props.classification || "N/A"}</strong>
+                    </div>
+                  </div>
+                  <div style="font-size: 0.7rem; color: #8fa4bf; text-align: center; margin-top: 4px;">
+                    Colour sourced from containing 200m risk cell
+                  </div>
                 </div>`
               );
             }}

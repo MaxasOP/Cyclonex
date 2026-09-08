@@ -3,6 +3,7 @@ import {
   createScenario,
   fetchBuildings,
   fetchDatasetSummary,
+  fetchRiskGrid,
   runMLInference,
   type BuildingFeature,
   type DatasetSummary,
@@ -13,6 +14,25 @@ import {
 } from "./api";
 import RiskMap, { type MapAnalysisMode } from "./RiskMap";
 
+// Safe min/max for large arrays to avoid "Maximum call stack size exceeded"
+// caused by Math.min(...arr) / Math.max(...arr) with spread on very large arrays.
+function safeMin(arr: number[], fallback = 0): number {
+  let m = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < arr.length; i++) {
+    const v = arr[i];
+    if (v < m) m = v;
+  }
+  return Number.isFinite(m) ? m : fallback;
+}
+function safeMax(arr: number[], fallback = 0): number {
+  let m = Number.NEGATIVE_INFINITY;
+  for (let i = 0; i < arr.length; i++) {
+    const v = arr[i];
+    if (v > m) m = v;
+  }
+  return Number.isFinite(m) ? m : fallback;
+}
+
 const presets = {
   landfall_amphan: {
     name: "Cyclone Amphan Landfall (Coastal West Bengal / Digha 21.6°N, 87.5°E)",
@@ -22,7 +42,7 @@ const presets = {
     pressure: "950",
     heading: "315",
     speed: "25",
-    radius: "100",
+    radius: "30",
     source: "HURSAT_B1",
   },
   amphan: {
@@ -33,7 +53,7 @@ const presets = {
     pressure: "925",
     heading: "350",
     speed: "22",
-    radius: "120",
+    radius: "40",
     source: "HURSAT_B1",
   },
   fani: {
@@ -44,7 +64,7 @@ const presets = {
     pressure: "937",
     heading: "340",
     speed: "20",
-    radius: "90",
+    radius: "35",
     source: "INSAT",
   },
   bulbul: {
@@ -55,7 +75,7 @@ const presets = {
     pressure: "970",
     heading: "355",
     speed: "18",
-    radius: "80",
+    radius: "30",
     source: "GPM_IMERG",
   },
   nisarga: {
@@ -66,7 +86,7 @@ const presets = {
     pressure: "984",
     heading: "30",
     speed: "24",
-    radius: "60",
+    radius: "25",
     source: "SENTINEL_1",
   },
   custom: {
@@ -77,7 +97,7 @@ const presets = {
     pressure: "960",
     heading: "315",
     speed: "25",
-    radius: "100",
+    radius: "30",
     source: "HURSAT_B1",
   },
 };
@@ -240,7 +260,13 @@ export default function App() {
       setScenario(scn);
       logDamageGridDebug(scn);
       setBuildings([]);
-      void fetchBuildings(scn.id).then(setBuildings);
+      // Fetch risk grid and buildings in parallel
+      void Promise.all([
+        fetchRiskGrid(scn.id).then((grid) => {
+          setScenario((prev) => (prev ? { ...prev, risk_grid: grid } : null));
+        }),
+        fetchBuildings(scn.id).then(setBuildings),
+      ]).catch((err) => console.error("Error fetching grid or buildings:", err));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Run failed.");
     } finally {
@@ -258,7 +284,7 @@ export default function App() {
       "Cyclone Amphan Landfall (Digha)",
       "315",
       "25",
-      "100"
+      "30"
     );
   }, []);
 
@@ -307,7 +333,13 @@ export default function App() {
         setScenario(scn);
         logDamageGridDebug(scn);
         setBuildings([]);
-        void fetchBuildings(scn.id).then(setBuildings);
+        // Fetch risk grid and buildings in parallel
+        void Promise.all([
+          fetchRiskGrid(scn.id).then((grid) => {
+            setScenario((prev) => (prev ? { ...prev, risk_grid: grid } : null));
+          }),
+          fetchBuildings(scn.id).then(setBuildings),
+        ]).catch((err) => console.error("Error fetching grid or buildings:", err));
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : "Horizon update failed.");
       } finally {
@@ -341,8 +373,8 @@ export default function App() {
       land_type: features[0]?.properties?.land_type,
     });
     console.log("Damage statistics:", {
-      minimum: scores.length ? Math.min(...scores) : 0,
-      maximum: scores.length ? Math.max(...scores) : 0,
+      minimum: scores.length ? safeMin(scores) : 0,
+      maximum: scores.length ? safeMax(scores) : 0,
       mean: scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0,
       median: medianScore,
     });
@@ -353,10 +385,10 @@ export default function App() {
       "RED (>=0.55)": scores.filter((s) => s >= 0.55).length,
     });
     console.log("GeoJSON bounds:", {
-      south: allLats.length ? Math.min(...allLats) : 0,
-      north: allLats.length ? Math.max(...allLats) : 0,
-      west: allLons.length ? Math.min(...allLons) : 0,
-      east: allLons.length ? Math.max(...allLons) : 0,
+      south: allLats.length ? safeMin(allLats) : 0,
+      north: allLats.length ? safeMax(allLats) : 0,
+      west: allLons.length ? safeMin(allLons) : 0,
+      east: allLons.length ? safeMax(allLons) : 0,
     });
   }
 
@@ -386,7 +418,13 @@ export default function App() {
       setScenario(result);
       logDamageGridDebug(result);
       setBuildings([]);
-      void fetchBuildings(result.id).then(setBuildings);
+      // Fetch risk grid and buildings in parallel
+      void Promise.all([
+        fetchRiskGrid(result.id).then((grid) => {
+          setScenario((prev) => (prev ? { ...prev, risk_grid: grid } : null));
+        }),
+        fetchBuildings(result.id).then(setBuildings),
+      ]).catch((err) => console.error("Error fetching grid or buildings:", err));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "ML storm impact run failed.");
     } finally {
@@ -448,8 +486,8 @@ export default function App() {
     const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
     return {
       totalCells: features.length,
-      minDamage: Math.min(...scores).toFixed(4),
-      maxDamage: Math.max(...scores).toFixed(4),
+      minDamage: safeMin(scores).toFixed(4),
+      maxDamage: safeMax(scores).toFixed(4),
       meanDamage: mean.toFixed(4),
       landCells: landCells.length,
       oceanCells: oceanCells.length,
@@ -459,10 +497,10 @@ export default function App() {
       greenCells,
       blueCells,
       gridBounds: {
-        south: allLats.length ? Math.min(...allLats).toFixed(4) : "N/A",
-        north: allLats.length ? Math.max(...allLats).toFixed(4) : "N/A",
-        west: allLons.length ? Math.min(...allLons).toFixed(4) : "N/A",
-        east: allLons.length ? Math.max(...allLons).toFixed(4) : "N/A",
+        south: allLats.length ? safeMin(allLats).toFixed(4) : "N/A",
+        north: allLats.length ? safeMax(allLats).toFixed(4) : "N/A",
+        west: allLons.length ? safeMin(allLons).toFixed(4) : "N/A",
+        east: allLons.length ? safeMax(allLons).toFixed(4) : "N/A",
       },
       mlModelStatus: mlResult?.model_provenance?.model_status ?? "UNKNOWN",
       mlValidation: mlResult?.model_provenance?.validation_status ?? "UNKNOWN",

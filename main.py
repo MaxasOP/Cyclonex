@@ -199,21 +199,47 @@ def _containing_risk_cell(point: tuple[float, float], features: list[dict]) -> d
 @app.post("/api/v2/scenarios", status_code=201)
 def create_scenario(scenario: ScenarioInput):
     """Create a reproducible 200 m cyclone risk-grid screening scenario."""
+    import time
+    t0 = time.time()
+    
     basin = None
     ocean_node = None
     in_ocean_domain = 0 <= scenario.center_lat <= 30 and 45 <= scenario.center_lon <= 100
+    
+    t1 = time.time()
     if in_ocean_domain:
         basin = infer_basin(scenario.center_lat, scenario.center_lon)
         if scenario.include_ocean_node:
             ocean_node = get_ocean_node(scenario.center_lat, scenario.center_lon, basin)
+    t2 = time.time()
 
     record = new_scenario_record(scenario, basin, ocean_node)
+    t3 = time.time()
+    
     if len(SCENARIOS) >= 10:
         oldest_keys = list(SCENARIOS.keys())[: -5]
         for k in oldest_keys:
             SCENARIOS.pop(k, None)
     SCENARIOS[record["id"]] = record
-    return record
+    
+    t4 = time.time()
+    print(f"[TIMING] Scenario {record['id']}: Basin={t2-t1:.2f}s, Grid={t3-t2:.2f}s, Store={t4-t3:.3f}s, Total={t4-t0:.2f}s", flush=True)
+    
+    # Return minimal response without full risk_grid to avoid transmitting 70k+ features
+    # Client will fetch the grid separately via GET /api/v2/scenarios/{id}/risk-grid
+    return {
+        "id": record["id"],
+        "created_at": record["created_at"],
+        "input": record["input"],
+        "basin": record["basin"],
+        "ocean_node": record["ocean_node"],
+        "model": record["model"],
+        "risk_grid": {
+            "type": "FeatureCollection",
+            "features": [],
+            "summary": record["risk_grid"].get("summary", {})
+        }
+    }
 
 
 @app.get("/api/v2/scenarios/{scenario_id}")
@@ -235,6 +261,9 @@ def get_risk_grid(scenario_id: str):
 @app.get("/api/v2/scenarios/{scenario_id}/buildings")
 def get_scenario_buildings(scenario_id: str):
     """Return OpenStreetMap buildings for the scenario extent, when available."""
+    import time
+    t0 = time.time()
+    
     scenario = SCENARIOS.get(scenario_id)
     if scenario is None:
         raise HTTPException(status_code=404, detail="Scenario not found or service was restarted.")
@@ -246,8 +275,22 @@ def get_scenario_buildings(scenario_id: str):
     east = max(point[0] for point in points)
     south = min(point[1] for point in points)
     north = max(point[1] for point in points)
+    
+    t1 = time.time()
+    print(f"[TIMING] Building bbox extraction: {t1-t0:.3f}s", flush=True)
+    
     try:
-        buildings = fetch_buildings(south, west, north, east)
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+        with ThreadPoolExecutor(max_workers=1) as _executor:
+            _future = _executor.submit(fetch_buildings, south, west, north, east)
+            try:
+                buildings = _future.result(timeout=4)
+                t2 = time.time()
+                print(f"[TIMING] fetch_buildings completed: {t2-t1:.2f}s", flush=True)
+            except FuturesTimeoutError:
+                t2 = time.time()
+                print(f"[TIMING] fetch_buildings TIMEOUT after 4s", flush=True)
+                buildings = {"type": "FeatureCollection", "features": []}
         for building in buildings["features"]:
             cell = _containing_risk_cell(_building_centroid(building), features)
             if cell is None:
@@ -268,6 +311,8 @@ def get_scenario_buildings(scenario_id: str):
                     "colour_source": "containing_200m_risk_cell",
                 }
             )
+        t3 = time.time()
+        print(f"[TIMING] Building enrichment: {t3-t2:.2f}s for {len(buildings['features'])} buildings", flush=True)
         return buildings
     except Exception:
         return {
