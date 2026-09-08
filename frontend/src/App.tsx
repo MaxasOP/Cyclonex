@@ -367,10 +367,11 @@ export default function App() {
       damage_score: features[0]?.properties?.damage_score,
       wind_speed: features[0]?.properties?.wind_kph,
       wind_direction: features[0]?.properties?.wind_direction_deg,
-      hazard_score: features[0]?.properties?.full_cell_analysis?.damage?.hazard_score,
-      exposure_score: features[0]?.properties?.full_cell_analysis?.damage?.exposure_score,
-      vulnerability_score: features[0]?.properties?.full_cell_analysis?.damage?.vulnerability_score,
+      hazard_score: features[0]?.properties?.hazard_score,
+      exposure_score: features[0]?.properties?.exposure_score,
+      vulnerability_score: features[0]?.properties?.vulnerability_score,
       land_type: features[0]?.properties?.land_type,
+      actual_grid_size_m: result.risk_grid?.summary?.actual_grid_size_m ?? result.risk_grid?.metadata?.grid_size_m,
     });
     console.log("Damage statistics:", {
       minimum: scores.length ? safeMin(scores) : 0,
@@ -504,6 +505,12 @@ export default function App() {
       },
       mlModelStatus: mlResult?.model_provenance?.model_status ?? "UNKNOWN",
       mlValidation: mlResult?.model_provenance?.validation_status ?? "UNKNOWN",
+      actualGridSizeM: (scenario?.risk_grid?.summary as Record<string, unknown>)?.actual_grid_size_m
+        ?? scenario?.risk_grid?.metadata?.grid_size_m
+        ?? 200,
+      gridAutoScaled: Boolean(
+        (scenario?.risk_grid?.summary as Record<string, unknown>)?.grid_auto_scaled
+      ),
     };
   })();
 
@@ -919,6 +926,18 @@ export default function App() {
                 <>
                   <div className="dev-section-label">GRID RESPONSE</div>
                   <div className="dev-row"><span>Cell Count</span><strong>{devPanelStats.totalCells.toLocaleString()}</strong></div>
+                  <div className="dev-row">
+                    <span>Grid Cell Resolution</span>
+                    <strong style={{ color: devPanelStats.gridAutoScaled ? "#ffb05c" : "#35a66f" }}>
+                      {String(devPanelStats.actualGridSizeM)} m
+                      {devPanelStats.gridAutoScaled && " ⚠ auto-scaled"}
+                    </strong>
+                  </div>
+                  {devPanelStats.gridAutoScaled && (
+                    <div style={{ fontSize: "0.68rem", color: "#ffb05c", marginBottom: "4px", lineHeight: 1.3 }}>
+                      ⚠ Grid coarsened from 200m → {String(devPanelStats.actualGridSizeM)}m to fit within memory limit. Use a smaller radius for true 200m resolution.
+                    </div>
+                  )}
                   <div className="dev-row"><span>Grid Bounds S/N</span><strong>{devPanelStats.gridBounds.south}° / {devPanelStats.gridBounds.north}°</strong></div>
                   <div className="dev-row"><span>Grid Bounds W/E</span><strong>{devPanelStats.gridBounds.west}° / {devPanelStats.gridBounds.east}°</strong></div>
 
