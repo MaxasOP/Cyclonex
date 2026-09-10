@@ -258,14 +258,14 @@ export default function Globe3DView({
 
     textureLoader.load(
       "/earth-blue-marble.jpg",
-      (loadedTex) => {
+      (loadedTex: THREE.Texture) => {
         loadedTex.colorSpace = THREE.SRGBColorSpace;
         earthMaterial.map = loadedTex;
         earthMaterial.needsUpdate = true;
         setTextureLoaded(true);
       },
       undefined,
-      (err) => {
+      (err: unknown) => {
         console.warn("[3D Globe] High-res texture loading error, keeping procedural vector fallback:", err);
       }
     );
@@ -282,7 +282,7 @@ export default function Globe3DView({
       depthWrite: false,
     });
 
-    textureLoader.load("/earth-clouds.png", (cloudTex) => {
+    textureLoader.load("/earth-clouds.png", (cloudTex: THREE.Texture) => {
       cloudsMaterial.map = cloudTex;
       cloudsMaterial.needsUpdate = true;
     });

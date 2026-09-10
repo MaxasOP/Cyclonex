@@ -1,5 +1,5 @@
-﻿import { useEffect, useRef, useState, useCallback } from "react";
-import { Loader } from "@googlemaps/js-api-loader";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 
 interface GoogleGlobeViewProps {
   center: { lat: number; lng: number };
@@ -10,12 +10,6 @@ interface GoogleGlobeViewProps {
 }
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
-
-const loader = new Loader({
-  apiKey: GOOGLE_MAPS_API_KEY,
-  version: "weekly",
-  libraries: ["maps", "marker"],
-});
 
 export default function GoogleGlobeView({
   center,
@@ -46,17 +40,22 @@ export default function GoogleGlobeView({
     });
   }, [center.lat, center.lng, headingDeg]);
 
-  // ── Toggle auto-rotation ─────────────────────────────────────────────────
+  // ── Auto-orbit toggle ────────────────────────────────────────────────────
+  const toggleAutoRotate = () => {
+    setIsAutoRotating(prev => !prev);
+  };
+
   useEffect(() => {
-    if (autoRotateRef.current) clearInterval(autoRotateRef.current);
-    if (isAutoRotating && mapRef.current) {
-      autoRotateRef.current = setInterval(() => {
-        const map = mapRef.current;
-        if (!map) return;
-        headingStateRef.current = (headingStateRef.current + 0.5) % 360;
-        map.moveCamera({ heading: headingStateRef.current });
-      }, 50);
+    if (!isAutoRotating) {
+      if (autoRotateRef.current) clearInterval(autoRotateRef.current);
+      return;
     }
+    autoRotateRef.current = setInterval(() => {
+      const map = mapRef.current;
+      if (!map) return;
+      headingStateRef.current = (headingStateRef.current + 0.3) % 360;
+      map.moveCamera({ heading: headingStateRef.current });
+    }, 50);
     return () => { if (autoRotateRef.current) clearInterval(autoRotateRef.current); };
   }, [isAutoRotating]);
 
@@ -70,10 +69,15 @@ export default function GoogleGlobeView({
 
     let cancelled = false;
 
-    loader.load().then(async () => {
+    setOptions({
+      key: GOOGLE_MAPS_API_KEY,
+      v: "weekly",
+    });
+
+    importLibrary("maps").then(async (mapsLib) => {
       if (cancelled || !containerRef.current) return;
 
-      const { Map } = await google.maps.importLibrary("maps") as google.maps.MapsLibrary;
+      const { Map } = mapsLib as google.maps.MapsLibrary;
 
       if (cancelled || !containerRef.current) return;
 

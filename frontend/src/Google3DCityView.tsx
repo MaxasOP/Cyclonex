@@ -1,5 +1,5 @@
-﻿import { useEffect, useRef, useState, useCallback } from "react";
-import { Loader } from "@googlemaps/js-api-loader";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 import type { BuildingFeature, RiskFeature, EvacuationPlan } from "./api";
 
 export interface RealWorld3DViewProps {
@@ -30,12 +30,6 @@ const CAM_PRESETS = {
   orbit:    { altitude: 600,  tilt: 60, range: 1000 },
 } as const;
 type CamPreset = keyof typeof CAM_PRESETS;
-
-const loader = new Loader({
-  apiKey: GOOGLE_MAPS_API_KEY,
-  version: "alpha",
-  libraries: ["maps3d"],
-});
 
 export default function Google3DCityView({
   center,
@@ -87,7 +81,12 @@ export default function Google3DCityView({
 
     let cancelled = false;
 
-    loader.load().then(async () => {
+    setOptions({
+      key: GOOGLE_MAPS_API_KEY,
+      v: "alpha",
+    });
+
+    importLibrary("maps3d").then(async () => {
       if (cancelled || !containerRef.current) return;
       await customElements.whenDefined("gmp-map-3d").catch(() => {});
       if (cancelled || !containerRef.current) return;
