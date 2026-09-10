@@ -8,6 +8,7 @@ import {
   fetchSheltersAndEvacuation,
   fetchZones,
   runMLInference,
+  fetchRealtimeWeather,
   type BuildingFeature,
   type CycloneShelter,
   type DatasetSummary,
@@ -17,8 +18,10 @@ import {
   type MLInferenceResult,
   type ScenarioResult,
   type ZoneFeature,
+  type RealtimeWeather,
 } from "./api";
 import RiskMap, { type MapAnalysisMode } from "./RiskMap";
+import NewsPanel from "./NewsPanel";
 
 // Safe min/max for large arrays to avoid "Maximum call stack size exceeded"
 // caused by Math.min(...arr) / Math.max(...arr) with spread on very large arrays.
@@ -330,6 +333,27 @@ export default function App() {
   const [selectedHorizon, setSelectedHorizon] = useState<6 | 12 | 24>(24);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
 
+  // News Panel & Real-time Weather Sync state
+  const [isNewsPanelOpen, setIsNewsPanelOpen] = useState(false);
+  const [realtimeWeather, setRealtimeWeather] = useState<RealtimeWeather | null>(null);
+  const [realtimeLiveEnabled, setRealtimeLiveEnabled] = useState(true);
+
+  useEffect(() => {
+    if (!realtimeLiveEnabled) return;
+    const lat = Number(form.lat || 21.62);
+    const lon = Number(form.lon || 87.51);
+
+    const fetchLive = () => {
+      fetchRealtimeWeather(lat, lon).then((data) => {
+        if (data) setRealtimeWeather(data);
+      });
+    };
+
+    fetchLive();
+    const interval = setInterval(fetchLive, 8000);
+    return () => clearInterval(interval);
+  }, [form.lat, form.lon, realtimeLiveEnabled]);
+
   useEffect(() => {
     const handleHash = () => {
       if (window.location.hash === "#landing") {
@@ -469,12 +493,18 @@ export default function App() {
     );
   }, []);
 
-  async function handlePresetChange(presetKey: keyof typeof presets) {
-    setSelectedPreset(presetKey);
+  async function handlePresetChange(rawKey: string) {
+    const keyMap: Record<string, keyof typeof presets> = {
+      digha: "landfall_amphan",
+      puri: "landfall_fani",
+      vizag: "landfall_hudhud",
+    };
+    const presetKey = (keyMap[rawKey] || rawKey) as keyof typeof presets;
     const p = presets[presetKey];
+    if (!p) return;
+    setSelectedPreset(presetKey);
     setForm(p);
     setSelectedSource(p.source);
-    setScenario(null);
     setBuildings([]);
     setZones([]);
     setSheltersPlan(null);
@@ -792,6 +822,14 @@ export default function App() {
                 {datasetSummary ? `${datasetSummary.model_status}` : "SYSTEM ONLINE"}
               </span>
             </div>
+            <button
+              type="button"
+              className="nav-cta-btn nav-cta-outline"
+              onClick={() => setIsNewsPanelOpen(true)}
+              style={{ background: "rgba(6, 182, 212, 0.15)", borderColor: "#38bdf8", color: "#38bdf8" }}
+            >
+              📰 Cyclone News & Admin
+            </button>
             {currentView === "landing" ? (
               <button
                 type="button"
@@ -856,19 +894,43 @@ export default function App() {
             </div>
 
             <div className="subbar-right">
+              {realtimeWeather && (
+                <span
+                  className="badge badge-info"
+                  style={{
+                    background: "rgba(6, 182, 212, 0.2)",
+                    borderColor: "#38bdf8",
+                    color: "#38bdf8",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => setIsNewsPanelOpen(true)}
+                  title="Click to view live weather telemetry & news panel"
+                >
+                  🔴 REALTIME LIVE: {realtimeWeather.wind_speed_kph} km/h · {realtimeWeather.surface_pressure_hpa} hPa
+                </span>
+              )}
               <span className="badge badge-info">
                 {datasetSummary ? `${datasetSummary.model_status}` : "SYSTEM ONLINE"}
               </span>
-              <span className="badge badge-subtle">
-                {datasetSummary?.baseline_model?.algorithm || "GradientBoostedMultiOutputEnsemble"}
-              </span>
+              <button
+                type="button"
+                className="btn-print-top"
+                onClick={() => setIsNewsPanelOpen(true)}
+                style={{ background: "#0284c7", color: "#fff", borderColor: "#38bdf8" }}
+              >
+                📰 News Panel & Scraping
+              </button>
               <button
                 type="button"
                 className="btn-print-top"
                 onClick={() => window.print()}
                 title="Export emergency report as PDF"
               >
+<<<<<<< Updated upstream
                 <IconDownload /> Export Report (PDF)
+=======
+                <IconDownload /> Export SITREP
+>>>>>>> Stashed changes
               </button>
             </div>
           </div>
@@ -2347,6 +2409,12 @@ export default function App() {
       )}
     </main>
       )}
+      <NewsPanel
+        isOpen={isNewsPanelOpen}
+        onClose={() => setIsNewsPanelOpen(false)}
+        realtimeWeather={realtimeWeather}
+      />
     </div>
   );
 }
+

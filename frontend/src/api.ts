@@ -416,3 +416,107 @@ export async function fetchSheltersAndEvacuation(scenarioId: string): Promise<Ev
     return null;
   }
 }
+
+export type NewsSource = {
+  id: string;
+  name: string;
+  url: string;
+  scrape_type: string;
+  active: number;
+  created_at: string;
+};
+
+export type NewsArticle = {
+  id: string;
+  source_id: string;
+  source_name: string;
+  title: string;
+  url: string;
+  snippet: string;
+  published_at: string;
+  impact_level: "CRITICAL" | "SEVERE" | "HIGH" | "MODERATE";
+  cyclone_tag: string;
+  scraped_at: string;
+};
+
+export type RealtimeWeather = {
+  source: string;
+  lat: number;
+  lon: number;
+  timestamp: string;
+  wind_speed_kph: number;
+  wind_gusts_kph: number;
+  wind_direction_deg: number;
+  surface_pressure_hpa: number;
+  precipitation_mm: number;
+  temperature_c: number;
+  humidity_pct: number;
+  status: string;
+};
+
+export async function fetchNewsSources(): Promise<NewsSource[]> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v2/news/sources`);
+    if (!response.ok) return [];
+    return response.json() as Promise<NewsSource[]>;
+  } catch {
+    return [];
+  }
+}
+
+export async function addNewsSource(name: string, url: string, scrape_type = "html"): Promise<NewsSource> {
+  const response = await fetch(`${apiBaseUrl}/api/v2/news/sources`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, url, scrape_type }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => null);
+    throw new Error(err?.detail || "Failed to add news source");
+  }
+  return response.json() as Promise<NewsSource>;
+}
+
+export async function deleteNewsSource(sourceId: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v2/news/sources/${sourceId}`, {
+      method: "DELETE",
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function triggerNewsScrape(): Promise<any> {
+  const response = await fetch(`${apiBaseUrl}/api/v2/news/scrape`, {
+    method: "POST",
+  });
+  if (!response.ok) throw new Error("Failed to scrape news sources");
+  return response.json();
+}
+
+export async function fetchNewsArticles(query?: string, cycloneTag?: string): Promise<NewsArticle[]> {
+  try {
+    const params = new URLSearchParams();
+    if (query) params.set("query", query);
+    if (cycloneTag && cycloneTag !== "ALL") params.set("cyclone_tag", cycloneTag);
+
+    const response = await fetch(`${apiBaseUrl}/api/v2/news/articles?${params.toString()}`);
+    if (!response.ok) return [];
+    return response.json() as Promise<NewsArticle[]>;
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchRealtimeWeather(lat: number, lon: number): Promise<RealtimeWeather | null> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v2/realtime-weather?lat=${lat}&lon=${lon}`);
+    if (!response.ok) return null;
+    return response.json() as Promise<RealtimeWeather>;
+  } catch {
+    return null;
+  }
+}
+

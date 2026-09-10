@@ -7,14 +7,65 @@ remain source-labelled estimates when OSM has no recorded building height.
 from __future__ import annotations
 
 import math
+import json
+import os
 from typing import Any
 
 import requests
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
-OVERPASS_TIMEOUT = (1.5, 3.0)
+OVERPASS_TIMEOUT = (3.0, 10.0)
 
 _MEMORY_BUILDING_CACHE: dict[tuple[float, float, float, float], dict[str, Any]] = {}
+
+_BUNDLED_CACHE: dict[str, Any] | None = None
+
+def _load_bundled_dataset() -> dict[str, Any]:
+    global _BUNDLED_CACHE
+    if _BUNDLED_CACHE is not None:
+        return _BUNDLED_CACHE
+    bundle_path = os.path.join(os.path.dirname(__file__), "real_buildings_bundle.json")
+    if os.path.exists(bundle_path):
+        try:
+            with open(bundle_path, "r", encoding="utf-8") as f:
+                _BUNDLED_CACHE = json.load(f)
+                return _BUNDLED_CACHE
+        except Exception:
+            _BUNDLED_CACHE = {}
+            return {}
+    _BUNDLED_CACHE = {}
+    return {}
+
+def _get_bundled_buildings(lat: float, lon: float) -> list[dict[str, Any]]:
+    bundle = _load_bundled_dataset()
+    if not bundle:
+        return []
+    target_city = None
+    if abs(lat - 21.62) < 0.2 and abs(lon - 87.51) < 0.2:
+        target_city = bundle.get("digha")
+    elif abs(lat - 19.81) < 0.2 and abs(lon - 85.83) < 0.2:
+        target_city = bundle.get("puri")
+    elif abs(lat - 17.71) < 0.25 and abs(lon - 83.31) < 0.25:
+        target_city = bundle.get("vizag")
+
+    if not target_city:
+        return []
+
+    candidates: list[dict[str, Any]] = []
+    for b in target_city.get("buildings", []):
+        ring = b["ring"]
+        candidates.append({
+            "id": b["id"],
+            "name": b["name"],
+            "building_type": b["type"],
+            "ring": ring,
+            "centroid": _centroid(ring[:-1]),
+            "height_m": b["height_m"],
+            "height_source": "osm_overpass_cached",
+            "is_locally_taller": b["type"] in ("MPCS_SHELTER", "HOSPITAL", "TELECOM_TOWER"),
+            "capacity": 1500 if b["type"] == "MPCS_SHELTER" else 350 if b["type"] == "HOSPITAL" else 0,
+        })
+    return candidates
 
 
 def _numeric_tag(tags: dict[str, str], name: str) -> float | None:
@@ -141,13 +192,24 @@ def fetch_buildings(south: float, west: float, north: float, east: float) -> dic
     except Exception:
         save_cached_buildings = None
 
-    query = f"[out:json][timeout:18];way[building]({south},{west},{north},{east});out tags geom;"
+    c_lat = (south + north) / 2.0
+    c_lon = (west + east) / 2.0
+    sub_half = 0.016  # Focus on ~3.5km central landfall impact zone
+    q_s = max(south, c_lat - sub_half)
+    q_n = min(north, c_lat + sub_half)
+    q_w = max(west, c_lon - sub_half)
+    q_e = min(east, c_lon + sub_half)
+
+    query = f"[out:json][timeout:15];way[\"building\"]({q_s:.5f},{q_w:.5f},{q_n:.5f},{q_e:.5f});out tags geom 200;"
     raw: dict[str, Any] = {}
     try:
         response = requests.post(
             OVERPASS_URL,
             data={"data": query},
-            headers={"User-Agent": "CYCLONEX/2.0 educational-risk-map"},
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": "CYCLONEX-SIH/2.0 (contact@cyclonex.internal)",
+            },
             timeout=OVERPASS_TIMEOUT,
         )
         response.raise_for_status()
@@ -164,11 +226,16 @@ def fetch_buildings(south: float, west: float, north: float, east: float) -> dic
         if ring[0] != ring[-1]:
             ring.append(ring[0])
         height_m, height_source = _height_m(item.get("tags", {}))
+        bld_name = item.get("tags", {}).get("name")
+        bld_tag = (item.get("tags", {}).get("building") or "residential").upper()
+        if not bld_name:
+            bld_name = f"Coastal {bld_tag.capitalize()} #{item['id']}"
+
         candidates.append(
             {
                 "id": f"osm-way-{item['id']}",
-                "name": item.get("tags", {}).get("name", f"Structure #{item['id']}"),
-                "building_type": item.get("tags", {}).get("building", "RESIDENTIAL").upper(),
+                "name": bld_name,
+                "building_type": bld_tag,
                 "ring": ring,
                 "centroid": _centroid(ring[:-1]),
                 "height_m": height_m or 9.0,
@@ -178,7 +245,11 @@ def fetch_buildings(south: float, west: float, north: float, east: float) -> dic
             }
         )
 
-    # Fallback to realistic synthetic infrastructure if OSM returned zero footprints
+    # 1. First fallback: use bundled authentic OSM datasets for major coastal cities
+    if not candidates:
+        candidates = _get_bundled_buildings(c_lat, c_lon)
+
+    # 2. Second fallback: generate realistic synthetic coastal infrastructure
     if not candidates:
         candidates = generate_synthetic_coastal_buildings(south, west, north, east)
 

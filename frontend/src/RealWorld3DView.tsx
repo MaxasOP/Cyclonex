@@ -1,28 +1,37 @@
+<<<<<<< Updated upstream
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { BuildingFeature, RiskFeature, EvacuationPlan } from "./api";
+=======
+import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { Map as MapLibreMap, NavigationControl, Marker, config } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+>>>>>>> Stashed changes
 
-export interface RealWorld3DViewProps {
+// Configure MapLibre web worker to use the local static worker asset
+config.WORKER_URL = "/maplibre-gl-worker.mjs";
+import { REAL_CITY_BUILDINGS } from "./data/realCityBuildings";
+import type { BuildingFeature, RiskFeature } from "./api";
+
+interface RealWorld3DProps {
   center: { lat: number; lng: number };
   locationName?: string;
-  features?: RiskFeature[];
-  buildings?: BuildingFeature[];
-  sheltersPlan?: EvacuationPlan | null;
+  features: RiskFeature[];
+  buildings: BuildingFeature[];
+  sheltersPlan?: any;
   speedKph?: number;
   headingDeg?: number;
   onExitReal3D?: () => void;
-  onSelectBuilding?: (building: BuildingFeature | null) => void;
   onSelectPreset?: (presetKey: string) => void;
 }
 
-interface BuildingInfo {
-  feature: BuildingFeature;
-  mesh: THREE.Object3D;
-  type: string;
+export interface BuildingDossierInfo {
+  id: string;
   name: string;
-  sector: string;
+  type: string;
   height: number;
+  stories: number;
   damageScore: number;
   classification: string;
   windKph: number;
@@ -31,77 +40,62 @@ interface BuildingInfo {
   capacity: number;
   lat: number;
   lng: number;
+  floodDepthM: number;
   recommendation: string;
 }
 
-// Slippy map tile calculations
-function getTileXY(lat: number, lng: number, zoom: number) {
-  const n = Math.pow(2, zoom);
-  const x = Math.floor(((lng + 180) / 360) * n);
-  const latRad = (lat * Math.PI) / 180;
-  const y = Math.floor(((1 - Math.asinh(Math.tan(latRad)) / Math.PI) / 2) * n);
-  return { x, y };
-}
-
-function tileToBBox(x: number, y: number, zoom: number) {
-  const n = Math.pow(2, zoom);
-  const west = (x / n) * 360 - 180;
-  const east = ((x + 1) / n) * 360 - 180;
-  const north = (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * 180) / Math.PI;
-  const south = (Math.atan(Math.sinh(Math.PI * (1 - (2 * (y + 1)) / n))) * 180) / Math.PI;
-  return { west, east, north, south };
-}
-
-type BasemapType = "esri" | "osm" | "carto_dark";
+const CITY_PRESETS = [
+  { key: "digha", appPresetKey: "landfall_amphan", label: "Digha, WB", lat: 21.6235, lng: 87.5220, oceanBearing: 195, zoom: 16.3, pitch: 64 },
+  { key: "puri", appPresetKey: "landfall_fani", label: "Puri, Odisha", lat: 19.8035, lng: 85.8280, oceanBearing: 165, zoom: 16.3, pitch: 64 },
+  { key: "vizag", appPresetKey: "landfall_hudhud", label: "Vizag, AP", lat: 17.7050, lng: 83.3080, oceanBearing: 118, zoom: 16.2, pitch: 66 },
+];
 
 export default function RealWorld3DView({
   center,
   locationName,
-  features = [],
-  buildings = [],
-  speedKph = 25,
-  headingDeg = 315,
+  buildings,
+  speedKph = 145,
+  headingDeg = 210,
   onExitReal3D,
-  onSelectBuilding,
   onSelectPreset,
-}: RealWorld3DViewProps) {
-  const mountRef = useRef<HTMLDivElement>(null);
+}: RealWorld3DProps) {
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const canvasOverlayRef = useRef<HTMLCanvasElement | null>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
+  const markersRef = useRef<Marker[]>([]);
 
-  // HUD and Simulation State
-  const [selectedBld, setSelectedBld] = useState<BuildingInfo | null>(null);
-  const [visualMode, setVisualMode] = useState<"heatmap" | "realistic">("realistic");
-  const [basemapMode, setBasemapMode] = useState<BasemapType>("esri");
-  const [showSurge, setShowSurge] = useState<boolean>(true);
-  const [surgeHeightM, setSurgeHeightM] = useState<number>(2.8);
-  const [showWindStreams, setShowWindStreams] = useState<boolean>(true);
-  const [showRain, setShowRain] = useState<boolean>(true);
-  const [cameraView, setCameraView] = useState<"drone" | "birdseye" | "surge" | "orbit">("birdseye");
-  const [tileLoadStatus, setTileLoadStatus] = useState<string>("Streaming High-Res Satellite Tiles...");
+  // UI & Simulation State
+  const [selectedBld, setSelectedBld] = useState<BuildingDossierInfo | null>(null);
+  const [cameraMode, setCameraMode] = useState<"birdseye" | "drone" | "surge" | "orbit">("birdseye");
+  const [basemapMode, setBasemapMode] = useState<"esri" | "osm" | "carto_dark">("esri");
+  const [visualMode, setVisualMode] = useState<"architectural" | "heatmap">("architectural");
+  const [showGreenBuildings, setShowGreenBuildings] = useState(true);
+  const [showRoadCorridors, setShowRoadCorridors] = useState(true);
+  const [showSurge, setShowSurge] = useState(true);
+  const [surgeHeightM, setSurgeHeightM] = useState(2.8);
+  const [showWindStreams, setShowWindStreams] = useState(true);
+  const [showRain, setShowRain] = useState(false);
+  const [isOrbiting, setIsOrbiting] = useState(false);
 
-  // Three.js object references
-  const controlsRef = useRef<OrbitControls | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-  const surgeMeshRef = useRef<THREE.Mesh | null>(null);
-  const buildingMeshesRef = useRef<BuildingInfo[]>([]);
-  const highlightBoxRef = useRef<THREE.BoxHelper | null>(null);
-  const visualModeRef = useRef<"heatmap" | "realistic">(visualMode);
-  visualModeRef.current = visualMode;
+  // Live Google Earth Telemetry
+  const [telemetry, setTelemetry] = useState({
+    latStr: center.lat.toFixed(5) + "°N",
+    lngStr: center.lng.toFixed(5) + "°E",
+    elevM: 14,
+    eyeAltM: 420,
+    headingDeg: 180,
+    tiltDeg: 60,
+  });
 
-  // Derive human-readable location label
-  const derivedLocation = locationName
-    ? locationName
-    : Math.abs(center.lat - 21.62) < 0.25 && Math.abs(center.lng - 87.51) < 0.25
-    ? "Digha Coastline, West Bengal"
-    : Math.abs(center.lat - 19.81) < 0.25 && Math.abs(center.lng - 85.83) < 0.25
-    ? "Puri Coastal Sector, Odisha"
-    : Math.abs(center.lat - 20.316) < 0.25 && Math.abs(center.lng - 86.61) < 0.25
-    ? "Paradip Port & Jagatsinghpur, Odisha"
-    : Math.abs(center.lat - 17.68) < 0.25 && Math.abs(center.lng - 83.21) < 0.25
-    ? "Visakhapatnam Harbor & Urban Coast, AP"
-    : Math.abs(center.lat - 13.08) < 0.25 && Math.abs(center.lng - 80.27) < 0.25
-    ? "Chennai Marina & Urban Coast, Tamil Nadu"
-    : `Lat: ${center.lat.toFixed(4)}°N, Lng: ${center.lng.toFixed(4)}°E`;
+  // Determine current matched preset from center
+  const matchedKey = useMemo(() => {
+    return Object.keys(REAL_CITY_BUILDINGS).find((k) => {
+      const c = REAL_CITY_BUILDINGS[k].center;
+      return Math.abs(c.lat - center.lat) < 0.35 && Math.abs(c.lng - center.lng) < 0.35;
+    }) || "vizag";
+  }, [center]);
 
+<<<<<<< Updated upstream
   const maxWind = features.reduce((m, f) => Math.max(m, f.properties?.wind_kph ?? 0), 0);
 
   // Camera presets
@@ -1020,21 +1014,724 @@ export default function RealWorld3DView({
       surgeMeshRef.current.visible = showSurge;
     }
   }, [showSurge]);
+=======
+  const [activeCityKey, setActiveCityKey] = useState<string>(matchedKey);
+
+  useEffect(() => {
+    if (matchedKey) {
+      setActiveCityKey(matchedKey);
+    }
+  }, [matchedKey]);
+
+  const currentPreset = useMemo(() => {
+    return CITY_PRESETS.find((p) => p.key === activeCityKey) || CITY_PRESETS[2];
+  }, [activeCityKey]);
+
+  // Construct High-Quality GeoJSON 3D Buildings Dataset
+  const buildingData = useMemo(() => {
+    const list: BuildingDossierInfo[] = [];
+    const features: any[] = [];
+
+    const osmBuildings = REAL_CITY_BUILDINGS[activeCityKey]?.buildings || [];
+
+    osmBuildings.forEach((b, idx) => {
+      if (!b.ring || b.ring.length < 3) return;
+
+      const cLng = b.ring.reduce((acc, pt) => acc + pt[0], 0) / b.ring.length;
+      const cLat = b.ring.reduce((acc, pt) => acc + pt[1], 0) / b.ring.length;
+
+      const heightM = b.height_m || 24;
+      const minHeightM = b.min_height_m || 0;
+      const stories = Math.max(1, Math.round(heightM / 3.4));
+
+      const isShelter = b.type === "MPCS_SHELTER" || b.id?.includes("shelter") || b.name?.includes("Shelter") || b.name?.includes("Haven");
+      const isHospital = b.type === "HOSPITAL" || b.name?.includes("Hospital") || b.name?.includes("Clinic");
+
+      const score = isShelter ? 0.05 : isHospital ? 0.15 : b.type === "COMMERCIAL" ? 0.38 : (0.22 + (idx % 7) * 0.09);
+      const classification = score >= 0.55 ? "SEVERE_RISK" : score >= 0.25 ? "MODERATE_RISK" : "SAFE";
+
+      // Architectural White Model Color (matches reference CAD image)
+      let archColor = "#f8fafc";
+      if (b.name?.includes("Penthouse") || b.name?.includes("Crown")) {
+        archColor = "#e2e8f0";
+      } else if (b.name?.includes("Rotunda")) {
+        archColor = "#ffffff";
+      }
+
+      // If "Show Green Buildings" is toggled ON
+      if (showGreenBuildings && (isShelter || b.tags?.shelter === "designated_haven")) {
+        archColor = "#22c55e"; // Vibrant Green Safe Refuge
+      }
+
+      // Heatmap Color
+      const riskColor = isShelter ? "#22c55e" : score >= 0.55 ? "#ef4444" : score >= 0.25 ? "#f59e0b" : "#38bdf8";
+
+      const info: BuildingDossierInfo = {
+        id: b.id || `osm-bld-${idx + 1}`,
+        name: b.name || `${b.type.replace("_", " ")} Structure #${idx + 1}`,
+        type: b.type,
+        height: Math.round(heightM),
+        stories,
+        damageScore: score,
+        classification,
+        windKph: Math.round(speedKph * 3.8 + 25),
+        dynPressurePa: Math.round(1120 + score * 480),
+        lrr: Number((score * 1.3).toFixed(2)),
+        capacity: isShelter ? 2500 : isHospital ? 600 : b.type === "COMMERCIAL" ? 450 : 35,
+        lat: Number(cLat.toFixed(5)),
+        lng: Number(cLng.toFixed(5)),
+        floodDepthM: Number(Math.max(0, surgeHeightM * 0.85 - (cLat - currentPreset.lat) * 200).toFixed(1)),
+        recommendation: isShelter
+          ? "DESIGNATED SAFE REFUGE: Capacity 2500 persons. Elevated stilts clear +4.5m storm surge. 260 km/h wind rated."
+          : score >= 0.55
+          ? "SEVERE FAILURE HAZARD: Wind gust force exceeds structural load limit. Immediate evacuation to Primary MPCS Shelter required."
+          : score >= 0.25
+          ? "MODERATE RISK: Coastal gale precautions required. Secure windows, stand by for NDMA directives."
+          : "LOW VULNERABILITY: Heavy reinforced framing stable under cyclonic wind forces.",
+      };
+
+      list.push(info);
+
+      // Construct GeoJSON Polygon
+      const coords = [...b.ring];
+      if (coords[0][0] !== coords[coords.length - 1][0] || coords[0][1] !== coords[coords.length - 1][1]) {
+        coords.push(coords[0]);
+      }
+
+      features.push({
+        type: "Feature",
+        id: info.id,
+        geometry: {
+          type: "Polygon",
+          coordinates: [coords],
+        },
+        properties: {
+          id: info.id,
+          name: info.name,
+          type: info.type,
+          height: heightM,
+          min_height: minHeightM,
+          archColor,
+          riskColor,
+          isShelter,
+          score,
+          classification,
+        },
+      });
+    });
+
+    return {
+      geoJson: { type: "FeatureCollection", features } as any,
+      buildingList: list,
+    };
+  }, [activeCityKey, speedKph, surgeHeightM, currentPreset.lat, showGreenBuildings]);
+
+  const roadCorridorsGeoJson = useMemo(() => {
+    return {
+      type: "FeatureCollection",
+      features: [],
+    } as any;
+  }, []);
+
+  // Automatically keep selected building synchronized when dataset changes
+  useEffect(() => {
+    if (buildingData.buildingList.length > 0) {
+      const keyBld = buildingData.buildingList.find((b) => b.type === "MPCS_SHELTER") || buildingData.buildingList[0];
+      setSelectedBld(keyBld);
+      const map = mapRef.current;
+      if (map && map.getLayer("selected-building-highlight")) {
+        try {
+          map.setFilter("selected-building-highlight", ["==", "id", keyBld.id]);
+        } catch {
+          // Ignored
+        }
+      }
+    }
+  }, [buildingData]);
+
+  // Construct Realistic Storm Surge Inundation Polygon
+  const surgeGeoJson = useMemo(() => {
+    const cLat = currentPreset.lat;
+    const cLng = currentPreset.lng;
+    const oceanRad = (currentPreset.oceanBearing * Math.PI) / 180;
+    const inlandDist = 0.0035 + (surgeHeightM / 5.0) * 0.0075;
+
+    const coastTangentX = -Math.sin(oceanRad);
+    const coastTangentY = Math.cos(oceanRad);
+    const inlandX = -Math.cos(oceanRad);
+    const inlandY = -Math.sin(oceanRad);
+
+    const span = 0.045; // ~5km coastal span
+    const points: [number, number][] = [];
+
+    // Seaward baseline in ocean
+    points.push([cLng - coastTangentX * span - inlandX * 0.03, cLat - coastTangentY * span - inlandY * 0.03]);
+    points.push([cLng + coastTangentX * span - inlandX * 0.03, cLat + coastTangentY * span - inlandY * 0.03]);
+
+    // Inland shoreline infiltration line with estuaries
+    const steps = 36;
+    for (let s = steps; s >= 0; s--) {
+      const t = (s / steps - 0.5) * 2;
+      const waveInland = inlandDist * (0.8 + Math.sin(t * 8) * 0.25 + Math.cos(t * 14) * 0.15);
+      const px = cLng + coastTangentX * span * t + inlandX * waveInland;
+      const py = cLat + coastTangentY * span * t + inlandY * waveInland;
+      points.push([px, py]);
+    }
+    points.push(points[0]); // Close polygon
+
+    return {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          properties: { depth: surgeHeightM },
+          geometry: {
+            type: "Polygon",
+            coordinates: [points],
+          },
+        },
+      ],
+    } as any;
+  }, [currentPreset, surgeHeightM]);
+
+  // Initialize MapLibre GL 3D Map WITH ALL LAYERS PRE-CONFIGURED IN INITIAL STYLE
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+
+    const map = new MapLibreMap({
+      container: mapContainerRef.current,
+      style: {
+        version: 8,
+        light: {
+          anchor: "viewport",
+          color: "#ffffff",
+          intensity: 0.88,
+          position: [1.6, 215, 38],
+        },
+        sources: {
+          esri: {
+            type: "raster",
+            tiles: [
+              "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            ],
+            tileSize: 256,
+            maxzoom: 17,
+            attribution: "Esri World Satellite Imagery",
+          },
+          osm: {
+            type: "raster",
+            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+            tileSize: 256,
+            maxzoom: 19,
+            attribution: "© OpenStreetMap contributors",
+          },
+          carto_dark: {
+            type: "raster",
+            tiles: ["https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png"],
+            tileSize: 256,
+            maxzoom: 19,
+            attribution: "© CARTO",
+          },
+          "road-corridors-source": {
+            type: "geojson",
+            data: roadCorridorsGeoJson,
+          },
+          "surge-flood-source": {
+            type: "geojson",
+            data: surgeGeoJson,
+          },
+          "buildings-source": {
+            type: "geojson",
+            data: buildingData.geoJson,
+            promoteId: "id",
+          },
+        },
+        layers: [
+          // 1. Satellite Base Imagery
+          {
+            id: "basemap-layer",
+            type: "raster",
+            source: basemapMode,
+            minzoom: 0,
+            maxzoom: 22,
+          },
+          // 2. Road Corridors Layer
+          {
+            id: "road-corridors-layer",
+            type: "line",
+            source: "road-corridors-source",
+            paint: {
+              "line-color": ["get", "color"],
+              "line-width": ["get", "width"],
+              "line-opacity": showRoadCorridors ? 0.88 : 0.0,
+            },
+          },
+          // 3. Storm Surge Flood Water
+          {
+            id: "surge-flood-water",
+            type: "fill",
+            source: "surge-flood-source",
+            paint: {
+              "fill-color": "#0284c7",
+              "fill-opacity": showSurge ? 0.65 : 0.0,
+            },
+          },
+          // 4. Storm Surge Shore Edge Line
+          {
+            id: "surge-flood-shore-edge",
+            type: "line",
+            source: "surge-flood-source",
+            paint: {
+              "line-color": "#bae6fd",
+              "line-width": 3.5,
+              "line-opacity": showSurge ? 0.85 : 0.0,
+            },
+          },
+          // 5. TRUE 3D EXTRUDED BUILDINGS (RENDERED IMMEDIATELY)
+          {
+            id: "3d-city-buildings",
+            type: "fill-extrusion",
+            source: "buildings-source",
+            paint: {
+              "fill-extrusion-color": [
+                "case",
+                ["==", ["get", "id"], ""],
+                "#38bdf8",
+                ["coalesce", ["get", visualMode === "architectural" ? "archColor" : "riskColor"], "#f8fafc"],
+              ],
+              "fill-extrusion-height": ["coalesce", ["get", "height"], 25],
+              "fill-extrusion-base": ["coalesce", ["get", "min_height"], 0],
+              "fill-extrusion-opacity": 0.98,
+              "fill-extrusion-vertical-gradient": true,
+            },
+          },
+          // 6. Selected Building Cyan Aura
+          {
+            id: "selected-building-highlight",
+            type: "fill-extrusion",
+            source: "buildings-source",
+            filter: ["==", "id", ""],
+            paint: {
+              "fill-extrusion-color": "#38bdf8",
+              "fill-extrusion-height": ["+", ["coalesce", ["get", "height"], 25], 3.0],
+              "fill-extrusion-base": ["coalesce", ["get", "min_height"], 0],
+              "fill-extrusion-opacity": 0.98,
+            },
+          },
+        ],
+      },
+      center: [currentPreset.lng, currentPreset.lat],
+      zoom: currentPreset.zoom,
+      pitch: currentPreset.pitch,
+      bearing: currentPreset.oceanBearing,
+      maxPitch: 85,
+    });
+
+    map.addControl(new NavigationControl({ visualizePitch: true }), "top-right");
+
+    const setupInteractiveFeatures = () => {
+      // Building click interaction
+      map.on("click", "3d-city-buildings", (e) => {
+        if (!e.features || e.features.length === 0) return;
+        const feat = e.features[0];
+        const bId = feat.properties?.id;
+        const matched = buildingData.buildingList.find((b) => b.id === bId);
+        if (matched) {
+          setSelectedBld(matched);
+          if (map.getLayer("selected-building-highlight")) {
+            try {
+              map.setFilter("selected-building-highlight", ["==", "id", matched.id]);
+            } catch {}
+          }
+        }
+      });
+
+      map.on("mouseenter", "3d-city-buildings", () => {
+        map.getCanvas().style.cursor = "pointer";
+      });
+      map.on("mouseleave", "3d-city-buildings", () => {
+        map.getCanvas().style.cursor = "";
+      });
+
+      // Initial selection
+      if (buildingData.buildingList.length > 0) {
+        const keyHaven = buildingData.buildingList.find((b) => b.type === "MPCS_SHELTER") || buildingData.buildingList[0];
+        setSelectedBld(keyHaven);
+        if (map.getLayer("selected-building-highlight")) {
+          try {
+            map.setFilter("selected-building-highlight", ["==", "id", keyHaven.id]);
+          } catch {}
+        }
+      }
+    };
+
+    if (map.isStyleLoaded()) {
+      setupInteractiveFeatures();
+    } else {
+      map.once("style.load", setupInteractiveFeatures);
+    }
+
+    // Update Telemetry on camera move
+    const updateTelemetry = () => {
+      const c = map.getCenter();
+      const p = map.getPitch();
+      const b = map.getBearing();
+      const z = map.getZoom();
+      const altM = Math.round(1000 * Math.pow(2, 17 - z));
+
+      setTelemetry({
+        latStr: `${c.lat.toFixed(5)}°N`,
+        lngStr: `${c.lng.toFixed(5)}°E`,
+        elevM: Math.round(12 + Math.sin(c.lat * 10) * 6),
+        eyeAltM: Math.max(25, altM),
+        headingDeg: Math.round((b + 360) % 360),
+        tiltDeg: Math.round(p),
+      });
+    };
+
+    map.on("move", updateTelemetry);
+    mapRef.current = map;
+    (window as any).__map = map;
+
+    return () => {
+      markersRef.current.forEach((m) => m.remove());
+      markersRef.current = [];
+      map.remove();
+      mapRef.current = null;
+      (window as any).__map = null;
+    };
+  }, []);
+
+  // Update Building Dataset when city or data changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const applyData = () => {
+      try {
+        const bldSource = map.getSource("buildings-source") as any;
+        if (bldSource && bldSource.setData) {
+          bldSource.setData(buildingData.geoJson);
+        }
+      } catch {}
+    };
+
+    if (map.isStyleLoaded()) {
+      applyData();
+    } else {
+      map.once("style.load", applyData);
+    }
+  }, [buildingData]);
+
+  // Update Road Corridors Dataset
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const applyRoads = () => {
+      try {
+        const roadSource = map.getSource("road-corridors-source") as any;
+        if (roadSource && roadSource.setData) {
+          roadSource.setData(roadCorridorsGeoJson);
+        }
+
+        if (map.getLayer("road-corridors-layer")) {
+          map.setPaintProperty("road-corridors-layer", "line-opacity", showRoadCorridors ? 0.88 : 0.0);
+        }
+      } catch {}
+    };
+
+    if (map.isStyleLoaded()) {
+      applyRoads();
+    } else {
+      map.once("style.load", applyRoads);
+    }
+  }, [roadCorridorsGeoJson, showRoadCorridors]);
+
+  // Create 3D HTML Landmark Markers
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
+
+    const shelter = buildingData.buildingList.find((b) => b.type === "MPCS_SHELTER") || buildingData.buildingList[0];
+    const hospital = buildingData.buildingList.find((b) => b.type === "HOSPITAL");
+
+    const addBadgeMarker = (lng: number, lat: number, text: string, color: string, onClick: () => void) => {
+      const el = document.createElement("div");
+      el.className = "real3d-html-marker";
+      el.style.display = "flex";
+      el.style.alignItems = "center";
+      el.style.gap = "4px";
+      el.style.background = "rgba(15, 23, 42, 0.88)";
+      el.style.border = `1.5px solid ${color}`;
+      el.style.borderRadius = "20px";
+      el.style.padding = "3px 8px";
+      el.style.color = "#ffffff";
+      el.style.fontSize = "11px";
+      el.style.fontWeight = "700";
+      el.style.boxShadow = `0 4px 14px ${color}55`;
+      el.style.cursor = "pointer";
+      el.style.userSelect = "none";
+      el.style.transform = "translateY(-10px)";
+      el.innerHTML = `<span>${text}</span>`;
+      el.onclick = onClick;
+
+      const m = new Marker({ element: el }).setLngLat([lng, lat]).addTo(map);
+      markersRef.current.push(m);
+    };
+
+    if (shelter) {
+      addBadgeMarker(shelter.lng, shelter.lat, "🛡️ " + (shelter.type === "MPCS_SHELTER" ? "Safe Shelter Haven" : shelter.name.slice(0, 18)), "#22c55e", () => {
+        setSelectedBld(shelter);
+        map.flyTo({ center: [shelter.lng, shelter.lat], zoom: 17.6, pitch: 72, duration: 1800 });
+      });
+    }
+
+    if (hospital) {
+      addBadgeMarker(hospital.lng, hospital.lat, "🏥 District Hospital", "#ef4444", () => {
+        setSelectedBld(hospital);
+        map.flyTo({ center: [hospital.lng, hospital.lat], zoom: 17.6, pitch: 72, duration: 1800 });
+      });
+    }
+
+    // Coastal Embankment Marker
+    const coastRad = (currentPreset.oceanBearing * Math.PI) / 180;
+    const coastLng = currentPreset.lng + Math.cos(coastRad) * 0.003;
+    const coastLat = currentPreset.lat - Math.sin(coastRad) * 0.003;
+    addBadgeMarker(coastLng, coastLat, "🏖️ Marine Promenade", "#38bdf8", () => {
+      map.flyTo({ center: [coastLng, coastLat], zoom: 16.8, pitch: 65, duration: 1800 });
+    });
+  }, [buildingData, currentPreset]);
+
+  // Update basemap raster tile layer
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    try {
+      if (map.getLayer("basemap-layer")) {
+        map.removeLayer("basemap-layer");
+      }
+      map.addLayer(
+        {
+          id: "basemap-layer",
+          type: "raster",
+          source: basemapMode,
+          minzoom: 0,
+          maxzoom: 22,
+        },
+        "road-corridors-layer"
+      );
+    } catch {}
+  }, [basemapMode]);
+
+  // Update building colors on visualMode toggle or green buildings toggle
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded() || !map.getLayer("3d-city-buildings")) return;
+
+    try {
+      map.setPaintProperty(
+        "3d-city-buildings",
+        "fill-extrusion-color",
+        [
+          "case",
+          ["==", ["get", "id"], selectedBld?.id || ""],
+          "#38bdf8",
+          ["coalesce", ["get", visualMode === "architectural" ? "archColor" : "riskColor"], "#f8fafc"],
+        ]
+      );
+    } catch {}
+  }, [visualMode, selectedBld, showGreenBuildings]);
+
+  // Update Storm Surge Flood Layer on slider changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const applySurge = () => {
+      try {
+        const source = map.getSource("surge-flood-source") as any;
+        if (source && source.setData) {
+          source.setData(surgeGeoJson);
+        }
+
+        if (map.getLayer("surge-flood-water")) {
+          map.setPaintProperty("surge-flood-water", "fill-opacity", showSurge ? 0.65 : 0.0);
+        }
+        if (map.getLayer("surge-flood-shore-edge")) {
+          map.setPaintProperty("surge-flood-shore-edge", "line-opacity", showSurge ? 0.85 : 0.0);
+        }
+      } catch {}
+    };
+
+    if (map.isStyleLoaded()) {
+      applySurge();
+    } else {
+      map.once("style.load", applySurge);
+    }
+  }, [surgeGeoJson, showSurge]);
+
+  // Update selected building highlight
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.getLayer("selected-building-highlight")) return;
+
+    try {
+      map.setFilter("selected-building-highlight", ["==", "id", selectedBld?.id || ""]);
+    } catch {}
+  }, [selectedBld]);
+
+  // 360° Orbit Animation Loop
+  useEffect(() => {
+    if (!isOrbiting) return;
+    let animFrame: number;
+
+    const orbitStep = () => {
+      const map = mapRef.current;
+      if (map) {
+        map.setBearing((map.getBearing() + 0.35) % 360);
+      }
+      animFrame = requestAnimationFrame(orbitStep);
+    };
+
+    animFrame = requestAnimationFrame(orbitStep);
+    return () => cancelAnimationFrame(animFrame);
+  }, [isOrbiting]);
+
+  // Canvas Overlay for Animated Cyclonic Wind Streamlines & Tropical Rain
+  useEffect(() => {
+    const canvas = canvasOverlayRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let animId: number;
+    const w = canvas.width = window.innerWidth;
+    const h = canvas.height = window.innerHeight;
+
+    // Wind Streamline Particles
+    const windCount = 140;
+    const windParticles = Array.from({ length: windCount }, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      speed: 4 + Math.random() * 5,
+      length: 20 + Math.random() * 26,
+      opacity: 0.25 + Math.random() * 0.45,
+    }));
+
+    // Rain Particles
+    const rainCount = 180;
+    const rainParticles = Array.from({ length: rainCount }, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      spd: 16 + Math.random() * 12,
+      len: 18 + Math.random() * 24,
+    }));
+
+    const renderOverlay = () => {
+      ctx.clearRect(0, 0, w, h);
+
+      // 1. Cyclonic Wind Streamlines
+      if (showWindStreams) {
+        const rad = ((headingDeg % 360) * Math.PI) / 180;
+        const dirX = Math.cos(rad);
+        const dirY = Math.sin(rad);
+
+        windParticles.forEach((p) => {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x - dirX * p.length, p.y - dirY * p.length);
+          ctx.strokeStyle = `rgba(56, 189, 248, ${p.opacity})`;
+          ctx.lineWidth = 1.6;
+          ctx.lineCap = "round";
+          ctx.stroke();
+
+          // Particle head glow
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          p.x += dirX * p.speed;
+          p.y += dirY * p.speed;
+
+          if (p.x > w + 50) p.x = -50;
+          if (p.x < -50) p.x = w + 50;
+          if (p.y > h + 50) p.y = -50;
+          if (p.y < -50) p.y = h + 50;
+        });
+      }
+
+      // 2. Tropical Torrential Rain
+      if (showRain) {
+        ctx.strokeStyle = "rgba(186, 230, 253, 0.45)";
+        ctx.lineWidth = 1.2;
+        rainParticles.forEach((r) => {
+          ctx.beginPath();
+          ctx.moveTo(r.x, r.y);
+          ctx.lineTo(r.x + 4, r.y + r.len);
+          ctx.stroke();
+
+          r.y += r.spd;
+          r.x += 4;
+          if (r.y > h) {
+            r.y = -20;
+            r.x = Math.random() * w;
+          }
+        });
+      }
+
+      animId = requestAnimationFrame(renderOverlay);
+    };
+
+    animId = requestAnimationFrame(renderOverlay);
+    return () => cancelAnimationFrame(animId);
+  }, [showWindStreams, showRain, headingDeg]);
+
+  // Camera preset actions
+  const applyCameraMode = (mode: "birdseye" | "drone" | "surge" | "orbit") => {
+    setCameraMode(mode);
+    setIsOrbiting(false);
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (mode === "birdseye") {
+      map.easeTo({ pitch: 64, zoom: 16.3, bearing: currentPreset.oceanBearing, duration: 1800 });
+    } else if (mode === "drone") {
+      map.easeTo({ pitch: 76, zoom: 17.8, bearing: currentPreset.oceanBearing - 20, duration: 2000 });
+    } else if (mode === "surge") {
+      map.easeTo({ pitch: 66, zoom: 16.0, bearing: currentPreset.oceanBearing, duration: 2000 });
+    } else if (mode === "orbit") {
+      setIsOrbiting(true);
+    }
+  };
+
+  const flyToCoords = (lng: number, lat: number, pitch = 68, zoom = 17.5) => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.flyTo({ center: [lng, lat], pitch, zoom, duration: 2000 });
+  };
+>>>>>>> Stashed changes
 
   return (
     <div
-      className="real3d-viewport-container"
+      className="real-world-3d-container"
       style={{
         position: "relative",
         width: "100%",
         height: "100%",
-        minHeight: "640px",
         overflow: "hidden",
+        backgroundColor: "#030712",
       }}
     >
-      {/* 3D WebGL Canvas Mount */}
-      <div ref={mountRef} style={{ width: "100%", height: "100%", minHeight: "640px" }} />
+      {/* Real Geospatial 3D Map Viewport */}
+      <div ref={mapContainerRef} style={{ width: "100%", height: "100%" }} />
 
+<<<<<<< Updated upstream
       {/* Unified Sleek Top HUD Bar */}
       <div
         className="real3d-top-bar"
@@ -1092,35 +1789,211 @@ export default function RealWorld3DView({
             padding: "3px 4px",
             display: "flex",
             gap: "3px",
+=======
+      {/* Top Left: Reference-Style "Show Green Buildings" Pill Button */}
+      <div
+        style={{
+          position: "absolute",
+          top: "14px",
+          left: "16px",
+          zIndex: 1150,
+          pointerEvents: "auto",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setShowGreenBuildings(!showGreenBuildings)}
+          style={{
+            background: showGreenBuildings ? "rgba(16, 185, 129, 0.92)" : "rgba(15, 23, 42, 0.88)",
+            color: "#ffffff",
+            border: `1.5px solid ${showGreenBuildings ? "#34d399" : "rgba(255, 255, 255, 0.25)"}`,
+            borderRadius: "6px",
+            padding: "6px 12px",
+            fontSize: "0.75rem",
+            fontWeight: 700,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.5)",
+            transition: "all 0.2s",
           }}
         >
+          <span
+            style={{
+              width: "10px",
+              height: "10px",
+              background: showGreenBuildings ? "#ffffff" : "#22c55e",
+              borderRadius: "2px",
+              display: "inline-block",
+            }}
+          />
+          Show Green Buildings
+        </button>
+      </div>
+
+      {/* Canvas Overlay for Wind Streamlines & Rainfall */}
+      <canvas
+        ref={canvasOverlayRef}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          pointerEvents: "none",
+          zIndex: 1050,
+        }}
+      />
+
+      {/* Top Floating Navigation Bar */}
+      <div
+        style={{
+          position: "absolute",
+          top: "14px",
+          left: "220px",
+          right: "16px",
+          zIndex: 1100,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          pointerEvents: "none",
+        }}
+      >
+        {/* Left: Location Presets & Back Button */}
+        <div
+          style={{
+            background: "rgba(8, 16, 28, 0.94)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid rgba(56, 189, 248, 0.3)",
+            borderRadius: "8px",
+            padding: "6px 12px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            pointerEvents: "auto",
+            boxShadow: "0 6px 20px rgba(0, 0, 0, 0.5)",
+          }}
+        >
+          {onExitReal3D && (
+            <button
+              type="button"
+              onClick={onExitReal3D}
+              style={{
+                background: "rgba(239, 68, 68, 0.2)",
+                border: "1px solid #ef4444",
+                color: "#fca5a5",
+                borderRadius: "5px",
+                padding: "3px 8px",
+                fontSize: "0.72rem",
+                cursor: "pointer",
+                fontWeight: 700,
+              }}
+            >
+              ← 2D View
+            </button>
+          )}
+
+          <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#38bdf8" }}>
+            📍 LOCATIONS:
+          </span>
+
+          {CITY_PRESETS.map((p) => {
+            const isActive = activeCityKey === p.key;
+            return (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => {
+                  setActiveCityKey(p.key);
+                  if (onSelectPreset) onSelectPreset(p.appPresetKey);
+                  const map = mapRef.current;
+                  if (map) {
+                    map.flyTo({ center: [p.lng, p.lat], zoom: p.zoom, pitch: p.pitch, bearing: p.oceanBearing, duration: 2200 });
+                  }
+                }}
+                style={{
+                  background: isActive ? "#0284c7" : "rgba(255, 255, 255, 0.08)",
+                  border: isActive ? "1px solid #38bdf8" : "1px solid rgba(255, 255, 255, 0.12)",
+                  color: isActive ? "#ffffff" : "#cbd5e1",
+                  borderRadius: "5px",
+                  padding: "4px 10px",
+                  fontSize: "0.72rem",
+                  cursor: "pointer",
+                  fontWeight: isActive ? 700 : 500,
+                  transition: "all 0.2s",
+                }}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Center: Camera Modes & Quick Fly-Tos */}
+        <div
+          style={{
+            background: "rgba(8, 16, 28, 0.94)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid rgba(255, 255, 255, 0.16)",
+            borderRadius: "8px",
+            padding: "6px 12px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            pointerEvents: "auto",
+            boxShadow: "0 6px 20px rgba(0, 0, 0, 0.5)",
+>>>>>>> Stashed changes
+          }}
+        >
+          <span style={{ fontSize: "0.72rem", color: "#94a3b8", fontWeight: 700 }}>CAMERA:</span>
           <button
             type="button"
-            className={`real3d-subtab ${cameraView === "birdseye" ? "active" : ""}`}
-            onClick={() => handleSetCameraPreset("birdseye")}
+            onClick={() => applyCameraMode("birdseye")}
             style={{
+<<<<<<< Updated upstream
               padding: "4px 9px",
               background: cameraView === "birdseye" ? "#0284c7" : "transparent",
               color: "#fff",
               border: "none",
               borderRadius: "5px",
+=======
+              background: cameraMode === "birdseye" ? "#0284c7" : "rgba(255,255,255,0.06)",
+              border: "none",
+              color: "#fff",
+              borderRadius: "4px",
+              padding: "4px 8px",
+              fontSize: "0.7rem",
+>>>>>>> Stashed changes
               cursor: "pointer",
               fontWeight: 600,
               fontSize: "0.7rem",
             }}
           >
+<<<<<<< Updated upstream
             🏙️ Birds-Eye
+=======
+            🦅 Bird's-Eye
+>>>>>>> Stashed changes
           </button>
           <button
             type="button"
-            className={`real3d-subtab ${cameraView === "drone" ? "active" : ""}`}
-            onClick={() => handleSetCameraPreset("drone")}
+            onClick={() => applyCameraMode("drone")}
             style={{
+<<<<<<< Updated upstream
               padding: "4px 9px",
               background: cameraView === "drone" ? "#0284c7" : "transparent",
               color: "#fff",
               border: "none",
               borderRadius: "5px",
+=======
+              background: cameraMode === "drone" ? "#0284c7" : "rgba(255,255,255,0.06)",
+              border: "none",
+              color: "#fff",
+              borderRadius: "4px",
+              padding: "4px 8px",
+              fontSize: "0.7rem",
+>>>>>>> Stashed changes
               cursor: "pointer",
               fontWeight: 600,
               fontSize: "0.7rem",
@@ -1130,14 +2003,22 @@ export default function RealWorld3DView({
           </button>
           <button
             type="button"
-            className={`real3d-subtab ${cameraView === "surge" ? "active" : ""}`}
-            onClick={() => handleSetCameraPreset("surge")}
+            onClick={() => applyCameraMode("surge")}
             style={{
+<<<<<<< Updated upstream
               padding: "4px 9px",
               background: cameraView === "surge" ? "#0284c7" : "transparent",
               color: "#fff",
               border: "none",
               borderRadius: "5px",
+=======
+              background: cameraMode === "surge" ? "#0284c7" : "rgba(255,255,255,0.06)",
+              border: "none",
+              color: "#fff",
+              borderRadius: "4px",
+              padding: "4px 8px",
+              fontSize: "0.7rem",
+>>>>>>> Stashed changes
               cursor: "pointer",
               fontWeight: 600,
               fontSize: "0.7rem",
@@ -1147,20 +2028,58 @@ export default function RealWorld3DView({
           </button>
           <button
             type="button"
-            className={`real3d-subtab ${cameraView === "orbit" ? "active" : ""}`}
-            onClick={() => handleSetCameraPreset("orbit")}
+            onClick={() => applyCameraMode("orbit")}
             style={{
+<<<<<<< Updated upstream
               padding: "4px 9px",
               background: cameraView === "orbit" ? "#0284c7" : "transparent",
               color: "#fff",
               border: "none",
               borderRadius: "5px",
+=======
+              background: isOrbiting ? "#10b981" : "rgba(255,255,255,0.06)",
+              border: "none",
+              color: "#fff",
+              borderRadius: "4px",
+              padding: "4px 8px",
+              fontSize: "0.7rem",
+>>>>>>> Stashed changes
               cursor: "pointer",
               fontWeight: 600,
               fontSize: "0.7rem",
             }}
           >
             🔄 Orbit
+          </button>
+
+          <span style={{ borderLeft: "1px solid rgba(255,255,255,0.15)", height: "16px", margin: "0 4px" }} />
+
+          <span style={{ fontSize: "0.68rem", color: "#38bdf8", fontWeight: 700 }}>FLY TO:</span>
+          <button
+            type="button"
+            onClick={() => {
+              const s = buildingData.buildingList.find((b) => b.type === "MPCS_SHELTER") || buildingData.buildingList[0];
+              if (s) {
+                setSelectedBld(s);
+                flyToCoords(s.lng, s.lat, 72, 17.6);
+              }
+            }}
+            style={{ background: "rgba(34, 197, 94, 0.2)", border: "1px solid #22c55e", color: "#86efac", borderRadius: "4px", padding: "3px 7px", cursor: "pointer", fontSize: "0.68rem", fontWeight: 600 }}
+          >
+            🛡️ Safe Shelter
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const rotunda = buildingData.buildingList.find((b) => b.name.includes("Rotunda")) || buildingData.buildingList[1];
+              if (rotunda) {
+                setSelectedBld(rotunda);
+                flyToCoords(rotunda.lng, rotunda.lat, 68, 17.4);
+              }
+            }}
+            style={{ background: "rgba(56, 189, 248, 0.2)", border: "1px solid #38bdf8", color: "#bae6fd", borderRadius: "4px", padding: "3px 7px", cursor: "pointer", fontSize: "0.68rem", fontWeight: 600 }}
+          >
+            🏛️ Rotunda Tower
           </button>
         </div>
 
@@ -1242,11 +2161,16 @@ export default function RealWorld3DView({
         </div>
       </div>
 
+<<<<<<< Updated upstream
       {/* Compact 3D Simulation Controls Panel (Bottom Right) */}
+=======
+      {/* Right Side: Disaster Simulation & Shading Controls */}
+>>>>>>> Stashed changes
       <div
-        className="real3d-simulation-tools"
+        className="real-city-disaster-panel"
         style={{
           position: "absolute",
+<<<<<<< Updated upstream
           bottom: "16px",
           right: "16px",
           zIndex: 1100,
@@ -1256,16 +2180,32 @@ export default function RealWorld3DView({
           border: "1px solid rgba(255, 255, 255, 0.12)",
           borderRadius: "10px",
           padding: "10px 14px",
+=======
+          top: "72px",
+          right: "16px",
+          zIndex: 1100,
+          background: "rgba(8, 16, 28, 0.94)",
+          backdropFilter: "blur(14px)",
+          border: "1px solid rgba(255, 255, 255, 0.16)",
+          borderRadius: "8px",
+          padding: "12px 14px",
+>>>>>>> Stashed changes
           display: "flex",
           flexDirection: "column",
-          gap: "8px",
+          gap: "10px",
           color: "#e2e8f0",
+<<<<<<< Updated upstream
           fontSize: "0.72rem",
           minWidth: "220px",
+=======
+          fontSize: "0.74rem",
+          minWidth: "255px",
+>>>>>>> Stashed changes
           pointerEvents: "auto",
           boxShadow: "0 8px 30px rgba(0, 0, 0, 0.6)",
         }}
       >
+<<<<<<< Updated upstream
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255, 255, 255, 0.1)", paddingBottom: "4px" }}>
           <span style={{ fontWeight: 800, color: "#38bdf8" }}>⚡ 3D PHYSICS CONTROLS</span>
           <button
@@ -1284,9 +2224,45 @@ export default function RealWorld3DView({
           >
             {visualMode === "realistic" ? "🏛️ Realistic" : "🔴 Heatmap"}
           </button>
+=======
+        <div style={{ fontWeight: 800, color: "#38bdf8", borderBottom: "1px solid rgba(255, 255, 255, 0.12)", paddingBottom: "6px" }}>
+          ⚡ ARCHITECTURAL 3D SIMULATION
+>>>>>>> Stashed changes
         </div>
 
+        {/* Shading Style */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}>Style:</span>
+          <button
+            type="button"
+            onClick={() => setVisualMode(visualMode === "architectural" ? "heatmap" : "architectural")}
+            style={{
+              padding: "4px 10px",
+              background: visualMode === "architectural" ? "#f8fafc" : "#d97706",
+              color: visualMode === "architectural" ? "#0f172a" : "#ffffff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontWeight: 800,
+              fontSize: "0.7rem",
+            }}
+          >
+            {visualMode === "architectural" ? "🏛️ White Architectural CAD" : "🔴 Risk Heatmap"}
+          </button>
+        </div>
+
+        {/* Road Ribbons Toggle */}
+        <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
+          <input
+            type="checkbox"
+            checked={showRoadCorridors}
+            onChange={(e) => setShowRoadCorridors(e.target.checked)}
+          />
+          <span>🛣️ Road Transit Ribbons</span>
+        </label>
+
         {/* Basemap Imagery Mode */}
+<<<<<<< Updated upstream
         <div style={{ display: "flex", gap: "4px" }}>
           <button
             type="button"
@@ -1343,6 +2319,67 @@ export default function RealWorld3DView({
 
         {/* Storm Surge Slider */}
         <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+=======
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <span style={{ fontSize: "0.68rem", color: "#94a3b8" }}>Terrain Imagery:</span>
+          <div style={{ display: "flex", gap: "4px" }}>
+            <button
+              type="button"
+              onClick={() => setBasemapMode("esri")}
+              style={{
+                flex: 1,
+                padding: "3px 6px",
+                background: basemapMode === "esri" ? "#0284c7" : "rgba(255,255,255,0.06)",
+                border: "none",
+                borderRadius: "4px",
+                color: "#fff",
+                fontSize: "0.68rem",
+                fontWeight: basemapMode === "esri" ? 700 : 500,
+                cursor: "pointer",
+              }}
+            >
+              🛰️ Satellite
+            </button>
+            <button
+              type="button"
+              onClick={() => setBasemapMode("osm")}
+              style={{
+                flex: 1,
+                padding: "3px 6px",
+                background: basemapMode === "osm" ? "#0284c7" : "rgba(255,255,255,0.06)",
+                border: "none",
+                borderRadius: "4px",
+                color: "#fff",
+                fontSize: "0.68rem",
+                fontWeight: basemapMode === "osm" ? 700 : 500,
+                cursor: "pointer",
+              }}
+            >
+              🗺️ OSM
+            </button>
+            <button
+              type="button"
+              onClick={() => setBasemapMode("carto_dark")}
+              style={{
+                flex: 1,
+                padding: "3px 6px",
+                background: basemapMode === "carto_dark" ? "#0284c7" : "rgba(255,255,255,0.06)",
+                border: "none",
+                borderRadius: "4px",
+                color: "#fff",
+                fontSize: "0.68rem",
+                fontWeight: basemapMode === "carto_dark" ? 700 : 500,
+                cursor: "pointer",
+              }}
+            >
+              ⚡ Dark
+            </button>
+          </div>
+        </div>
+
+        {/* Storm Surge Flood Control */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+>>>>>>> Stashed changes
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "5px" }}>
               <input
@@ -1351,14 +2388,18 @@ export default function RealWorld3DView({
                 onChange={(e) => setShowSurge(e.target.checked)}
                 style={{ accentColor: "#0284c7" }}
               />
+<<<<<<< Updated upstream
               <span>🌊 Storm Surge</span>
+=======
+              <span style={{ fontWeight: 600 }}>🌊 Storm Surge Inundation</span>
+>>>>>>> Stashed changes
             </label>
             <span style={{ color: "#38bdf8", fontWeight: 800 }}>+{surgeHeightM.toFixed(1)} m</span>
           </div>
           {showSurge && (
             <input
               type="range"
-              min="0.5"
+              min="0.0"
               max="5.0"
               step="0.1"
               value={surgeHeightM}
@@ -1368,6 +2409,7 @@ export default function RealWorld3DView({
           )}
         </div>
 
+<<<<<<< Updated upstream
         {/* Wind Streamlines & Rain Toggles */}
         <div style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}>
           <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "5px" }}>
@@ -1388,6 +2430,32 @@ export default function RealWorld3DView({
             />
             <span>🌧️ Rain</span>
           </label>
+=======
+        {/* Wind Streamlines Toggle */}
+        <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
+          <input
+            type="checkbox"
+            checked={showWindStreams}
+            onChange={(e) => setShowWindStreams(e.target.checked)}
+          />
+          <span>💨 Cyclonic Wind Streamlines</span>
+        </label>
+
+        {/* Coastal Obstacles & Aerodynamics Telemetry */}
+        <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.12)", paddingTop: "6px", display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div style={{ fontSize: "0.68rem", fontWeight: 800, color: "#38bdf8", display: "flex", justifyContent: "space-between" }}>
+            <span>🛡️ URBAN CANYON AERODYNAMICS</span>
+            <span style={{ color: "#22c55e", fontSize: "0.62rem" }}>ACTIVE</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.66rem", color: "#cbd5e1" }}>
+            <span style={{ color: "#94a3b8" }}>Canyon Venturi Acceleration:</span>
+            <strong style={{ color: "#f87171" }}>+22% (Between Towers)</strong>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.66rem", color: "#cbd5e1" }}>
+            <span style={{ color: "#94a3b8" }}>Skyscraper Canopy Drag:</span>
+            <strong style={{ color: "#86efac" }}>-58% (Wake Shadow)</strong>
+          </div>
+>>>>>>> Stashed changes
         </div>
       </div>
 
@@ -1397,74 +2465,58 @@ export default function RealWorld3DView({
           className="real3d-building-dossier"
           style={{
             position: "absolute",
-            bottom: "20px",
+            bottom: "38px",
             left: "16px",
-            zIndex: 1150,
-            background: "rgba(8, 16, 28, 0.96)",
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
-            border: "1px solid rgba(56, 189, 248, 0.4)",
+            zIndex: 1100,
+            background: "rgba(8, 16, 28, 0.95)",
+            backdropFilter: "blur(14px)",
+            WebkitBackdropFilter: "blur(14px)",
+            border: "1px solid rgba(56, 189, 248, 0.35)",
             borderRadius: "10px",
-            padding: "14px 18px",
+            padding: "12px 16px",
             color: "#e2e8f0",
-            maxWidth: "380px",
-            boxShadow: "0 12px 40px rgba(0, 0, 0, 0.75)",
+            width: "315px",
             pointerEvents: "auto",
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.7)",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
             <div>
               <span
                 style={{
-                  fontSize: "0.66rem",
+                  fontSize: "0.62rem",
                   fontWeight: 800,
-                  letterSpacing: "0.5px",
-                  background:
-                    selectedBld.damageScore >= 0.55
-                      ? "rgba(239, 68, 68, 0.25)"
-                      : selectedBld.damageScore >= 0.25
-                      ? "rgba(245, 158, 11, 0.25)"
-                      : "rgba(34, 197, 94, 0.25)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
                   color:
-                    selectedBld.damageScore >= 0.55
-                      ? "#fca5a5"
-                      : selectedBld.damageScore >= 0.25
-                      ? "#fde68a"
-                      : "#86efac",
-                  padding: "3px 7px",
-                  borderRadius: "4px",
-                  border: `1px solid ${
-                    selectedBld.damageScore >= 0.55
+                    selectedBld.classification === "SEVERE_RISK"
                       ? "#ef4444"
-                      : selectedBld.damageScore >= 0.25
-                      ? "#f59e0b"
-                      : "#22c55e"
-                  }`,
+                      : selectedBld.type === "MPCS_SHELTER"
+                      ? "#22c55e"
+                      : "#38bdf8",
+                  background:
+                    selectedBld.classification === "SEVERE_RISK"
+                      ? "rgba(239, 68, 68, 0.15)"
+                      : "rgba(56, 189, 248, 0.15)",
+                  padding: "2px 6px",
+                  borderRadius: "3px",
                 }}
               >
-                {selectedBld.classification}
+                {selectedBld.type === "MPCS_SHELTER" ? "DESIGNATED SAFE HAVEN" : selectedBld.classification}
               </span>
-              <div style={{ fontSize: "0.96rem", fontWeight: 800, color: "#ffffff", marginTop: "4px" }}>
+              <div style={{ fontWeight: 800, fontSize: "0.85rem", color: "#f8fafc", marginTop: "4px" }}>
                 {selectedBld.name}
               </div>
-              <div style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
-                GPS: <strong style={{ color: "#38bdf8" }}>{selectedBld.lat.toFixed(4)}°N, {selectedBld.lng.toFixed(4)}°E</strong> &middot; {selectedBld.type}
+              <div style={{ fontSize: "0.66rem", color: "#94a3b8" }}>
+                GPS: {selectedBld.lat}°N, {selectedBld.lng}°E &middot; {selectedBld.type}
               </div>
             </div>
-
             <button
               type="button"
               onClick={() => setSelectedBld(null)}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "#94a3b8",
-                fontSize: "1.2rem",
-                cursor: "pointer",
-                padding: "0 4px",
-              }}
+              style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: "0.85rem" }}
             >
-              &times;
+              ✕
             </button>
           </div>
 
@@ -1472,65 +2524,45 @@ export default function RealWorld3DView({
             style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
-              gap: "8px",
-              fontSize: "0.72rem",
+              gap: "6px 12px",
+              fontSize: "0.68rem",
               background: "rgba(255, 255, 255, 0.04)",
               padding: "8px 10px",
               borderRadius: "6px",
-              marginBottom: "8px",
+              margin: "8px 0",
             }}
           >
             <div>
-              <div style={{ color: "#94a3b8" }}>Height / Floors:</div>
-              <div style={{ fontWeight: 700, color: "#fff" }}>
-                {selectedBld.height} m ({Math.max(1, Math.round(selectedBld.height / 3.4))} Stories)
+              <span style={{ color: "#94a3b8" }}>Height / Stories:</span>
+              <div style={{ fontWeight: 700, color: "#f8fafc" }}>
+                {selectedBld.height} m ({selectedBld.stories} Stories)
               </div>
             </div>
             <div>
-              <div style={{ color: "#94a3b8" }}>Peak Wind Gust:</div>
-              <div style={{ fontWeight: 700, color: "#f87171" }}>
-                {selectedBld.windKph} km/h
-              </div>
+              <span style={{ color: "#94a3b8" }}>Peak Wind Gust:</span>
+              <div style={{ fontWeight: 700, color: "#fca5a5" }}>{selectedBld.windKph} km/h</div>
             </div>
             <div>
-              <div style={{ color: "#94a3b8" }}>Dynamic Pressure (q):</div>
-              <div style={{ fontWeight: 700, color: "#38bdf8" }}>
-                {selectedBld.dynPressurePa} Pa (N/m²)
-              </div>
+              <span style={{ color: "#94a3b8" }}>Dynamic Pressure (q):</span>
+              <div style={{ fontWeight: 700, color: "#38bdf8" }}>{selectedBld.dynPressurePa} Pa (N/m²)</div>
             </div>
             <div>
-              <div style={{ color: "#94a3b8" }}>Load / Resistance (LRR):</div>
-              <div style={{ fontWeight: 700, color: selectedBld.lrr > 0.8 ? "#ef4444" : "#22c55e" }}>
-                {selectedBld.lrr}
+              <span style={{ color: "#94a3b8" }}>Flood Inundation:</span>
+              <div style={{ fontWeight: 700, color: selectedBld.floodDepthM > 0.5 ? "#f87171" : "#86efac" }}>
+                +{selectedBld.floodDepthM} m Depth
               </div>
             </div>
           </div>
 
           <div
             style={{
-              background:
-                selectedBld.damageScore >= 0.55
-                  ? "rgba(239, 68, 68, 0.15)"
-                  : selectedBld.type === "MPCS_SHELTER"
-                  ? "rgba(34, 197, 94, 0.15)"
-                  : "rgba(56, 189, 248, 0.12)",
-              border: `1px solid ${
-                selectedBld.damageScore >= 0.55
-                  ? "rgba(239, 68, 68, 0.35)"
-                  : selectedBld.type === "MPCS_SHELTER"
-                  ? "rgba(34, 197, 94, 0.35)"
-                  : "rgba(56, 189, 248, 0.3)"
-              }`,
-              padding: "8px 10px",
-              borderRadius: "6px",
-              fontSize: "0.71rem",
-              lineHeight: 1.45,
-              color:
-                selectedBld.damageScore >= 0.55
-                  ? "#fca5a5"
-                  : selectedBld.type === "MPCS_SHELTER"
-                  ? "#86efac"
-                  : "#bae6fd",
+              background: "rgba(255, 255, 255, 0.05)",
+              borderLeft: `3px solid ${selectedBld.damageScore >= 0.55 ? "#ef4444" : selectedBld.type === "MPCS_SHELTER" ? "#22c55e" : "#0284c7"}`,
+              padding: "6px 8px",
+              borderRadius: "4px",
+              fontSize: "0.68rem",
+              lineHeight: 1.4,
+              color: selectedBld.damageScore >= 0.55 ? "#fca5a5" : "#cbd5e1",
             }}
           >
             {selectedBld.recommendation}
@@ -1543,7 +2575,7 @@ export default function RealWorld3DView({
         className="real3d-legend"
         style={{
           position: "absolute",
-          bottom: "16px",
+          bottom: "38px",
           right: "16px",
           zIndex: 1100,
           background: "rgba(8, 16, 28, 0.92)",
@@ -1560,23 +2592,57 @@ export default function RealWorld3DView({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#ef4444", display: "inline-block" }} />
+          <span style={{ width: "8px", height: "8px", borderRadius: "2px", background: "#f8fafc", display: "inline-block", border: "1px solid #94a3b8" }} />
+          <span>Architectural Structure</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+          <span style={{ width: "8px", height: "8px", borderRadius: "2px", background: "#22c55e", display: "inline-block" }} />
+          <span>Green Safe Haven</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+          <span style={{ width: "8px", height: "8px", borderRadius: "2px", background: "#ef4444", display: "inline-block" }} />
           <span>Severe Risk</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#f97316", display: "inline-block" }} />
-          <span>Moderate</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
-          <span>Safe Facility</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#06b6d4", display: "inline-block" }} />
-          <span>MPCS Haven</span>
-        </div>
         <div style={{ borderLeft: "1px solid rgba(255,255,255,0.15)", paddingLeft: "10px", color: "#cbd5e1" }}>
-          🖱️ Click building for dossier &middot; Left-drag to orbit &middot; Right-drag to pan
+          🖱️ Click building for dossier &middot; Right-click drag to pitch/orbit &middot; Scroll to zoom
+        </div>
+      </div>
+
+      {/* Google Earth Telemetry & Status Bar (Bottom) */}
+      <div
+        className="google-earth-telemetry-bar"
+        style={{
+          position: "absolute",
+          bottom: "0px",
+          left: "0px",
+          right: "0px",
+          zIndex: 1150,
+          background: "rgba(3, 7, 18, 0.95)",
+          backdropFilter: "blur(12px)",
+          borderTop: "1px solid rgba(56, 189, 248, 0.3)",
+          padding: "4px 16px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          fontSize: "0.68rem",
+          color: "#94a3b8",
+          fontFamily: "monospace",
+          pointerEvents: "auto",
+        }}
+      >
+        <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+          <span style={{ color: "#38bdf8", fontWeight: 800 }}>🌐 CYCLONEX ARCHITECTURAL DIGITAL TWIN</span>
+          <span>LAT: <strong style={{ color: "#f8fafc" }}>{telemetry.latStr}</strong></span>
+          <span>LNG: <strong style={{ color: "#f8fafc" }}>{telemetry.lngStr}</strong></span>
+          <span>ELEV: <strong style={{ color: "#f8fafc" }}>{telemetry.elevM} m</strong></span>
+          <span>EYE ALT: <strong style={{ color: "#f8fafc" }}>{telemetry.eyeAltM} m</strong></span>
+          <span>HEADING: <strong style={{ color: "#38bdf8" }}>{telemetry.headingDeg}°</strong></span>
+          <span>TILT: <strong style={{ color: "#38bdf8" }}>{telemetry.tiltDeg}°</strong></span>
+        </div>
+
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <span style={{ color: "#64748b" }}>IMAGERY: ESRI WORLD SATELLITE (16x)</span>
+          <span style={{ color: "#22c55e", fontWeight: 700 }}>● 530+ 3D BUILDINGS ACTIVE</span>
         </div>
       </div>
     </div>
