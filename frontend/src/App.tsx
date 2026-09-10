@@ -736,7 +736,7 @@ export default function App() {
             <div className="brand-icon-wrapper"><IconVortex /></div>
             <div className="brand-text">
               <span className="brand-title">CYCLONEX</span>
-              <span className="brand-sub">SATELLITE DAMAGE INTELLIGENCE</span>
+              <span className="brand-sub">Cyclone Risk Intelligence</span>
             </div>
           </div>
           <div className="nav-links">
@@ -752,7 +752,7 @@ export default function App() {
               className={`nav-link-btn ${currentView === "app" ? "active" : ""}`}
               onClick={() => navigateTo("app")}
             >
-              Operations Console
+              Risk Analysis
             </button>
             <a
               href="#architecture-section"
@@ -798,7 +798,7 @@ export default function App() {
                 className="nav-cta-btn"
                 onClick={() => handleLaunchConsole()}
               >
-                <IconCompass /> Mission Console
+                <IconCompass /> Start Analysis
               </button>
             ) : (
               <button
@@ -832,17 +832,17 @@ export default function App() {
               <div className="mode-tabs" aria-label="Workspace Modes">
                 <button
                   type="button"
-                  className={`tab-btn ${activeTab === "ml" ? "active" : ""}`}
-                  onClick={() => setActiveTab("ml")}
-                >
-                  <IconRadar /> AI/ML Satellite Intelligence
-                </button>
-                <button
-                  type="button"
                   className={`tab-btn ${activeTab === "screening" ? "active" : ""}`}
                   onClick={() => setActiveTab("screening")}
                 >
-                  <IconGrid /> 200m Spatial Screening
+                  <IconGrid /> Cyclone Risk Map
+                </button>
+                <button
+                  type="button"
+                  className={`tab-btn ${activeTab === "ml" ? "active" : ""}`}
+                  onClick={() => setActiveTab("ml")}
+                >
+                  <IconRadar /> Storm Forecast
                 </button>
               </div>
               <button
@@ -866,50 +866,40 @@ export default function App() {
                 type="button"
                 className="btn-print-top"
                 onClick={() => window.print()}
-                title="Export official Executive Situation Report (PDF / Print View)"
+                title="Export emergency report as PDF"
               >
-                <IconDownload /> Export SITREP (PDF)
+                <IconDownload /> Export Report (PDF)
               </button>
             </div>
           </div>
 
           <section className={`workspace ${sidebarOpen ? "sidebar-open" : "sidebar-collapsed"}`}>
         <aside className="controls">
-          {activeTab === "ml" ? (
+          {activeTab === "screening" ? (
             <>
-              <h2>AI/ML Satellite Intelligence</h2>
-              <p>Multi-source satellite feature extraction, pattern classification, & 6–24 h predictive models.</p>
+              <h2>🌀 Cyclone Risk Assessment</h2>
+              <p>Enter a cyclone location and intensity to see predicted damage across the affected area.</p>
 
               <div style={{ display: "grid", gap: "12px", marginBottom: "16px" }}>
                 <label>
-                  <span>1. Select Multi-Source Satellite Data</span>
-                  <select value={selectedSource} onChange={(e) => setSelectedSource(e.target.value)}>
-                    <option value="HURSAT_B1">NOAA HURSAT-B1 Historical IR Imagery</option>
-                    <option value="INSAT">INSAT Geostationary IR / Visible</option>
-                    <option value="GPM_IMERG">GPM IMERG Rain Rate Structure</option>
-                    <option value="SENTINEL_1">Sentinel-1 SAR Surface Backscatter</option>
-                  </select>
-                </label>
-
-                <label>
-                  <span>2. Select IBTrACS Historical Storm Preset</span>
+                  <span>📍 Choose a Recent Storm or Custom Location</span>
                   <select
                     value={selectedPreset}
                     onChange={(e) => handlePresetChange(e.target.value as keyof typeof presets)}
                   >
-                    <option value="landfall_amphan">Cyclone Amphan Landfall (Coastal West Bengal / Digha)</option>
-                    <option value="landfall_fani">Cyclone Fani Landfall (Puri Coastal Sector, Odisha)</option>
-                    <option value="landfall_hudhud">Cyclone Hudhud Landfall (Visakhapatnam Harbor, AP)</option>
-                    <option value="amphan">Cyclone Amphan Eye (Super Cyclone - Open Ocean 2020)</option>
-                    <option value="fani">Cyclone Fani (Extremely Severe - Open Bay of Bengal 2019)</option>
-                    <option value="bulbul">Cyclone Bulbul (Very Severe - Bay of Bengal 2019)</option>
-                    <option value="nisarga">Cyclone Nisarga (Severe - Arabian Sea 2020)</option>
-                    <option value="custom">Custom Map Coordinate</option>
+                    <option value="landfall_amphan">Cyclone Amphan (West Bengal, 2020)</option>
+                    <option value="landfall_fani">Cyclone Fani (Odisha, 2019)</option>
+                    <option value="landfall_hudhud">Cyclone Hudhud (Andhra Pradesh, 2014)</option>
+                    <option value="amphan">Cyclone Amphan - Open Ocean</option>
+                    <option value="fani">Cyclone Fani - Open Ocean</option>
+                    <option value="bulbul">Cyclone Bulbul (2019)</option>
+                    <option value="nisarga">Cyclone Nisarga (Arabian Sea, 2020)</option>
+                    <option value="custom">Custom Location</option>
                   </select>
                 </label>
               </div>
 
-              <form onSubmit={handleMLFormSubmit}>
+              <form onSubmit={handleScreeningSubmit}>
                 <div className="pair">
                   <label>
                     <span>Latitude (°N)</span>
@@ -918,6 +908,7 @@ export default function App() {
                       step="0.0001"
                       value={form.lat}
                       onChange={(e) => setForm({ ...form, lat: e.target.value })}
+                      placeholder="e.g., 21.62"
                     />
                   </label>
                   <label>
@@ -927,38 +918,41 @@ export default function App() {
                       step="0.0001"
                       value={form.lon}
                       onChange={(e) => setForm({ ...form, lon: e.target.value })}
+                      placeholder="e.g., 87.51"
                     />
                   </label>
                 </div>
 
                 <div className="pair">
                   <label>
-                    <span>Max Wind (km/h)</span>
+                    <span>Peak Wind Speed (km/h)</span>
                     <input
                       type="number"
                       value={form.wind}
                       onChange={(e) => setForm({ ...form, wind: e.target.value })}
+                      placeholder="e.g., 165"
                     />
                   </label>
                   <label>
-                    <span>Central Pressure (hPa)</span>
+                    <span>Air Pressure (hPa)</span>
                     <input
                       type="number"
                       value={form.pressure}
                       onChange={(e) => setForm({ ...form, pressure: e.target.value })}
+                      placeholder="e.g., 950"
                     />
                   </label>
                 </div>
 
                 <button type="submit" disabled={loading}>
-                  {loading ? "Extracting Features..." : "Run AI/ML Identification & Prediction"}
+                  {loading ? "Calculating..." : "📊 Generate Damage Map"}
                 </button>
               </form>
 
-              {mlResult && (
+              {mlResult && activeTab === "ml" && (
                 <div style={{ marginTop: "18px" }}>
                   <div className="ml-card">
-                    <div className="ml-card-title">Task 1 & 2: Identification & Pattern</div>
+                    <div className="ml-card-title">🌪️ Storm Status</div>
                     <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
                       <span className="badge badge-cyclone">
                         {mlResult.identification.presence.replaceAll("_", " ")}
@@ -966,19 +960,11 @@ export default function App() {
                       <span className="badge badge-info">
                         {((mlResult.identification.confidence ?? 0.95) * 100).toFixed(0)}% Confidence
                       </span>
-                      {mlResult.pattern_classification.lifecycle_pattern && (
-                        <span className="badge badge-pattern">
-                          PATTERN: {mlResult.pattern_classification.lifecycle_pattern}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: "0.8rem", color: "#b3c4d7" }}>
-                      Subsurface Ocean Node: Thermal Buffer <strong>{mlResult.ocean_context.tb_deg_c}°C</strong> · Ventilation Depth <strong>{mlResult.ocean_context.vf_m}m</strong>
                     </div>
                   </div>
 
                   <div className="ml-card">
-                    <div className="ml-card-title">Task 3: 6–24 h Predictive Forecast</div>
+                    <div className="ml-card-title">📍 Predicted Path (Next 24 Hours)</div>
                     <div className="horizon-grid">
                       {([6, 12, 24] as const).map((h) => (
                         <button
@@ -987,18 +973,17 @@ export default function App() {
                           className={`horizon-btn ${selectedHorizon === h ? "selected" : ""}`}
                           onClick={() => handleSelectHorizon(h)}
                         >
-                          +{h} Hours
+                          {h}h ahead
                         </button>
                       ))}
                     </div>
 
                     {currentForecast && (
                       <div style={{ fontSize: "0.84rem", lineHeight: "1.5", color: "#d7e5f5" }}>
-                        <div>Predicted Position: <strong>{currentForecast.centre_lat}°N, {currentForecast.centre_lon}°E</strong></div>
-                        <div>Projected Max Wind: <strong>{currentForecast.max_sustained_wind_kph} km/h</strong></div>
-                        <div>Central Pressure: <strong>{currentForecast.central_pressure_hpa} hPa</strong></div>
+                        <div>Expected Location: <strong>{currentForecast.centre_lat}°N, {currentForecast.centre_lon}°E</strong></div>
+                        <div>Expected Wind Speed: <strong>{currentForecast.max_sustained_wind_kph} km/h</strong></div>
                         <div style={{ fontSize: "0.76rem", color: "#8fa4bf", marginTop: "4px" }}>
-                          Track Error Uncertainty: ±{currentForecast.track_uncertainty_km} km
+                          Forecast uncertainty: ±{currentForecast.track_uncertainty_km} km
                         </div>
                       </div>
                     )}
@@ -1011,18 +996,18 @@ export default function App() {
                     onClick={handleRunMLImpactGrid}
                     disabled={loading}
                   >
-                    <IconZap /> Overlay +{selectedHorizon}h Forecast 200m Damage Grid
+                    <IconZap /> Show Damage Forecast
                   </button>
                   <p style={{ fontSize: "0.74rem", color: "#8fa4bf", textAlign: "center", margin: "8px 0 0" }}>
-                    Select forecast horizon (+6h, +12h, +24h) and click above to project 200m damage grid.
+                    Displays where damage is most likely to occur.
                   </p>
                 </div>
               )}
             </>
           ) : (
             <>
-              <h2>200m Hazard &amp; Land Impact Screening</h2>
-              <p>Transparent spatial damage estimates, force-vs-resistance modeling, &amp; building vulnerability inspection.</p>
+              <h2>🌀 Cyclone Risk Assessment</h2>
+              <p>Enter a cyclone location and intensity to see predicted damage across the affected area.</p>
 
               <div className="screening-subtabs" aria-label="Screening Workspace Subtabs">
                 <button
@@ -1030,50 +1015,51 @@ export default function App() {
                   className={`subtab-btn ${screeningSubTab === "setup" ? "active" : ""}`}
                   onClick={() => setScreeningSubTab("setup")}
                 >
-                  <IconSliders /> Setup
+                  <IconSliders /> Step 1: Enter Location
                 </button>
                 <button
                   type="button"
                   className={`subtab-btn ${screeningSubTab === "results" ? "active" : ""}`}
                   onClick={() => setScreeningSubTab("results")}
                 >
-                  <IconActivity /> Directives &amp; SITREP {scenario ? "✓" : ""}
+                  <IconActivity /> Step 2: Risk Report {scenario ? "✓" : ""}
                 </button>
                 <button
                   type="button"
                   className={`subtab-btn ${screeningSubTab === "solutions" ? "active" : ""}`}
                   onClick={() => setScreeningSubTab("solutions")}
                 >
-                  <IconShield /> Operational Playbook
+                  <IconShield /> Step 3: Recommendations
                 </button>
               </div>
 
               {screeningSubTab === "setup" && (
                 <>
                   <label style={{ marginBottom: "14px" }}>
-                    <span>Load Historical Storm Preset</span>
+                    <span>📍 Quick Start: Choose a Recent Storm</span>
                     <select
                       value={selectedPreset}
                       onChange={(e) => void handlePresetChange(e.target.value as keyof typeof presets)}
                     >
-                      <option value="landfall_amphan">Cyclone Amphan Landfall (Coastal West Bengal / Digha)</option>
-                      <option value="landfall_fani">Cyclone Fani Landfall (Puri Coastal Sector, Odisha)</option>
-                      <option value="landfall_hudhud">Cyclone Hudhud Landfall (Visakhapatnam Harbor, AP)</option>
-                      <option value="amphan">Cyclone Amphan Eye (Super Cyclone - Open Ocean 2020)</option>
-                      <option value="fani">Cyclone Fani (Extremely Severe - Open Bay of Bengal 2019)</option>
-                      <option value="bulbul">Cyclone Bulbul (Very Severe - Bay of Bengal 2019)</option>
-                      <option value="nisarga">Cyclone Nisarga (Severe - Arabian Sea 2020)</option>
-                      <option value="custom">Custom Map Coordinate</option>
+                      <option value="landfall_amphan">Cyclone Amphan (West Bengal, 2020)</option>
+                      <option value="landfall_fani">Cyclone Fani (Odisha, 2019)</option>
+                      <option value="landfall_hudhud">Cyclone Hudhud (Andhra Pradesh, 2014)</option>
+                      <option value="amphan">Cyclone Amphan - Open Ocean</option>
+                      <option value="fani">Cyclone Fani - Open Ocean</option>
+                      <option value="bulbul">Cyclone Bulbul (2019)</option>
+                      <option value="nisarga">Cyclone Nisarga (Arabian Sea, 2020)</option>
+                      <option value="custom">Custom Location</option>
                     </select>
                   </label>
 
                   <form onSubmit={handleScreeningSubmit}>
                     <label>
-                      <span>Scenario Name</span>
+                      <span>Scene Name or Description</span>
                       <input
                         type="text"
                         value={form.name}
                         onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        placeholder="e.g., Cyclone Scenario - Digha Coast"
                       />
                     </label>
                     <div className="pair">
@@ -1084,6 +1070,7 @@ export default function App() {
                           step="0.0001"
                           value={form.lat}
                           onChange={(e) => setForm({ ...form, lat: e.target.value })}
+                          placeholder="e.g., 21.62"
                         />
                       </label>
                       <label>
@@ -1093,78 +1080,84 @@ export default function App() {
                           step="0.0001"
                           value={form.lon}
                           onChange={(e) => setForm({ ...form, lon: e.target.value })}
+                          placeholder="e.g., 87.51"
                         />
                       </label>
                     </div>
 
                     <div className="pair">
                       <label>
-                        <span>Maximum Wind (km/h)</span>
+                        <span>Peak Wind Speed (km/h)</span>
                         <input
                           type="number"
                           value={form.wind}
                           onChange={(e) => setForm({ ...form, wind: e.target.value })}
+                          placeholder="e.g., 165"
                         />
                       </label>
                       <label>
-                        <span>Central Pressure (hPa)</span>
+                        <span>Air Pressure (hPa)</span>
                         <input
                           type="number"
                           value={form.pressure}
                           onChange={(e) => setForm({ ...form, pressure: e.target.value })}
+                          placeholder="e.g., 950"
                         />
                       </label>
                     </div>
 
                     <div className="pair">
                       <label>
-                        <span>Heading / Movement (°)</span>
+                        <span>Direction of Movement (°)</span>
                         <input
                           type="number"
                           min="0"
                           max="360"
                           value={form.heading || "315"}
                           onChange={(e) => setForm({ ...form, heading: e.target.value })}
+                          placeholder="315 = NW"
                         />
                       </label>
                       <label>
-                        <span>Forward Speed (km/h)</span>
+                        <span>Speed (km/h)</span>
                         <input
                           type="number"
                           min="0"
                           max="120"
                           value={form.speed || "25"}
                           onChange={(e) => setForm({ ...form, speed: e.target.value })}
+                          placeholder="e.g., 25"
                         />
                       </label>
                     </div>
 
                     <label>
-                      <span>Field Radius (km)</span>
+                      <span>Storm Size / Radius (km)</span>
                       <input
                         type="number"
                         min="1"
                         max="500"
                         value={form.radius || "30"}
                         onChange={(e) => setForm({ ...form, radius: e.target.value })}
+                        placeholder="30 km typical"
                       />
                     </label>
 
                     <button type="submit" disabled={loading}>
-                      {loading ? "Calculating..." : "Calculate 200m Damage Grid"}
+                      {loading ? "Calculating..." : "📊 Generate Risk Map"}
                     </button>
                   </form>
 
                   {scenario && (
                     <div className="scenario-quick-card">
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span className="badge badge-info">SIMULATION ACTIVE</span>
+                        <span className="badge badge-info">✓ MAP READY</span>
                         <strong style={{ color: "#ff6b5b", fontSize: "0.85rem" }}>
-                          ₹ {(scenario.risk_grid?.summary?.estimated_loss_crores_inr ?? 0).toFixed(1)} Cr Loss
+                          Est. Loss: ₹{(scenario.risk_grid?.summary?.estimated_loss_crores_inr ?? 0).toFixed(1)} Cr
                         </strong>
                       </div>
                       <p style={{ margin: "8px 0", fontSize: "0.8rem", color: "#b3c4d7" }}>
-                        Calculated across <strong>{totalCells.toLocaleString()}</strong> grid cells for <strong>{form.name || "Scenario"}</strong>.
+                        Risk calculated for <strong>{totalCells.toLocaleString()}</strong> locations in <strong>{form.name || "this area"}</strong>.
                       </p>
                       <button
                         type="button"
@@ -1172,7 +1165,7 @@ export default function App() {
                         style={{ width: "100%", fontSize: "0.8rem", padding: "8px" }}
                         onClick={() => setScreeningSubTab("results")}
                       >
-                        View Directives &amp; Situation Report &rarr;
+                        👉 Next: View Detailed Report →
                       </button>
                     </div>
                   )}
@@ -1185,19 +1178,19 @@ export default function App() {
                   {selectedCell ? (
                     <div className="cell-inspection-card">
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span className="badge badge-info">{selectedCell.cell_id.toUpperCase()}</span>
+                        <span className="badge badge-info">Location: {selectedCell.cell_id}</span>
                         <button
                           type="button"
                           style={{ background: "transparent", color: "#8fa4bf", border: 0, padding: 0, cursor: "pointer", fontSize: "0.82rem" }}
                           onClick={() => setSelectedCell(null)}
-                          title="Return to regional summary"
+                          title="Return to full map"
                         >
-                          ✕ Close Cell
+                          ✕ Back to Map
                         </button>
                       </div>
 
                       <div style={{ margin: "10px 0 6px", fontSize: "1.05rem", fontWeight: 800, color: selectedCell.damage.colour }}>
-                        {selectedCell.damage.classification} (Score: {selectedCell.damage.damage_score})
+                        Risk Level: {selectedCell.damage.classification}
                       </div>
 
                       <div className="inspection-section">

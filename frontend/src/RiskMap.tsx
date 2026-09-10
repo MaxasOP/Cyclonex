@@ -531,27 +531,27 @@ export default function RiskMap({
               type="button"
               className="dock-btn active"
               onClick={() => setViewDimension("2d")}
-              title="Tactical Geospatial GIS Map (High-Precision Coordinates & Risk Grid)"
+              title="2D Risk Map - Color-coded damage areas"
             >
               <IconCube3D />
-              <span>Tactical Map</span>
+              <span>Map</span>
             </button>
             <button
               type="button"
               className="dock-btn"
               onClick={() => setViewDimension("real3d")}
-              title="3D Real-World Digital Twin: Volumetric 3D Buildings, Storm Surge Inundation, Aerodynamic Wind Flow"
+              title="3D view - Buildings and terrain"
             >
-              <span>3D City & Buildings</span>
+              <span>3D View</span>
             </button>
             <button
               type="button"
               className="dock-btn"
               onClick={() => setViewDimension("globe")}
-              title="3D Planetary Earth Globe (NASA Satellite WebGL)"
+              title="Global storm position on Earth"
             >
               <IconTrack />
-              <span>3D Globe</span>
+              <span>Globe</span>
             </button>
           </div>
           <div className="dock-divider" />
@@ -560,19 +560,19 @@ export default function RiskMap({
               type="button"
               className={`dock-btn ${zoomMode === "grid" ? "active" : ""}`}
               onClick={() => setZoomMode("grid")}
-              title="Zoom in on 200m damage grid & building footprints"
+              title="Focus on detailed damage areas"
             >
               <IconFocus />
-              <span>Grid Focus</span>
+              <span>Zoom In</span>
             </button>
             <button
               type="button"
               className={`dock-btn ${zoomMode === "track" ? "active" : ""}`}
               onClick={() => setZoomMode("track")}
-              title="Zoom out to show entire multi-day trajectory & cone"
+              title="See full storm track"
             >
               <IconTrack />
-              <span>Track View</span>
+              <span>Zoom Out</span>
             </button>
           </div>
           <div className="dock-divider" />
