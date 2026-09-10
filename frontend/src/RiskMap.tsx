@@ -173,23 +173,25 @@ type RiskMapProps = {
   onSelectPreset?: (presetKey: string) => void;
 };
 
-type BasemapType = "carto_dark" | "esri" | "osm";
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+
+type BasemapType = "google_dark" | "google_satellite" | "google_street";
 
 const BASEMAPS: Record<BasemapType, { name: string; url: string; attribution: string }> = {
-  carto_dark: {
+  google_dark: {
     name: "Dark Radar",
-    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    url: `https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&key=${GOOGLE_MAPS_API_KEY}&style=feature:all|element:geometry|color:0x0a1a2e&style=feature:all|element:labels.text.fill|color:0x8fa4bf`,
+    attribution: '&copy; <a href="https://maps.google.com">Google Maps</a>',
   },
-  esri: {
+  google_satellite: {
     name: "Satellite",
-    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    attribution: "Tiles &copy; Esri &mdash; GIS Community",
+    url: `https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&key=${GOOGLE_MAPS_API_KEY}`,
+    attribution: '&copy; <a href="https://maps.google.com">Google Maps</a>',
   },
-  osm: {
+  google_street: {
     name: "Street Map",
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    url: `https://mt{s}.google.com/vt/lyrs=r&x={x}&y={y}&z={z}&key=${GOOGLE_MAPS_API_KEY}`,
+    attribution: '&copy; <a href="https://maps.google.com">Google Maps</a>',
   },
 };
 
@@ -471,7 +473,7 @@ export default function RiskMap({
   locationName,
   onSelectPreset,
 }: RiskMapProps) {
-  const [activeBasemap, setActiveBasemap] = useState<BasemapType>("carto_dark");
+  const [activeBasemap, setActiveBasemap] = useState<BasemapType>("google_dark");
   const [gridOpacity, setGridOpacity] = useState<number>(0.74);
   const [playbackIndex, setPlaybackIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -701,6 +703,8 @@ export default function RiskMap({
           key={activeBasemap}
           attribution={BASEMAPS[activeBasemap].attribution}
           url={BASEMAPS[activeBasemap].url}
+          subdomains="0123"
+          maxZoom={20}
         />
 
         {/* 0. Official IMD/NHC Cone of Uncertainty Polygon */}
