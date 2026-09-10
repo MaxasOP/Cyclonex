@@ -113,21 +113,21 @@ export default function RealWorld3DView({
 
     if (preset === "drone") {
       controls.autoRotate = false;
-      controls.target.set(0, 8, 0);
-      camera.position.set(0, 22, 90);
+      controls.target.set(0, 10, 0);
+      camera.position.set(0, 16, 50);
     } else if (preset === "birdseye") {
       controls.autoRotate = false;
       controls.target.set(0, 10, 0);
-      camera.position.set(160, 240, 280);
+      camera.position.set(70, 85, 105);
     } else if (preset === "surge") {
       controls.autoRotate = false;
-      controls.target.set(0, 6, 0);
-      camera.position.set(-90, 25, 110);
+      controls.target.set(0, 8, 0);
+      camera.position.set(-55, 30, 70);
     } else if (preset === "orbit") {
       controls.autoRotate = true;
       controls.autoRotateSpeed = 1.0;
       controls.target.set(0, 10, 0);
-      camera.position.set(200, 180, 240);
+      camera.position.set(95, 80, 105);
     }
   };
 
@@ -148,7 +148,7 @@ export default function RealWorld3DView({
     const width = container.clientWidth || 900;
     const height = container.clientHeight || 620;
     const camera = new THREE.PerspectiveCamera(50, Math.max(0.1, width / Math.max(1, height)), 0.5, 5000);
-    camera.position.set(160, 240, 280);
+    camera.position.set(70, 85, 105);
     cameraRef.current = camera;
 
     // 3. WebGL Renderer
@@ -388,8 +388,8 @@ export default function RealWorld3DView({
     );
     scene.add(oceanMesh);
 
-    // Animated Dynamic Storm Surge Layer
-    const surgeGeo = new THREE.PlaneGeometry(planeWidth * 1.3, planeHeight * 0.8, 36, 36);
+    // Animated Dynamic Storm Surge Layer (Anchored to Coastal Sector)
+    const surgeGeo = new THREE.PlaneGeometry(planeWidth * 1.2, planeHeight * 0.45, 32, 32);
     surgeGeo.rotateX(-Math.PI / 2);
     const surgeMat = new THREE.MeshPhysicalMaterial({
       color: "#0284c7",
@@ -397,14 +397,14 @@ export default function RealWorld3DView({
       opacity: 0.65,
       roughness: 0.1,
       metalness: 0.2,
-      transmission: 0.5,
+      transmission: 0.4,
       clearcoat: 0.8,
     });
     const surgeMesh = new THREE.Mesh(surgeGeo, surgeMat);
     surgeMesh.position.set(
-      groundOffsetX + oceanBearingX * (planeWidth * 0.2),
-      surgeHeightM * 0.8 - 0.5,
-      groundOffsetZ + oceanBearingZ * (planeHeight * 0.2)
+      groundOffsetX + oceanBearingX * (planeWidth * 0.35),
+      0.2,
+      groundOffsetZ + oceanBearingZ * (planeHeight * 0.35)
     );
     surgeMesh.visible = showSurge;
     scene.add(surgeMesh);
@@ -575,11 +575,11 @@ export default function RealWorld3DView({
       const minLat = Math.min(...ring.map((p) => p[1]));
       const maxLat = Math.max(...ring.map((p) => p[1]));
 
-      const wMeters = Math.max(12, (maxLon - minLon) * metersPerDegLng);
-      const dMeters = Math.max(12, (maxLat - minLat) * metersPerDegLat);
-      const w = Math.max(7, Math.min(32, wMeters * worldScale));
-      const d = Math.max(7, Math.min(32, dMeters * worldScale));
-      const h = Math.max(6, Math.min(60, height * worldScale * 1.8));
+      const wMeters = Math.max(16, (maxLon - minLon) * metersPerDegLng);
+      const dMeters = Math.max(16, (maxLat - minLat) * metersPerDegLat);
+      const w = Math.max(12, Math.min(40, wMeters * worldScale * 1.4));
+      const d = Math.max(12, Math.min(40, dMeters * worldScale * 1.4));
+      const h = Math.max(12, Math.min(70, height * worldScale * 2.0));
 
       // Attempt authentic polygonal shape extrusion if ring has valid polygon coordinates
       let extrudedGeo: THREE.BufferGeometry | null = null;
