@@ -949,7 +949,7 @@ export default function App() {
                 </button>
               </form>
 
-              {mlResult && activeTab === "ml" && (
+              {mlResult && (
                 <div style={{ marginTop: "18px" }}>
                   <div className="ml-card">
                     <div className="ml-card-title">🌪️ Storm Status</div>

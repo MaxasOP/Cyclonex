@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import L from "leaflet";
 import {
   Circle,
@@ -13,8 +13,8 @@ import {
   useMap as useLeafletMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import RealWorld3DView from "./RealWorld3DView";
-import Globe3DView from "./Globe3DView";
+const RealWorld3DView = lazy(() => import("./RealWorld3DView"));
+const Globe3DView = lazy(() => import("./Globe3DView"));
 import type { BuildingFeature, RiskFeature, FullCellAnalysis, ZoneFeature, EvacuationPlan } from "./api";
 
 export type MapAnalysisMode = "DAMAGE" | "HIT" | "WIND" | "EXPOSURE" | "BUILDINGS" | "OBSTACLES" | "ZONES" | "EVACUATION";
@@ -640,28 +640,32 @@ export default function RiskMap({
 
       {/* 3D Real-World City & Buildings */}
       {viewDimension === "real3d" && (
-        <RealWorld3DView
-          center={center}
-          locationName={locationName}
-          features={features}
-          buildings={buildings}
-          sheltersPlan={sheltersPlan}
-          speedKph={speedKph}
-          headingDeg={headingDeg}
-          onExitReal3D={() => setViewDimension("2d")}
-          onSelectPreset={onSelectPreset}
-        />
+        <Suspense fallback={<div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#070c14", color: "#8fa4bf" }}>Loading 3D view...</div>}>
+          <RealWorld3DView
+            center={center}
+            locationName={locationName}
+            features={features}
+            buildings={buildings}
+            sheltersPlan={sheltersPlan}
+            speedKph={speedKph}
+            headingDeg={headingDeg}
+            onExitReal3D={() => setViewDimension("2d")}
+            onSelectPreset={onSelectPreset}
+          />
+        </Suspense>
       )}
 
       {/* 3D Planetary Globe */}
       {viewDimension === "globe" && (
-        <Globe3DView
-          center={center}
-          trajectory={trajectory}
-          headingDeg={headingDeg}
-          speedKph={speedKph}
-          onExit3DGlobe={() => setViewDimension("2d")}
-        />
+        <Suspense fallback={<div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#070c14", color: "#8fa4bf" }}>Loading globe...</div>}>
+          <Globe3DView
+            center={center}
+            trajectory={trajectory}
+            headingDeg={headingDeg}
+            speedKph={speedKph}
+            onExit3DGlobe={() => setViewDimension("2d")}
+          />
+        </Suspense>
       )}
 
       {/* High-Precision Tactical Geospatial GIS Map (Leaflet) */}
