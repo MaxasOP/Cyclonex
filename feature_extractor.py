@@ -31,9 +31,13 @@ def extract_sample_features(sample: TrainingSample) -> dict[str, float]:
 
     # Retrieve ocean context (TB and VF) at storm position
     basin = infer_basin(lat, lon)
-    ocean = get_ocean_node(lat, lon, basin)
-    tb = float(ocean.get("tb_deg_c", 27.5))
-    vf = float(ocean.get("vf_m", 45.0))
+    ocean = get_ocean_node(lat, lon, basin, live_first=False)
+    tb_data = ocean.get("TB", {})
+    vf_data = ocean.get("VF", {})
+    tb = float(tb_data.get(0, tb_data.get("0", 27.5)))
+    vf = float(vf_data.get("depth_of_26c_isotherm_m", 45.0))
+    ohc = float(vf_data.get("ocean_heat_content_kj_cm2", 60.0))
+    mld = float(vf_data.get("mixed_layer_depth_m", 25.0))
 
     # Retrieve satellite observation extents
     sample_obs = [
@@ -78,13 +82,32 @@ def extract_sample_features(sample: TrainingSample) -> dict[str, float]:
     # Estimated gradient wind indicator ~ sqrt(max(0, pressure_deficit)) * scale
     gradient_wind_proxy = math.sqrt(pressure_deficit) * 14.5
 
+    from ml_registry import SAMPLE_TARGETS
+    reg = SAMPLE_TARGETS.get(sample.sample_id, {})
+    heading_val = float(reg.get("heading", 315.0))
+    speed_val = float(reg.get("speed", 25.0))
+
+    from risk_service import _is_land
+    is_land_val = 1.0 if _is_land(lat, lon) else 0.0
+
+    heading_rad = math.radians(heading_val % 360.0)
+    u_trans = speed_val * math.sin(heading_rad)
+    v_trans = speed_val * math.cos(heading_rad)
+
     return {
         "centre_lat": lat,
         "centre_lon": lon,
         "max_sustained_wind_kph": wind_kph,
         "central_pressure_hpa": pressure,
+        "heading_deg": heading_val,
+        "speed_kph": speed_val,
+        "u_trans_kph": u_trans,
+        "v_trans_kph": v_trans,
+        "is_land_flag": is_land_val,
         "tb_deg_c": tb,
         "vf_m": vf,
+        "ohc_kj_cm2": ohc,
+        "mld_m": mld,
         "obs_count": obs_count,
         "avg_spatial_resolution_km": avg_resolution,
         "avg_box_width_deg": avg_box_width,
@@ -115,6 +138,10 @@ def extract_targets(sample: TrainingSample) -> dict[str, Any]:
         else:
             pattern = LifecyclePattern.MATURE
 
+    from ml_registry import SAMPLE_TARGETS
+
+    reg = SAMPLE_TARGETS.get(sample.sample_id, {})
+
     return {
         "presence": presence.value if isinstance(presence, CyclonePresence) else str(presence),
         "lifecycle_pattern": pattern.value if pattern is not None else "MATURE",
@@ -122,17 +149,17 @@ def extract_targets(sample: TrainingSample) -> dict[str, Any]:
         "target_lon": lon,
         "target_wind_kph": wind,
         "target_pressure_hpa": pressure,
-        # 6h, 12h, 24h forecast target proxies (drift & intensification model targets)
-        "delta_lat_6h": 0.15,
-        "delta_lon_6h": -0.20,
-        "delta_wind_6h": 5.0,
-        "delta_pressure_6h": -3.0,
-        "delta_lat_12h": 0.35,
-        "delta_lon_12h": -0.45,
-        "delta_wind_12h": 10.0,
-        "delta_pressure_12h": -7.0,
-        "delta_lat_24h": 0.75,
-        "delta_lon_24h": -0.95,
-        "delta_wind_24h": 15.0,
-        "delta_pressure_24h": -12.0,
+        # 6h, 12h, 24h ground truth forecast targets from registered best-track or kinematic physics
+        "delta_lat_6h": reg.get("dlat_6h", 0.45),
+        "delta_lon_6h": reg.get("dlon_6h", -0.20),
+        "delta_wind_6h": reg.get("dw_6h", 5.0),
+        "delta_pressure_6h": reg.get("dp_6h", -3.0),
+        "delta_lat_12h": reg.get("dlat_12h", 0.90),
+        "delta_lon_12h": reg.get("dlon_12h", -0.40),
+        "delta_wind_12h": reg.get("dw_12h", 10.0),
+        "delta_pressure_12h": reg.get("dp_12h", -6.0),
+        "delta_lat_24h": reg.get("dlat_24h", 1.80),
+        "delta_lon_24h": reg.get("dlon_24h", -0.80),
+        "delta_wind_24h": reg.get("dw_24h", 15.0),
+        "delta_pressure_24h": reg.get("dp_24h", -10.0),
     }

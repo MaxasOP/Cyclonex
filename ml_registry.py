@@ -10,6 +10,11 @@ OBSERVATIONS: dict[str, SatelliteObservation] = {}
 SAMPLES: dict[str, TrainingSample] = {}
 BEST_TRACK_LABELS: dict[str, BestTrackLabel] = {}
 STORM_SPLITS: dict[str, str] = {}
+SAMPLE_TARGETS: dict[str, dict[str, float]] = {}
+
+
+def register_sample_targets(sample_id: str, targets: dict[str, float]) -> None:
+    SAMPLE_TARGETS[sample_id] = targets
 
 
 def observation_id(observation: SatelliteObservation) -> str:

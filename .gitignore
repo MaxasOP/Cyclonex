@@ -30,3 +30,9 @@ __MACOSX/
 
 # Logs
 *.log
+
+# Databases & Local Storage
+*.db
+*.db-*
+*.sqlite
+*.sqlite3

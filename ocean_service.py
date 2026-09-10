@@ -188,14 +188,21 @@ def compute_vertical_features(profile: dict) -> dict:
     }
 
 
-def get_ocean_node(lat: float, lon: float, basin: str) -> dict:
-    profile = fetch_live_profile(lat, lon)
+_OCEAN_CACHE: dict[tuple[float, float, str, bool], dict] = {}
+
+
+def get_ocean_node(lat: float, lon: float, basin: str, live_first: bool = True) -> dict:
+    cache_key = (round(lat, 2), round(lon, 2), basin, live_first)
+    if cache_key in _OCEAN_CACHE:
+        return _OCEAN_CACHE[cache_key]
+
+    profile = fetch_live_profile(lat, lon) if live_first else None
     if profile is None:
         profile = climatology_fallback_profile(lat, lon, basin)
 
     vf = compute_vertical_features(profile)
 
-    return {
+    res = {
         "node": {"lat": lat, "lon": lon},
         "TB": profile["temperature_c"],
         "VF": vf,
@@ -206,3 +213,5 @@ def get_ocean_node(lat: float, lon: float, basin: str) -> dict:
             "salinity_psu": profile["salinity_psu"],
         },
     }
+    _OCEAN_CACHE[cache_key] = res
+    return res

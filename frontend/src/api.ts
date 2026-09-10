@@ -99,14 +99,28 @@ export type RiskFeature = {
     land_type?: string;
     dynamic_pressure_pa?: number;
     effective_wind_loading_n_m2?: number;
+    modeled_wind_loading_n_m2?: number;
     building_count?: number;
     building_density?: number;
+    avg_building_height_m?: number;
+    max_building_height_m?: number;
+    avg_upwind_height_m?: number;
     obstruction_level?: string;
+    shelter_factor?: number;
     estimated_class?: string;
+    estimated_resistance_pa?: number;
+    vulnerability_score?: number;
+    hazard_score?: number;
+    exposure_score?: number;
     load_to_resistance_ratio?: number;
     primary_driver?: string;
     secondary_driver?: string;
     description?: string;
+    grid_size_m?: number;
+    pressure_hpa?: number;
+    pressure_deficit_hpa?: number;
+    rain_rate_mm_hr?: number;
+    storm_surge_m?: number;
     full_cell_analysis?: FullCellAnalysis;
   };
 };
@@ -121,6 +135,17 @@ export type RiskSummary = {
   no_damage_cells: number;
   storm_heading_deg?: number;
   storm_speed_kph?: number;
+  actual_grid_size_m?: number;
+  grid_auto_scaled?: boolean;
+  estimated_loss_crores_inr?: number;
+  estimated_population_affected?: number;
+  ndma_directives?: {
+    evacuation_urgency?: string;
+    ndrf_battalions_recommended?: number;
+    port_warning_signal?: string;
+    power_grid_advisory?: string;
+    rail_traffic_directive?: string;
+  };
 };
 
 export type ScenarioResult = {
@@ -137,7 +162,17 @@ export type ScenarioResult = {
   };
   basin: string | null;
   ocean_node: { VF: { ocean_heat_content_kj_cm2: number }; meta: { source: string } } | null;
-  risk_grid: { type?: string; features: RiskFeature[]; summary?: RiskSummary };
+  risk_grid: {
+    type?: string;
+    features: RiskFeature[];
+    summary?: RiskSummary;
+    metadata?: {
+      grid_size_m?: number;
+      crs?: string;
+      model_type?: string;
+      limitation?: string;
+    };
+  };
   model: { data_quality: string };
   ml_provenance?: {
     source_storm_id: string;
@@ -148,11 +183,76 @@ export type ScenarioResult = {
   };
 };
 
+export type ZoneFeature = {
+  type: "Feature";
+  id: string;
+  geometry: { type: "Polygon"; coordinates: number[][][] };
+  properties: {
+    zone_type: string;
+    zone_label: string;
+    zone_vulnerability: number;
+    zone_colour: string;
+    area_m2: number;
+    centroid_lon: number;
+    centroid_lat: number;
+    osm_name: string;
+    combined_damage_score?: number | null;
+  };
+};
+
+export type CycloneShelter = {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
+  capacity: number;
+  district: string;
+  state: string;
+  facility_type: string;
+  backup_generator: boolean;
+  helipad: boolean;
+  distance_km?: number;
+  evacuation_priority?: "IMMEDIATE" | "ADVISORY" | "STANDBY";
+};
+
+export type EvacuationPlan = {
+  total_shelters_active: number;
+  total_capacity: number;
+  estimated_population_at_risk: number;
+  immediate_evacuation_count: number;
+  shelters: CycloneShelter[];
+  ward_priorities: Array<{
+    ward_id: string;
+    name: string;
+    lat: number;
+    lon: number;
+    risk_level: string;
+    color: string;
+    action: string;
+    nearest_shelter: string;
+    distance_km: number;
+  }>;
+};
+
 export type BuildingFeature = {
   type: "Feature";
   id: string;
   geometry: { type: "Polygon"; coordinates: number[][][] };
-  properties: { display_colour: string; is_locally_taller: boolean; height_m?: number };
+  properties: {
+    display_colour?: string;
+    is_locally_taller?: boolean;
+    height_m?: number;
+    name?: string;
+    building_type?: string;
+    damage_score?: number | null;
+    classification?: string;
+    wind_kph?: number;
+    dynamic_pressure_pa?: number;
+    load_to_resistance_ratio?: number;
+    capacity?: number;
+    cell_id?: string;
+    adjacent_taller_highlight?: string | null;
+  };
 };
 
 export type ForecastHorizon = {
@@ -271,7 +371,18 @@ export type DatasetSummary = {
   baseline_model?: {
     is_trained: boolean;
     algorithm: string;
-    metrics: Record<string, number> | null;
+    metrics?: {
+      status?: string;
+      track_error_6h_km_mean?: number;
+      track_error_12h_km_mean?: number;
+      track_error_24h_km_mean?: number;
+      wind_mae_kph_mean?: number;
+      pressure_mae_hpa_mean?: number;
+      identification_f1?: number;
+      pattern_f1?: number;
+      n_test_samples?: number;
+      evaluated_at?: string;
+    } | null;
   };
 };
 
@@ -280,6 +391,27 @@ export async function fetchDatasetSummary(): Promise<DatasetSummary | null> {
     const response = await fetch(`${apiBaseUrl}/api/v3/dataset-summary`);
     if (!response.ok) return null;
     return response.json() as Promise<DatasetSummary>;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchZones(scenarioId: string): Promise<ZoneFeature[]> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v2/scenarios/${scenarioId}/zones`);
+    if (!response.ok) return [];
+    const result = await response.json();
+    return (result.features || []) as ZoneFeature[];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchSheltersAndEvacuation(scenarioId: string): Promise<EvacuationPlan | null> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v2/scenarios/${scenarioId}/shelters-evacuation`);
+    if (!response.ok) return null;
+    return response.json() as Promise<EvacuationPlan>;
   } catch {
     return null;
   }

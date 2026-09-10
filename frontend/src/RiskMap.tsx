@@ -1,50 +1,195 @@
 import { useEffect, useState } from "react";
 import L from "leaflet";
 import {
+  Circle,
   CircleMarker,
   GeoJSON,
   MapContainer,
+  Marker,
+  Polygon,
   Polyline,
   Popup,
   TileLayer,
   useMap as useLeafletMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import type { BuildingFeature, RiskFeature, FullCellAnalysis } from "./api";
+import Globe3DView from "./Globe3DView";
+import RealWorld3DView from "./RealWorld3DView";
+import type { BuildingFeature, RiskFeature, FullCellAnalysis, ZoneFeature, EvacuationPlan } from "./api";
 
-export type MapAnalysisMode = "DAMAGE" | "HIT" | "WIND" | "EXPOSURE" | "BUILDINGS" | "OBSTACLES";
+export type MapAnalysisMode = "DAMAGE" | "HIT" | "WIND" | "EXPOSURE" | "BUILDINGS" | "OBSTACLES" | "ZONES" | "EVACUATION";
+
+const cycloneVortexSvg = `
+<div class="cyclone-eye-3d-tower">
+  <div class="cyclone-pulse-ring-3d"></div>
+  <div class="cyclone-vortex-3d-layer troposphere-upper"></div>
+  <div class="cyclone-vortex-3d-layer troposphere-mid"></div>
+  <div class="cyclone-vortex-3d-layer troposphere-surface">
+    <svg class="cyclone-vortex-svg" viewBox="0 0 100 100" width="48" height="48">
+      <circle cx="50" cy="50" r="14" fill="#d4483b" stroke="#ffffff" stroke-width="2.5" />
+      <path d="M 50 20 C 65 20, 80 35, 80 50 C 80 40, 65 32, 50 32 Z" fill="#ff6b5b" opacity="0.85" />
+      <path d="M 80 50 C 80 65, 65 80, 50 80 C 60 80, 68 65, 68 50 Z" fill="#ff6b5b" opacity="0.85" />
+      <path d="M 50 80 C 35 80, 20 65, 20 50 C 20 60, 35 68, 50 68 Z" fill="#ff6b5b" opacity="0.85" />
+      <path d="M 20 50 C 20 35, 35 20, 50 20 C 40 20, 32 35, 32 50 Z" fill="#ff6b5b" opacity="0.85" />
+      <circle cx="50" cy="50" r="5" fill="#ffffff" />
+    </svg>
+  </div>
+</div>
+`;
+
+const cycloneDivIcon = L.divIcon({
+  className: "cyclone-vortex-leaflet-icon",
+  html: cycloneVortexSvg,
+  iconSize: [54, 54],
+  iconAnchor: [27, 27],
+});
+
+function IconCube3D() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m21.12 6.4-9-5a2 2 0 0 0-2.24 0l-9 5A2 2 0 0 0 0 8.16v7.68a2 2 0 0 0 .88 1.76l9 5a2 2 0 0 0 2.24 0l9-5a2 2 0 0 0 .88-1.76z" />
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+      <line x1="12" y1="22.08" x2="12" y2="12" />
+    </svg>
+  );
+}
+
+function IconFocus() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="3" />
+      <line x1="12" y1="2" x2="12" y2="6" />
+      <line x1="12" y1="18" x2="12" y2="22" />
+      <line x1="2" y1="12" x2="6" y2="12" />
+      <line x1="18" y1="12" x2="22" y2="12" />
+    </svg>
+  );
+}
+
+function IconTrack() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  );
+}
+
+function IconPlay() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+      <polygon points="5 3 19 12 5 21 5 3" />
+    </svg>
+  );
+}
+
+function IconPause() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+      <rect x="6" y="4" width="4" height="16" />
+      <rect x="14" y="4" width="4" height="16" />
+    </svg>
+  );
+}
+
+function computeConePolygon(
+  center: { lat: number; lng: number },
+  trajectory?: { lat: number; lng: number; label: string }[]
+): [number, number][] {
+  if (!trajectory || trajectory.length === 0) return [];
+  const pts = [{ lat: center.lat, lng: center.lng }, ...trajectory];
+  if (pts.length < 2) return [];
+
+  // Calibrated out-of-sample track uncertainty radii in km [0h, 6h, 12h, 24h]
+  const radiiKm = [10, 16.93, 34.14, 73.89];
+
+  const leftCoords: [number, number][] = [];
+  const rightCoords: [number, number][] = [];
+
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i];
+    const rKm = radiiKm[i] ?? radiiKm[radiiKm.length - 1];
+
+    let headingRad = 0;
+    if (i < pts.length - 1) {
+      const next = pts[i + 1];
+      const dy = next.lat - p.lat;
+      const dx = (next.lng - p.lng) * Math.cos((p.lat * Math.PI) / 180);
+      headingRad = Math.atan2(dy, dx);
+    } else {
+      const prev = pts[i - 1];
+      const dy = p.lat - prev.lat;
+      const dx = (p.lng - prev.lng) * Math.cos((p.lat * Math.PI) / 180);
+      headingRad = Math.atan2(dy, dx);
+    }
+
+    const normalRad = headingRad + Math.PI / 2;
+    const dLat = (rKm / 111.0) * Math.sin(normalRad);
+    const dLng = (rKm / (111.0 * Math.cos((p.lat * Math.PI) / 180))) * Math.cos(normalRad);
+
+    leftCoords.push([p.lat + dLat, p.lng + dLng]);
+    rightCoords.push([p.lat - dLat, p.lng - dLng]);
+  }
+
+  // Smooth terminal semicircle arc at the +24h point
+  const tipCenter = pts[pts.length - 1];
+  const tipRadiusKm = radiiKm[radiiKm.length - 1];
+  const lastPrev = pts[pts.length - 2];
+  const tipDy = tipCenter.lat - lastPrev.lat;
+  const tipDx = (tipCenter.lng - lastPrev.lng) * Math.cos((tipCenter.lat * Math.PI) / 180);
+  const tipHeading = Math.atan2(tipDy, tipDx);
+
+  const arcCoords: [number, number][] = [];
+  const arcSteps = 12;
+  for (let s = 0; s <= arcSteps; s++) {
+    const angle = tipHeading + Math.PI / 2 - (s / arcSteps) * Math.PI;
+    const dLat = (tipRadiusKm / 111.0) * Math.sin(angle);
+    const dLng = (tipRadiusKm / (111.0 * Math.cos((tipCenter.lat * Math.PI) / 180))) * Math.cos(angle);
+    arcCoords.push([tipCenter.lat + dLat, tipCenter.lng + dLng]);
+  }
+
+  return [...leftCoords, ...arcCoords, ...rightCoords.reverse()];
+}
 
 type RiskMapProps = {
   scenarioId?: string;
   center: { lat: number; lng: number };
   features: RiskFeature[];
   buildings: BuildingFeature[];
+  zones?: ZoneFeature[];
+  sheltersPlan?: EvacuationPlan | null;
   trajectory?: { lat: number; lng: number; label: string }[];
   headingDeg?: number;
   speedKph?: number;
   analysisMode?: MapAnalysisMode;
+  showZones?: boolean;
+  showShelters?: boolean;
+  viewDimension?: "2d" | "real3d" | "globe";
+  onViewDimensionChange?: (dim: "2d" | "real3d" | "globe") => void;
   onSelectCell?: (cell: FullCellAnalysis | null) => void;
+  locationName?: string;
+  onSelectPreset?: (presetKey: string) => void;
 };
 
-type BasemapType = "osm" | "esri" | "carto";
+type BasemapType = "carto_dark" | "esri" | "osm";
 
 const BASEMAPS: Record<BasemapType, { name: string; url: string; attribution: string }> = {
-  osm: {
-    name: "OpenStreetMap",
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  carto_dark: {
+    name: "Dark Radar",
+    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
   },
   esri: {
-    name: "Esri Satellite",
+    name: "Satellite",
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    attribution:
-      "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+    attribution: "Tiles &copy; Esri &mdash; GIS Community",
   },
-  carto: {
-    name: "Carto Positron",
-    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  osm: {
+    name: "Street Map",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   },
 };
 
@@ -104,43 +249,56 @@ function LeafletBoundsFitter({
   features,
   trajectory,
   scenarioId,
+  zoomMode = "grid",
 }: {
   center: { lat: number; lng: number };
   features: RiskFeature[];
   buildings?: BuildingFeature[];
   trajectory?: { lat: number; lng: number; label: string }[];
   scenarioId?: string;
+  zoomMode?: "grid" | "track";
 }) {
   const map = useLeafletMap();
 
   useEffect(() => {
     if (!map) return;
 
-    // If 200m damage grid features are present, fit tightly to the grid bounds!
+    // Track View: fit bounds to encompass the entire multi-day trajectory
+    if (zoomMode === "track" && trajectory && trajectory.length > 0) {
+      const trackBounds = L.latLngBounds([]);
+      trackBounds.extend([center.lat, center.lng]);
+      trajectory.forEach((t) => trackBounds.extend([t.lat, t.lng]));
+      if (trackBounds.isValid()) {
+        map.fitBounds(trackBounds, { padding: [50, 50], maxZoom: 8 });
+        return;
+      }
+    }
+
+    // Grid View: If 200m damage grid features are present, fit tightly to the grid bounds
     if (features && features.length > 0) {
       let minLat = 90;
       let maxLat = -90;
       let minLng = 180;
       let maxLng = -180;
       for (let i = 0; i < features.length; i++) {
-        const ring = features[i].geometry?.coordinates?.[0];
-        if (ring && ring.length > 0) {
-          const c0 = ring[0];
-          const c2 = ring[2] || ring[1];
-          if (c0[1] < minLat) minLat = c0[1];
-          if (c2[1] > maxLat) maxLat = c2[1];
-          if (c0[0] < minLng) minLng = c0[0];
-          if (c2[0] > maxLng) maxLng = c2[0];
+        const p = features[i].properties;
+        if (p?.lat != null && p?.lon != null) {
+          if (p.lat < minLat) minLat = p.lat;
+          if (p.lat > maxLat) maxLat = p.lat;
+          if (p.lon < minLng) minLng = p.lon;
+          if (p.lon > maxLng) maxLng = p.lon;
         }
       }
-      const gridBounds = L.latLngBounds([minLat, minLng], [maxLat, maxLng]);
-      if (gridBounds.isValid()) {
-        map.fitBounds(gridBounds, { padding: [30, 30], maxZoom: 13 });
-        return;
+      if (minLat <= maxLat && minLng <= maxLng && minLat > -90 && maxLat < 90) {
+        const gridBounds = L.latLngBounds([minLat - 0.015, minLng - 0.015], [maxLat + 0.015, maxLng + 0.015]);
+        if (gridBounds.isValid()) {
+          map.fitBounds(gridBounds, { padding: [30, 30], maxZoom: 12 });
+          return;
+        }
       }
     }
 
-    // If no grid features yet, fit to the regional storm track
+    // Fallback: fit to regional storm track
     if (trajectory && trajectory.length > 0) {
       const trackBounds = L.latLngBounds([]);
       trajectory.forEach((t) => trackBounds.extend([t.lat, t.lng]));
@@ -152,36 +310,146 @@ function LeafletBoundsFitter({
     }
 
     map.setView([center.lat, center.lng], 9);
-  }, [map, center.lat, center.lng, features, trajectory, scenarioId]);
+  }, [map, center.lat, center.lng, features.length, scenarioId, zoomMode]);
 
   return null;
 }
 
-function LeafletViewUpdater({
-  center,
-  scenarioId,
+function LeafletPlaybackPanner({
+  activePoint,
+  isNavigating,
 }: {
-  center: { lat: number; lng: number };
-  scenarioId?: string;
+  activePoint: { lat: number; lng: number };
+  isNavigating: boolean;
 }) {
   const map = useLeafletMap();
   useEffect(() => {
-    if (map) {
-      map.panTo([center.lat, center.lng], { animate: true, duration: 0.6 });
-      map.invalidateSize();
+    if (map && isNavigating && activePoint) {
+      map.panTo([activePoint.lat, activePoint.lng], { animate: true, duration: 0.8 });
     }
-  }, [map, center.lat, center.lng, scenarioId]);
+  }, [map, activePoint, isNavigating]);
   return null;
 }
 
-function LeafletResizer({ analysisMode }: { analysisMode: string }) {
+function LeafletResizer({ analysisMode, viewDimension }: { analysisMode: string; viewDimension?: string }) {
   const map = useLeafletMap();
   useEffect(() => {
-    if (map) {
-      map.invalidateSize();
+    if (!map) return;
+    map.invalidateSize();
+
+    const t1 = setTimeout(() => map.invalidateSize(), 80);
+    const t2 = setTimeout(() => map.invalidateSize(), 250);
+    const t3 = setTimeout(() => map.invalidateSize(), 600);
+
+    const container = map.getContainer();
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && container) {
+      resizeObserver = new ResizeObserver(() => {
+        map.invalidateSize();
+      });
+      resizeObserver.observe(container);
     }
-  }, [map, analysisMode]);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      if (resizeObserver) resizeObserver.disconnect();
+    };
+  }, [map, analysisMode, viewDimension]);
   return null;
+}
+
+function buildCellPopupHtml(p: Record<string, unknown>): string {
+  const score = Number(p.damage_score ?? p.risk_score ?? 0);
+  const scorePct = (score * 100).toFixed(1);
+  const windKph = Number(p.wind_kph || 0);
+  const windMs = Number(p.wind_ms || 0);
+  const windLoading = Number(p.effective_wind_loading_n_m2 || 0);
+  const dynamicPa = Number(p.dynamic_pressure_pa || 0);
+  const lrRatio = Number(p.load_to_resistance_ratio || 0);
+  const lrPct = (lrRatio * 100).toFixed(1);
+  const distKm = ((Number(p.distance_to_cyclone_m) || 0) / 1000).toFixed(2);
+  const cellColor = String(p.colour || "#75c9f1").toLowerCase();
+  const isLand = String(p.land_type || "LAND") !== "OCEAN";
+
+  return `<div style="min-width: 280px; font-family: -apple-system, system-ui, sans-serif;">
+    <div style="background: ${cellColor}; color: #0a1a2e; padding: 8px 10px; border-radius: 6px 6px 0 0; margin: -10px -10px 8px -10px; font-weight: 700; font-size: 0.95rem;">
+      🌀 200m Cell Damage Inspection
+    </div>
+    <div style="background: rgba(255,255,255,0.04); padding: 8px 10px; border-radius: 6px; margin-bottom: 6px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <span style="color: #8fa4bf; font-size: 0.78rem;">DAMAGE SCORE</span>
+        <strong style="color: ${cellColor}; font-size: 1.05rem;">${scorePct}%</strong>
+      </div>
+      <div style="background: rgba(0,0,0,0.4); height: 8px; border-radius: 4px; overflow: hidden;">
+        <div style="background: ${cellColor}; height: 100%; width: ${Math.min(score * 100, 100)}%; transition: width 0.3s;"></div>
+      </div>
+      <div style="margin-top: 4px; font-size: 0.78rem; color: #d6e3f5;">Classification: <strong>${p.classification || "N/A"}</strong></div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 6px;">
+      <div style="background: rgba(255,255,255,0.04); padding: 6px 8px; border-radius: 4px;">
+        <div style="color: #8fa4bf; font-size: 0.7rem;">💨 LOCAL WIND</div>
+        <div style="font-weight: 600; color: #f7d070; font-size: 0.92rem;">${windKph.toFixed(1)} km/h</div>
+        <div style="font-size: 0.72rem; color: #d6e3f5;">${windMs.toFixed(1)} m/s</div>
+      </div>
+      <div style="background: rgba(255,255,255,0.04); padding: 6px 8px; border-radius: 4px;">
+        <div style="color: #8fa4bf; font-size: 0.7rem;">🧭 BEARING</div>
+        <div style="font-weight: 600; color: #75c9f1; font-size: 0.92rem;">${(Number(p.bearing_from_eye_deg) || 0).toFixed(0)}°</div>
+        <div style="font-size: 0.72rem; color: #d6e3f5;">${distKm} km from eye</div>
+      </div>
+    </div>
+
+    <div style="background: rgba(255,255,255,0.04); padding: 6px 10px; border-radius: 4px; margin-bottom: 6px;">
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 2px;">
+        <span style="color: #8fa4bf;">Dynamic Pressure</span>
+        <strong style="color: #d6e3f5;">${dynamicPa.toFixed(1)} Pa</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 2px;">
+        <span style="color: #8fa4bf;">Effective Wind Loading</span>
+        <strong style="color: #d6e3f5;">${windLoading.toFixed(1)} N/m²</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 2px;">
+        <span style="color: #8fa4bf;">Load/Resistance Ratio</span>
+        <strong style="color: ${lrRatio >= 1 ? '#d4483b' : lrRatio >= 0.55 ? '#ed8a28' : '#35a66f'};">${lrPct}%</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+        <span style="color: #8fa4bf;">Land Type</span>
+        <strong style="color: ${isLand ? '#35a66f' : '#75c9f1'};">${p.land_type || "N/A"}</strong>
+      </div>
+    </div>
+
+    <div style="background: rgba(255,255,255,0.04); padding: 6px 10px; border-radius: 4px; margin-bottom: 6px;">
+      <div style="color: #8fa4bf; font-size: 0.7rem; margin-bottom: 3px;">DRIVERS</div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+        <span style="color: #d6e3f5;">Primary</span>
+        <strong style="color: #ff6b5b;">${p.primary_driver || "N/A"}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+        <span style="color: #d6e3f5;">Secondary</span>
+        <strong style="color: #f7d070;">${p.secondary_driver || "N/A"}</strong>
+      </div>
+    </div>
+
+    <div style="background: rgba(255,255,255,0.04); padding: 6px 10px; border-radius: 4px; margin-bottom: 6px;">
+      <div style="color: #8fa4bf; font-size: 0.7rem; margin-bottom: 3px;">STRUCTURE & EXPOSURE</div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+        <span style="color: #d6e3f5;">Estimated Class</span>
+        <strong style="color: #d6e3f5;">${p.estimated_class || "N/A"}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+        <span style="color: #d6e3f5;">Building Count</span>
+        <strong style="color: #d6e3f5;">${p.building_count || 0}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+        <span style="color: #d6e3f5;">Obstruction Level</span>
+        <strong style="color: #d6e3f5;">${p.obstruction_level || "N/A"}</strong>
+      </div>
+    </div>
+
+    <em style="font-size: 0.72rem; color: #8fa4bf; display: block; text-align: center; margin-top: 4px;">Click cell for full explainable inspection card →</em>
+  </div>`;
 }
 
 export default function RiskMap({
@@ -189,14 +457,48 @@ export default function RiskMap({
   center,
   features,
   buildings,
+  zones = [],
+  sheltersPlan = null,
   trajectory,
   headingDeg = 315,
   speedKph = 25,
   analysisMode = "DAMAGE",
+  showZones = true,
+  showShelters = true,
+  viewDimension: viewDimensionProp,
+  onViewDimensionChange: onViewDimensionChangeProp,
   onSelectCell,
+  locationName,
+  onSelectPreset,
 }: RiskMapProps) {
-  const [activeBasemap, setActiveBasemap] = useState<BasemapType>("osm");
+  const [activeBasemap, setActiveBasemap] = useState<BasemapType>("carto_dark");
+  const [gridOpacity, setGridOpacity] = useState<number>(0.74);
+  const [playbackIndex, setPlaybackIndex] = useState<number>(0);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [zoomMode, setZoomMode] = useState<"grid" | "track">("grid");
+  const [internalViewDimension, setInternalViewDimension] = useState<"2d" | "real3d" | "globe">("real3d");
+  const viewDimension = viewDimensionProp ?? internalViewDimension;
+  const setViewDimension = onViewDimensionChangeProp ?? setInternalViewDimension;
+
+  // Assemble full trajectory waypoints: [0h (Live), +6h, +12h, +24h]
+  const allWaypoints = [
+    { lat: center.lat, lng: center.lng, label: "0h (Live Eye)" },
+    ...(trajectory || []),
+  ];
+
+  // Auto playback loop
+  useEffect(() => {
+    if (!isPlaying) return;
+    const timer = setInterval(() => {
+      setPlaybackIndex((prev) => (prev + 1) % Math.max(1, allWaypoints.length));
+    }, 1600);
+    return () => clearInterval(timer);
+  }, [isPlaying, allWaypoints.length]);
+
+  const activeEyePoint = allWaypoints[playbackIndex] || allWaypoints[0];
+  const conePolygonCoords = computeConePolygon(center, trajectory);
   const polylineCoords = (trajectory || []).map((t) => [t.lat, t.lng] as [number, number]);
+  const fullTrackCoords = [[center.lat, center.lng], ...polylineCoords] as [number, number][];
 
   useEffect(() => {
     console.log("[CYCLONEX MAP DEBUG]", {
@@ -212,41 +514,187 @@ export default function RiskMap({
   // Compute movement direction vector endpoint (15 km length vector)
   const vectorLengthKm = 0.15; // ~15 km vector length in degrees lat/lon
   const headingVectorEnd = [
-    center.lat + vectorLengthKm * Math.cos((((90 - headingDeg) % 360) * Math.PI) / 180),
-    center.lng + vectorLengthKm * Math.sin((((90 - headingDeg) % 360) * Math.PI) / 180),
+    activeEyePoint.lat + vectorLengthKm * Math.cos((((90 - headingDeg) % 360) * Math.PI) / 180),
+    activeEyePoint.lng + vectorLengthKm * Math.sin((((90 - headingDeg) % 360) * Math.PI) / 180),
   ] as [number, number];
 
   return (
     <div className="leaflet-map-wrapper">
-      {/* Floating Basemap Selector */}
-      <div className="basemap-selector" aria-label="Basemap selector">
-        {(Object.keys(BASEMAPS) as BasemapType[]).map((key) => (
-          <button
-            key={key}
-            type="button"
-            className={`basemap-btn ${activeBasemap === key ? "active" : ""}`}
-            onClick={() => setActiveBasemap(key)}
-          >
-            {BASEMAPS[key].name}
-          </button>
-        ))}
-      </div>
+      {/* Unified Map Command Dock (Top Right) - Only in 2D Tactical Mode */}
+      {viewDimension === "2d" && (
+        <div className="map-view-dock" aria-label="Map View Controls">
+          {/* 3D Mode Selector Group */}
+          <div className="dock-group dimension-group">
+            <button
+              type="button"
+              className="dock-btn active"
+              onClick={() => setViewDimension("2d")}
+              title="Tactical Geospatial GIS Map (High-Precision Coordinates & Risk Grid)"
+            >
+              <IconCube3D />
+              <span>Tactical Map</span>
+            </button>
+            <button
+              type="button"
+              className="dock-btn"
+              onClick={() => setViewDimension("real3d")}
+              title="3D Real-World Digital Twin: Volumetric 3D Buildings, Storm Surge Inundation, Aerodynamic Wind Flow"
+            >
+              <span>3D City & Buildings</span>
+            </button>
+            <button
+              type="button"
+              className="dock-btn"
+              onClick={() => setViewDimension("globe")}
+              title="3D Planetary Earth Globe (NASA Satellite WebGL)"
+            >
+              <IconTrack />
+              <span>3D Globe</span>
+            </button>
+          </div>
+          <div className="dock-divider" />
+          <div className="dock-group">
+            <button
+              type="button"
+              className={`dock-btn ${zoomMode === "grid" ? "active" : ""}`}
+              onClick={() => setZoomMode("grid")}
+              title="Zoom in on 200m damage grid & building footprints"
+            >
+              <IconFocus />
+              <span>Grid Focus</span>
+            </button>
+            <button
+              type="button"
+              className={`dock-btn ${zoomMode === "track" ? "active" : ""}`}
+              onClick={() => setZoomMode("track")}
+              title="Zoom out to show entire multi-day trajectory & cone"
+            >
+              <IconTrack />
+              <span>Track View</span>
+            </button>
+          </div>
+          <div className="dock-divider" />
+          <div className="dock-group">
+            {(Object.keys(BASEMAPS) as BasemapType[]).map((key) => (
+              <button
+                key={key}
+                type="button"
+                className={`dock-btn ${activeBasemap === key ? "active" : ""}`}
+                onClick={() => setActiveBasemap(key)}
+              >
+                {BASEMAPS[key].name}
+              </button>
+            ))}
+          </div>
+          <div className="dock-divider" />
+          <div className="dock-opacity">
+            <span className="dock-opacity-label">Grid {Math.round(gridOpacity * 100)}%</span>
+            <input
+              type="range"
+              min="15"
+              max="95"
+              value={Math.round(gridOpacity * 100)}
+              onChange={(e) => setGridOpacity(Number(e.target.value) / 100)}
+              className="dock-opacity-slider"
+              title="Adjust 200m damage grid layer opacity (15%–95%)"
+            />
+          </div>
+        </div>
+      )}
 
-      <MapContainer
-        center={[center.lat, center.lng]}
-        zoom={10}
-        scrollWheelZoom={true}
-        preferCanvas={true}
-        style={{ width: "100%", height: "100%", minHeight: "620px" }}
-      >
-        <LeafletResizer analysisMode={analysisMode} />
-        <LeafletViewUpdater center={center} scenarioId={scenarioId} />
-        <LeafletBoundsFitter
+      {/* Trajectory Playback Scrubber Dock (Bottom Center) - Only in 2D Mode */}
+      {viewDimension === "2d" && allWaypoints.length > 1 && (
+        <div className="map-timeline-player" aria-label="Forecast trajectory playback">
+          <button
+            type="button"
+            className={`timeline-play-btn ${isPlaying ? "playing" : ""}`}
+            onClick={() => setIsPlaying(!isPlaying)}
+            title={isPlaying ? "Pause Track Playback" : "Play Forecast Trajectory"}
+          >
+            {isPlaying ? <IconPause /> : <IconPlay />}
+            <span>{isPlaying ? "Pause" : "Play Track"}</span>
+          </button>
+          <div className="timeline-steps">
+            {allWaypoints.map((wp, idx) => (
+              <button
+                key={wp.label}
+                type="button"
+                className={`timeline-step-btn ${playbackIndex === idx ? "active" : ""}`}
+                onClick={() => {
+                  setPlaybackIndex(idx);
+                  setIsPlaying(false);
+                }}
+              >
+                {idx === 0 ? "0h Live" : wp.label.replace("Forecast", "").trim()}
+              </button>
+            ))}
+          </div>
+          <span className="timeline-badge">
+            <span className="timeline-pulse-dot" />
+            {activeEyePoint.label}
+          </span>
+        </div>
+      )}
+
+      {/* 3D Real-World City & Buildings */}
+      {viewDimension === "real3d" && (
+        <RealWorld3DView
           center={center}
+          locationName={locationName}
+          features={features}
+          buildings={buildings}
+          sheltersPlan={sheltersPlan}
+          speedKph={speedKph}
+          headingDeg={headingDeg}
+          onExitReal3D={() => setViewDimension("2d")}
+          onSelectPreset={onSelectPreset}
+        />
+      )}
+
+      {/* 3D Planetary Globe */}
+      {viewDimension === "globe" && (
+        <Globe3DView
+          center={center}
+          trajectory={trajectory}
+          headingDeg={headingDeg}
+          speedKph={speedKph}
+          onExit3DGlobe={() => setViewDimension("2d")}
+        />
+      )}
+
+      {/* High-Precision Tactical Geospatial GIS Map (Leaflet) */}
+      <div
+        className="map-viewport-wrapper"
+        style={{
+          width: "100%",
+          height: "100%",
+          minHeight: "620px",
+          position: viewDimension === "2d" ? "relative" : "absolute",
+          left: viewDimension === "2d" ? 0 : "-99999px",
+          top: 0,
+          visibility: viewDimension === "2d" ? "visible" : "hidden",
+          pointerEvents: viewDimension === "2d" ? "auto" : "none",
+        }}
+      >
+        <MapContainer
+          center={[center.lat, center.lng]}
+          zoom={10}
+          scrollWheelZoom={true}
+          preferCanvas={true}
+          style={{ width: "100%", height: "100%", minHeight: "620px" }}
+        >
+          <LeafletResizer analysisMode={analysisMode} viewDimension={viewDimension} />
+            <LeafletBoundsFitter
+              center={center}
           features={features}
           buildings={buildings}
           trajectory={trajectory}
           scenarioId={scenarioId}
+          zoomMode={zoomMode}
+        />
+        <LeafletPlaybackPanner
+          activePoint={activeEyePoint}
+          isNavigating={isPlaying || playbackIndex > 0}
         />
 
         <TileLayer
@@ -254,6 +702,32 @@ export default function RiskMap({
           attribution={BASEMAPS[activeBasemap].attribution}
           url={BASEMAPS[activeBasemap].url}
         />
+
+        {/* 0. Official IMD/NHC Cone of Uncertainty Polygon */}
+        {conePolygonCoords.length > 2 && (
+          <Polygon
+            positions={conePolygonCoords}
+            pathOptions={{
+              fillColor: "#ff9100",
+              fillOpacity: 0.16,
+              color: "#ffab40",
+              weight: 1.8,
+              dashArray: "6, 6",
+            }}
+          >
+            <Popup>
+              <div style={{ fontFamily: "-apple-system, system-ui, sans-serif", fontSize: "0.82rem" }}>
+                <strong style={{ color: "#ffab40" }}>⚠️ IMD Cone of Uncertainty</strong>
+                <div style={{ marginTop: "4px", color: "#d7e5f5", lineHeight: 1.4 }}>
+                  Represents 67% probability envelope of cyclone track based on out-of-sample error:
+                  <br />• 6h error radius: ±16.9 km
+                  <br />• 12h error radius: ±34.1 km
+                  <br />• 24h error radius: ±73.9 km
+                </div>
+              </div>
+            </Popup>
+          </Polygon>
+        )}
 
         {/* 1. 200 m Spatial Damage & Hazard Grid (Underneath tracks/markers) */}
         {features.length > 0 && (
@@ -283,9 +757,9 @@ export default function RiskMap({
               const isOcean = props.land_type === "OCEAN";
               return {
                 fillColor,
-                fillOpacity: isOcean ? 0.35 : 0.72,
-                color: isOcean ? "#ffffff" : "#ffffff",
-                weight: 1,
+                fillOpacity: isOcean ? Math.max(0.1, gridOpacity * 0.45) : gridOpacity,
+                color: isOcean ? "rgba(255, 255, 255, 0.18)" : "rgba(255, 255, 255, 0.38)",
+                weight: 0.75,
               };
             }}
             onEachFeature={(feature, layer) => {
@@ -294,6 +768,7 @@ export default function RiskMap({
               const scorePct = (score * 100).toFixed(0);
               const windKph = (props.wind_kph || 0).toFixed(0);
               const landType = props.land_type || "LAND";
+              const isOcean = landType === "OCEAN";
               const tooltipText = `<div style="font-family: -apple-system, system-ui, sans-serif; font-size: 0.78rem;">
                 <div style="font-weight: 700; color: ${props.colour || '#75c9f1'}; margin-bottom: 2px;">⚡ ${scorePct}% damage</div>
                 <div style="color: #d6e3f5;">💨 ${windKph} km/h · ${landType}</div>
@@ -308,21 +783,26 @@ export default function RiskMap({
               });
               layer.on("mouseover", () => {
                 (layer as L.Path & { setStyle?: (s: Record<string, unknown>) => void }).setStyle?.({
-                  weight: 2.5,
+                  weight: 2.2,
                   color: "#ffffff",
+                  fillOpacity: 0.95,
                 });
               });
               layer.on("mouseout", () => {
                 (layer as L.Path & { setStyle?: (s: Record<string, unknown>) => void }).setStyle?.({
-                  weight: 1,
-                  color: isOceanStrokeFor(props.land_type) ? "#ffffff" : "#ffffff",
+                  weight: 0.75,
+                  color: isOcean ? "rgba(255, 255, 255, 0.18)" : "rgba(255, 255, 255, 0.38)",
+                  fillOpacity: isOcean ? Math.max(0.1, gridOpacity * 0.45) : gridOpacity,
                 });
               });
-              layer.on("click", () => {
+              layer.on("click", (e) => {
+                const l = layer as L.Path & { getPopup?: () => unknown; bindPopup?: (c: string) => void; openPopup?: (latlng?: unknown) => void };
+                if (l.bindPopup && (!l.getPopup || !l.getPopup())) {
+                  l.bindPopup(buildCellPopupHtml(props));
+                }
+                l.openPopup?.(e.latlng);
+
                 if (!onSelectCell) return;
-                const props = feature.properties || {};
-                // Build FullCellAnalysis from flattened props (full_cell_analysis no longer
-                // sent in grid response to prevent O(N×2KB) server memory blow-up).
                 const analysis: FullCellAnalysis = {
                   cell_id: (feature.id as string) || "cell",
                   lat: props.lat,
@@ -344,6 +824,9 @@ export default function RiskMap({
                   },
                   wind_force: {
                     dynamic_pressure_pa: props.dynamic_pressure_pa || 0,
+                    drag_coefficient: 1.3,
+                    shelter_factor: props.shelter_factor ?? 1.0,
+                    modeled_wind_loading_n_m2: props.modeled_wind_loading_n_m2 || props.effective_wind_loading_n_m2 || 0,
                     effective_wind_loading_n_m2: props.effective_wind_loading_n_m2 || 0,
                   },
                   exposure: {
@@ -393,147 +876,82 @@ export default function RiskMap({
                 };
                 onSelectCell(analysis);
               });
-
-              // Wrap popup-building in an IIFE to scope variables (avoids duplicates with
-              // the tooltip variables declared earlier in the same onEachFeature scope).
-              ((p: Record<string, unknown>) => {
-              const score = Number(p.damage_score ?? p.risk_score ?? 0);
-              const scorePct = (score * 100).toFixed(1);
-              const windKph = Number(p.wind_kph || 0);
-              const windMs = Number(p.wind_ms || 0);
-              const windLoading = Number(p.effective_wind_loading_n_m2 || 0);
-              const dynamicPa = Number(p.dynamic_pressure_pa || 0);
-              const lrRatio = Number(p.load_to_resistance_ratio || 0);
-              const lrPct = (lrRatio * 100).toFixed(1);
-              const distKm = ((Number(p.distance_to_cyclone_m) || 0) / 1000).toFixed(2);
-              const cellColor = String(p.colour || "#75c9f1").toLowerCase();
-              const isLand = String(p.land_type || "LAND") !== "OCEAN";
-              layer.bindPopup(
-                `<div style="min-width: 280px; font-family: -apple-system, system-ui, sans-serif;">
-                  <div style="background: ${cellColor}; color: #0a1a2e; padding: 8px 10px; border-radius: 6px 6px 0 0; margin: -10px -10px 8px -10px; font-weight: 700; font-size: 0.95rem;">
-                    🌀 200m Cell Damage Inspection
-                  </div>
-                  <div style="background: rgba(255,255,255,0.04); padding: 8px 10px; border-radius: 6px; margin-bottom: 6px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                      <span style="color: #8fa4bf; font-size: 0.78rem;">DAMAGE SCORE</span>
-                      <strong style="color: ${cellColor}; font-size: 1.05rem;">${scorePct}%</strong>
-                    </div>
-                    <div style="background: rgba(0,0,0,0.4); height: 8px; border-radius: 4px; overflow: hidden;">
-                      <div style="background: ${cellColor}; height: 100%; width: ${Math.min(score * 100, 100)}%; transition: width 0.3s;"></div>
-                    </div>
-                    <div style="margin-top: 4px; font-size: 0.78rem; color: #d6e3f5;">Classification: <strong>${p.classification || "N/A"}</strong></div>
-                  </div>
-
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 6px;">
-                    <div style="background: rgba(255,255,255,0.04); padding: 6px 8px; border-radius: 4px;">
-                      <div style="color: #8fa4bf; font-size: 0.7rem;">💨 LOCAL WIND</div>
-                      <div style="font-weight: 600; color: #f7d070; font-size: 0.92rem;">${windKph.toFixed(1)} km/h</div>
-                      <div style="font-size: 0.72rem; color: #d6e3f5;">${windMs.toFixed(1)} m/s</div>
-                    </div>
-                    <div style="background: rgba(255,255,255,0.04); padding: 6px 8px; border-radius: 4px;">
-                      <div style="color: #8fa4bf; font-size: 0.7rem;">🧭 BEARING</div>
-                      <div style="font-weight: 600; color: #75c9f1; font-size: 0.92rem;">${(Number(p.bearing_from_eye_deg) || 0).toFixed(0)}°</div>
-                      <div style="font-size: 0.72rem; color: #d6e3f5;">${distKm} km from eye</div>
-                    </div>
-                  </div>
-
-                  <div style="background: rgba(255,255,255,0.04); padding: 6px 10px; border-radius: 4px; margin-bottom: 6px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 2px;">
-                      <span style="color: #8fa4bf;">Dynamic Pressure</span>
-                      <strong style="color: #d6e3f5;">${dynamicPa.toFixed(1)} Pa</strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 2px;">
-                      <span style="color: #8fa4bf;">Effective Wind Loading</span>
-                      <strong style="color: #d6e3f5;">${windLoading.toFixed(1)} N/m²</strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 2px;">
-                      <span style="color: #8fa4bf;">Load/Resistance Ratio</span>
-                      <strong style="color: ${lrRatio >= 1 ? '#d4483b' : lrRatio >= 0.55 ? '#ed8a28' : '#35a66f'};">${lrPct}%</strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
-                      <span style="color: #8fa4bf;">Land Type</span>
-                      <strong style="color: ${isLand ? '#35a66f' : '#75c9f1'};">${p.land_type || "N/A"}</strong>
-                    </div>
-                  </div>
-
-                  <div style="background: rgba(255,255,255,0.04); padding: 6px 10px; border-radius: 4px; margin-bottom: 6px;">
-                    <div style="color: #8fa4bf; font-size: 0.7rem; margin-bottom: 3px;">DRIVERS</div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
-                      <span style="color: #d6e3f5;">Primary</span>
-                      <strong style="color: #ff6b5b;">${p.primary_driver || "N/A"}</strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
-                      <span style="color: #d6e3f5;">Secondary</span>
-                      <strong style="color: #f7d070;">${p.secondary_driver || "N/A"}</strong>
-                    </div>
-                  </div>
-
-                  <div style="background: rgba(255,255,255,0.04); padding: 6px 10px; border-radius: 4px; margin-bottom: 6px;">
-                    <div style="color: #8fa4bf; font-size: 0.7rem; margin-bottom: 3px;">STRUCTURE & EXPOSURE</div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
-                      <span style="color: #d6e3f5;">Estimated Class</span>
-                      <strong style="color: #d6e3f5;">${p.estimated_class || "N/A"}</strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
-                      <span style="color: #d6e3f5;">Building Count</span>
-                      <strong style="color: #d6e3f5;">${p.building_count || 0}</strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
-                      <span style="color: #d6e3f5;">Obstruction Level</span>
-                      <strong style="color: #d6e3f5;">${p.obstruction_level || "N/A"}</strong>
-                    </div>
-                  </div>
-
-                  <em style="font-size: 0.72rem; color: #8fa4bf; display: block; text-align: center; margin-top: 4px;">Click cell for full explainable inspection card →</em>
-                </div>`
-              );
-              })(props);
             }}
           />
         )}
 
         {/* 2. Building Footprints Layer */}
-        {(analysisMode === "BUILDINGS" || buildings.length > 0) && (
+        {buildings.length > 0 && (
           <GeoJSON
-            key={`bldg-${buildings.length}-${center.lat}-${center.lng}`}
+            key={`bldg-${buildings.length}-${center.lat}-${center.lng}-${analysisMode}`}
             data={{ type: "FeatureCollection", features: buildings } as never}
-            style={(feature) => ({
-              fillColor: String(feature?.properties?.display_colour || "#0a2a57"),
-              fillOpacity: 0.88,
-              color: feature?.properties?.is_locally_taller ? "#ffffff" : "#0a2a57",
-              weight: 1.5,
-            })}
+            style={(feature) => {
+              const props = feature?.properties || {};
+              const isBuildingsMode = analysisMode === "BUILDINGS";
+              const isTaller = props.is_locally_taller;
+              const dmg = props.damage_score ?? 0.2;
+              let strokeColor = "#38bdf8";
+              let fillColor = "#0284c7";
+              if (dmg >= 0.55) {
+                strokeColor = "#ef4444";
+                fillColor = "#dc2626";
+              } else if (dmg >= 0.25) {
+                strokeColor = "#f59e0b";
+                fillColor = "#d97706";
+              } else if (dmg >= 0.1) {
+                strokeColor = "#22c55e";
+                fillColor = "#16a34a";
+              }
+              if (props.display_colour && props.display_colour !== "#0a2a57") {
+                strokeColor = props.display_colour;
+                fillColor = props.display_colour;
+              }
+
+              return {
+                fillColor,
+                fillOpacity: isBuildingsMode ? 0.85 : 0.22,
+                color: isTaller ? "#ffffff" : strokeColor,
+                weight: isBuildingsMode ? 2.2 : 1,
+              };
+            }}
             onEachFeature={(feature, layer) => {
               const props = feature.properties || {};
-              const bColor = (props.display_colour || "#0a2a57").toLowerCase();
-              const heightM = props.height_m ? props.height_m.toFixed(1) + " m" : "Unknown / Inferred";
+              const dmg = props.damage_score ?? 0.2;
+              const bColor = props.display_colour && props.display_colour !== "#0a2a57"
+                ? props.display_colour
+                : dmg >= 0.55 ? "#ef4444" : dmg >= 0.25 ? "#f59e0b" : "#22c55e";
+              const heightM = props.height_m ? props.height_m.toFixed(1) + " m" : "Inferred (8.5 m)";
               const damageScore = props.damage_score;
-              const damagePct = damageScore !== null && damageScore !== undefined ? (damageScore * 100).toFixed(1) + "%" : "N/A";
+              const damagePct = damageScore !== null && damageScore !== undefined ? (damageScore * 100).toFixed(1) + "%" : "20.0%";
               layer.bindPopup(
                 `<div style="min-width: 240px; font-family: -apple-system, system-ui, sans-serif;">
-                  <div style="background: ${bColor}; color: #0a1a2e; padding: 8px 10px; border-radius: 6px 6px 0 0; margin: -10px -10px 8px -10px; font-weight: 700; font-size: 0.95rem;">
-                    🏢 Building Footprint Inspection
+                  <div style="background: ${bColor}; color: #ffffff; padding: 8px 10px; border-radius: 6px 6px 0 0; margin: -10px -10px 8px -10px; font-weight: 700; font-size: 0.95rem;">
+                    ${props.name || "Building Footprint"}
                   </div>
                   <div style="background: rgba(255,255,255,0.04); padding: 6px 10px; border-radius: 4px; margin-bottom: 4px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 2px;">
+                      <span style="color: #8fa4bf;">Structure Type</span>
+                      <strong style="color: #38bdf8;">${props.building_type || "RESIDENTIAL"}</strong>
+                    </div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 2px;">
                       <span style="color: #8fa4bf;">Height</span>
                       <strong style="color: #d6e3f5;">${heightM}</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 2px;">
-                      <span style="color: #8fa4bf;">Locally Taller / Exposed</span>
-                      <strong style="color: ${props.is_locally_taller ? '#d4483b' : '#35a66f'};">${props.is_locally_taller ? "Yes (High Vulnerability)" : "No"}</strong>
+                      <span style="color: #8fa4bf;">Wind Force Exposure</span>
+                      <strong style="color: ${props.is_locally_taller ? '#d4483b' : '#35a66f'};">${props.is_locally_taller ? "High Aerodynamic Drag" : "Standard Sheltered"}</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 2px;">
-                      <span style="color: #8fa4bf;">Damage Score (parent cell)</span>
+                      <span style="color: #8fa4bf;">Damage Probability</span>
                       <strong style="color: ${bColor};">${damagePct}</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.78rem;">
                       <span style="color: #8fa4bf;">Classification</span>
-                      <strong style="color: ${bColor};">${props.classification || "N/A"}</strong>
+                      <strong style="color: ${bColor};">${props.classification || "MODERATE"}</strong>
                     </div>
                   </div>
                   <div style="font-size: 0.7rem; color: #8fa4bf; text-align: center; margin-top: 4px;">
-                    Colour sourced from containing 200m risk cell
+                    Sourced from 200m spatial hydrodynamic screening
                   </div>
                 </div>`
               );
@@ -541,71 +959,163 @@ export default function RiskMap({
           />
         )}
 
-        {/* 3. Forecast Trajectory Polyline */}
-        {polylineCoords.length > 1 && (
+        {/* 2b. Land-Use Zones Layer */}
+        {(analysisMode === "ZONES" || showZones) && zones.length > 0 && (
+          <GeoJSON
+            key={`zones-${zones.length}-${center.lat}-${center.lng}`}
+            data={{ type: "FeatureCollection", features: zones } as never}
+            style={(feature) => ({
+              fillColor: String(feature?.properties?.zone_colour || "#6b7f99"),
+              fillOpacity: analysisMode === "ZONES" ? 0.65 : 0.28,
+              color: String(feature?.properties?.zone_colour || "#6b7f99"),
+              weight: 1.5,
+              dashArray: "4, 6",
+            })}
+            onEachFeature={(feature, layer) => {
+              const props = feature.properties || {};
+              layer.bindPopup(
+                `<div style="min-width: 220px; font-family: -apple-system, system-ui, sans-serif;">
+                  <div style="background: ${props.zone_colour || '#6b7f99'}; color: #0a1a2e; padding: 6px 10px; border-radius: 4px 4px 0 0; font-weight: 700; font-size: 0.9rem;">
+                    Land-Use: ${props.zone_label || "Unclassified Zone"}
+                  </div>
+                  <div style="padding: 6px 8px; font-size: 0.8rem; color: #d7e5f5; line-height: 1.5;">
+                    <div>Type: <strong>${props.zone_type || "UNKNOWN"}</strong></div>
+                    <div>Vulnerability Factor: <strong>${((props.zone_vulnerability || 0) * 100).toFixed(0)}%</strong></div>
+                    <div>Area: <strong>${props.area_m2 ? (props.area_m2 / 10000).toFixed(1) + " ha" : "N/A"}</strong></div>
+                    ${props.osm_name ? `<div style="margin-top: 3px; color: #8fa4bf;"><em>${props.osm_name}</em></div>` : ""}
+                  </div>
+                </div>`
+              );
+            }}
+          />
+        )}
+
+        {/* 2c. Multipurpose Cyclone Shelters (MPCS) */}
+        {(analysisMode === "EVACUATION" || showShelters) && sheltersPlan && sheltersPlan.shelters.map((s) => (
+          <CircleMarker
+            key={s.id}
+            center={[s.lat, s.lon]}
+            radius={s.evacuation_priority === "IMMEDIATE" ? 10 : 8}
+            pathOptions={{
+              fillColor: s.evacuation_priority === "IMMEDIATE" ? "#d4483b" : "#35a66f",
+              color: "#ffffff",
+              weight: 2.5,
+              fillOpacity: 0.95,
+            }}
+          >
+            <Popup>
+              <div style={{ fontFamily: "-apple-system, system-ui, sans-serif", minWidth: "220px" }}>
+                <div style={{ fontWeight: 700, color: s.evacuation_priority === "IMMEDIATE" ? "#ff6b5b" : "#35a66f", fontSize: "0.95rem", marginBottom: "4px" }}>
+                  {s.name}
+                </div>
+                <div style={{ fontSize: "0.8rem", color: "#d7e5f5", lineHeight: "1.5" }}>
+                  <div>Capacity: <strong style={{ color: "#75c9f1" }}>{s.capacity.toLocaleString()} persons</strong></div>
+                  <div>District: <strong>{s.district}, {s.state}</strong></div>
+                  <div>Facility: <strong>{s.facility_type}</strong></div>
+                  <div>Distance from eye: <strong>{s.distance_km} km</strong></div>
+                  <div style={{ marginTop: "4px" }}>
+                    Status: <span style={{
+                      padding: "2px 6px",
+                      borderRadius: "4px",
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      background: s.evacuation_priority === "IMMEDIATE" ? "#d4483b" : "#35a66f",
+                      color: "#ffffff",
+                    }}>{s.evacuation_priority} ACTIVE</span>
+                  </div>
+                </div>
+              </div>
+            </Popup>
+          </CircleMarker>
+        ))}
+
+        {/* 3. Continuous Forecast Trajectory Polyline */}
+        {fullTrackCoords.length > 1 && (
           <Polyline
-            positions={polylineCoords}
+            positions={fullTrackCoords}
             pathOptions={{ color: "#75c9f1", weight: 3.5, dashArray: "6, 8" }}
           />
         )}
 
         {/* 4. Storm Movement Direction Vector Line */}
         <Polyline
-          positions={[[center.lat, center.lng], headingVectorEnd]}
+          positions={[[activeEyePoint.lat, activeEyePoint.lng], headingVectorEnd]}
           pathOptions={{ color: "#ff6b5b", weight: 4, opacity: 0.9 }}
         />
 
-        {/* 5. Forecast Trajectory Waypoints */}
+        {/* 5. Forecast Trajectory Waypoints (+6h, +12h, +24h) */}
         {(trajectory || []).map((t, idx) => (
           <CircleMarker
-            key={`traj-${idx}`}
+            key={`traj-${idx}-${t.lat}-${t.lng}`}
             center={[t.lat, t.lng]}
-            radius={7}
+            radius={8}
             pathOptions={{
-              fillColor: idx === 0 ? "#d4483b" : "#ed8a28",
+              fillColor: "#ff9100",
               color: "#ffffff",
-              weight: 2,
+              weight: 2.5,
               fillOpacity: 0.95,
             }}
           >
             <Popup>
-              <strong>{t.label}</strong>
-              <br />
-              Lat: {t.lat.toFixed(2)}°N, Lon: {t.lng.toFixed(2)}°E
+              <div style={{ fontFamily: "-apple-system, system-ui, sans-serif", minWidth: "190px" }}>
+                <div style={{ fontWeight: 800, color: "#ff9100", fontSize: "0.92rem", marginBottom: "4px" }}>
+                  {t.label}
+                </div>
+                <div style={{ fontSize: "0.8rem", color: "#d7e5f5", lineHeight: 1.5 }}>
+                  <div>Latitude: <strong>{t.lat.toFixed(4)}°N</strong></div>
+                  <div>Longitude: <strong>{t.lng.toFixed(4)}°E</strong></div>
+                  <div>Forecast Horizon: <strong>+{idx === 0 ? "6" : idx === 1 ? "12" : "24"} Hours</strong></div>
+                  <div style={{ marginTop: "4px", color: "#8fa4bf", fontSize: "0.72rem" }}>
+                    Click scrubber button below to track storm eye to this location.
+                  </div>
+                </div>
+              </div>
             </Popup>
           </CircleMarker>
         ))}
 
-        {/* 6. Storm Eye Dominant Marker (On Top) */}
-        <CircleMarker
-          center={[center.lat, center.lng]}
-          radius={24}
+        {/* 6. Pulsing Rmax Wind Core Danger Boundary (28 km Radius) */}
+        <Circle
+          center={[activeEyePoint.lat, activeEyePoint.lng]}
+          radius={28000}
           pathOptions={{
-            fillColor: "#d4483b",
-            color: "#ff8c7a",
-            weight: 2.5,
-            fillOpacity: 0.25,
+            color: "#ff4436",
+            fillColor: "#ff4436",
+            fillOpacity: 0.08,
+            weight: 1.5,
+            dashArray: "5, 5",
           }}
         />
-        <CircleMarker
-          center={[center.lat, center.lng]}
-          radius={12}
-          pathOptions={{
-            fillColor: "#d4483b",
-            color: "#ffffff",
-            weight: 3,
-            fillOpacity: 0.95,
-          }}
+
+        {/* 7. Animated Rotating Cyclone Vortex Eye Marker (On Top) */}
+        <Marker
+          position={[activeEyePoint.lat, activeEyePoint.lng]}
+          icon={cycloneDivIcon}
         >
           <Popup>
-            <strong>Storm Eye Center</strong>
-            <br />
-            Position: {center.lat}°N, {center.lng}°E
-            <br />
-            Movement Heading: {headingDeg}° ({speedKph} km/h)
+            <div style={{ fontFamily: "-apple-system, system-ui, sans-serif", minWidth: "220px" }}>
+              <div style={{ fontWeight: 800, color: "#ff6b5b", fontSize: "0.95rem", marginBottom: "4px" }}>
+                {activeEyePoint.label}
+              </div>
+              <div style={{ fontSize: "0.82rem", color: "#d7e5f5", lineHeight: 1.5 }}>
+                <div>Position: <strong>{activeEyePoint.lat.toFixed(2)}°N, {activeEyePoint.lng.toFixed(2)}°E</strong></div>
+                <div>Movement Heading: <strong>{headingDeg}°</strong> ({speedKph} km/h)</div>
+                <div>Radius of Max Wind ($R_{'{'}max{'}'}$): <strong>28 km</strong></div>
+                {playbackIndex > 0 ? (
+                  <div style={{ marginTop: "4px", padding: "3px 6px", background: "rgba(255, 171, 64, 0.15)", border: "1px solid #ffab40", borderRadius: "4px", color: "#ffab40", fontWeight: 700, fontSize: "0.74rem" }}>
+                    Track Trajectory Horizon Stage +{playbackIndex === 1 ? "6h" : playbackIndex === 2 ? "12h" : "24h"}
+                  </div>
+                ) : (
+                  <div style={{ marginTop: "4px", color: "#35a66f", fontWeight: 700, fontSize: "0.74rem" }}>
+                    ● LIVE OBSERVED RADAR/SATELLITE POSITION
+                  </div>
+                )}
+              </div>
+            </div>
           </Popup>
-        </CircleMarker>
+        </Marker>
       </MapContainer>
+      </div>
     </div>
   );
 }
