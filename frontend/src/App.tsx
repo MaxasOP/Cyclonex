@@ -926,11 +926,7 @@ export default function App() {
                 onClick={() => window.print()}
                 title="Export emergency report as PDF"
               >
-<<<<<<< Updated upstream
-                <IconDownload /> Export Report (PDF)
-=======
-                <IconDownload /> Export SITREP
->>>>>>> Stashed changes
+                <IconDownload /> Export SITREP (PDF)
               </button>
             </div>
           </div>

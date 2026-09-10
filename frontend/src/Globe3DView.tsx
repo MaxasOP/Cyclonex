@@ -817,13 +817,8 @@ export default function Globe3DView({
         setTextureLoaded(true);
       },
       undefined,
-<<<<<<< Updated upstream
       (err: unknown) => {
         console.warn("[3D Globe] High-res texture loading error, keeping procedural vector fallback:", err);
-=======
-      (err) => {
-        console.warn("[3D Globe] Texture loading error, maintaining vector fallback:", err);
->>>>>>> Stashed changes
       }
     );
 

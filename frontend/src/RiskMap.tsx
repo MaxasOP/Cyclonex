@@ -657,27 +657,17 @@ export default function RiskMap({
 
       {/* 3D Planetary Globe */}
       {viewDimension === "globe" && (
-<<<<<<< Updated upstream
         <Suspense fallback={<div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#070c14", color: "#8fa4bf" }}>Loading globe...</div>}>
           <Globe3DView
             center={center}
             trajectory={trajectory}
             headingDeg={headingDeg}
             speedKph={speedKph}
+            locationName={locationName}
             onExit3DGlobe={() => setViewDimension("2d")}
+            onSelectPreset={onSelectPreset}
           />
         </Suspense>
-=======
-        <Globe3DView
-          center={center}
-          trajectory={trajectory}
-          headingDeg={headingDeg}
-          speedKph={speedKph}
-          locationName={locationName}
-          onExit3DGlobe={() => setViewDimension("2d")}
-          onSelectPreset={onSelectPreset}
-        />
->>>>>>> Stashed changes
       )}
 
       {/* High-Precision Tactical Geospatial GIS Map (Leaflet) */}
