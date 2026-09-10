@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { BuildingFeature, RiskFeature, EvacuationPlan } from "./api";
 
 export interface RealWorld3DViewProps {
@@ -101,6 +101,8 @@ export default function RealWorld3DView({
     : Math.abs(center.lat - 13.08) < 0.25 && Math.abs(center.lng - 80.27) < 0.25
     ? "Chennai Marina & Urban Coast, Tamil Nadu"
     : `Lat: ${center.lat.toFixed(4)}°N, Lng: ${center.lng.toFixed(4)}°E`;
+
+  const maxWind = features.reduce((m, f) => Math.max(m, f.properties?.wind_kph ?? 0), 0);
 
   // Camera presets
   const handleSetCameraPreset = (preset: "drone" | "birdseye" | "surge" | "orbit") => {
@@ -1033,160 +1035,63 @@ export default function RealWorld3DView({
       {/* 3D WebGL Canvas Mount */}
       <div ref={mountRef} style={{ width: "100%", height: "100%", minHeight: "640px" }} />
 
-      {/* Floating HUD Telemetry Ribbon (Top Left, strictly below master command ribbon) */}
+      {/* Unified Sleek Top HUD Bar */}
       <div
-        className="real3d-hud-ribbon"
+        className="real3d-top-bar"
         style={{
           position: "absolute",
-          top: "68px",
-          left: "16px",
+          top: "12px",
+          left: "14px",
+          right: "14px",
           zIndex: 1100,
+          background: "rgba(6, 12, 22, 0.90)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
+          borderRadius: "10px",
+          padding: "8px 16px",
           display: "flex",
-          flexDirection: "column",
-          gap: "8px",
+          alignItems: "center",
+          justifyContent: "space-between",
+          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
+          gap: "12px",
+          flexWrap: "wrap",
           pointerEvents: "auto",
         }}
       >
-        <div
-          style={{
-            background: "rgba(8, 16, 28, 0.94)",
-            backdropFilter: "blur(14px)",
-            WebkitBackdropFilter: "blur(14px)",
-            border: "1px solid rgba(56, 189, 248, 0.35)",
-            borderRadius: "8px",
-            padding: "8px 14px",
-            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.6)",
-            color: "#e2e8f0",
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "1.2rem" }}>📍</span>
-            <div>
-              <div style={{ fontSize: "0.84rem", fontWeight: 800, color: "#38bdf8", letterSpacing: "0.04em" }}>
-                {derivedLocation.toUpperCase()}
-              </div>
-              <div style={{ fontSize: "0.68rem", color: "#94a3b8" }}>
-                GPS: <strong style={{ color: "#f1f5f9" }}>{center.lat.toFixed(4)}°N, {center.lng.toFixed(4)}°E</strong> &middot; {tileLoadStatus}
-              </div>
+        {/* Left: Location & Telemetry */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span
+            style={{
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              background: "#10b981",
+              boxShadow: "0 0 10px #10b981",
+              display: "inline-block",
+            }}
+          />
+          <div>
+            <div style={{ fontSize: "0.82rem", fontWeight: 800, color: "#38bdf8", letterSpacing: "0.04em", display: "flex", alignItems: "center", gap: "6px" }}>
+              <span>3D DIGITAL TWIN</span>
+              <span style={{ color: "#64748b" }}>·</span>
+              <span style={{ color: "#ffffff" }}>{derivedLocation}</span>
+            </div>
+            <div style={{ fontSize: "0.66rem", color: "#94a3b8" }}>
+              GPS: {center.lat.toFixed(3)}°N, {center.lng.toFixed(3)}°E · Wind: <strong style={{ color: "#fca5a5" }}>{maxWind || speedKph} km/h</strong> · {tileLoadStatus}
             </div>
           </div>
-
-          <div style={{ height: "24px", width: "1px", background: "rgba(255, 255, 255, 0.15)" }} />
-
-          {onExitReal3D && (
-            <button
-              type="button"
-              onClick={onExitReal3D}
-              style={{
-                background: "rgba(239, 68, 68, 0.2)",
-                border: "1px solid rgba(239, 68, 68, 0.45)",
-                color: "#fca5a5",
-                borderRadius: "6px",
-                padding: "5px 11px",
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
-              title="Return to 2D Map Tactical Perspective"
-            >
-              &larr; Back to 2D Map
-            </button>
-          )}
         </div>
 
-        {/* Dedicated Exact Geographic Location Jump Row */}
-        {onSelectPreset && (
-          <div
-            style={{
-              background: "rgba(8, 16, 28, 0.92)",
-              backdropFilter: "blur(10px)",
-              WebkitBackdropFilter: "blur(10px)",
-              border: "1px solid rgba(56, 189, 248, 0.28)",
-              borderRadius: "6px",
-              padding: "4px 10px",
-              display: "flex",
-              alignItems: "center",
-              gap: "7px",
-              fontSize: "0.72rem",
-              width: "fit-content",
-            }}
-          >
-            <span style={{ fontSize: "0.68rem", color: "#38bdf8", fontWeight: 800, letterSpacing: "0.04em" }}>
-              EXACT LOCATIONS:
-            </span>
-            <button
-              type="button"
-              onClick={() => onSelectPreset("landfall_amphan")}
-              style={{
-                background: Math.abs(center.lat - 21.62) < 0.2 ? "#0284c7" : "rgba(255, 255, 255, 0.08)",
-                border: Math.abs(center.lat - 21.62) < 0.2 ? "1px solid #38bdf8" : "1px solid rgba(255, 255, 255, 0.14)",
-                color: "#fff",
-                borderRadius: "4px",
-                padding: "3px 9px",
-                fontSize: "0.72rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
-              title="Digha Coastline, West Bengal (21.62°N, 87.51°E)"
-            >
-              🏖️ Digha, WB
-            </button>
-            <button
-              type="button"
-              onClick={() => onSelectPreset("landfall_fani")}
-              style={{
-                background: Math.abs(center.lat - 19.81) < 0.2 ? "#0284c7" : "rgba(255, 255, 255, 0.08)",
-                border: Math.abs(center.lat - 19.81) < 0.2 ? "1px solid #38bdf8" : "1px solid rgba(255, 255, 255, 0.14)",
-                color: "#fff",
-                borderRadius: "4px",
-                padding: "3px 9px",
-                fontSize: "0.72rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
-              title="Puri Coastal Sector, Odisha (19.81°N, 85.83°E)"
-            >
-              🏛️ Puri, Odisha
-            </button>
-            <button
-              type="button"
-              onClick={() => onSelectPreset("landfall_hudhud")}
-              style={{
-                background: Math.abs(center.lat - 17.68) < 0.2 ? "#0284c7" : "rgba(255, 255, 255, 0.08)",
-                border: Math.abs(center.lat - 17.68) < 0.2 ? "1px solid #38bdf8" : "1px solid rgba(255, 255, 255, 0.14)",
-                color: "#fff",
-                borderRadius: "4px",
-                padding: "3px 9px",
-                fontSize: "0.72rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
-              title="Visakhapatnam Harbor, Andhra Pradesh (17.68°N, 83.21°E)"
-            >
-              ⚓ Vizag, AP
-            </button>
-          </div>
-        )}
-
-        {/* Camera Perspective Presets */}
+        {/* Center: Camera Presets */}
         <div
           style={{
-            background: "rgba(8, 16, 28, 0.92)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255, 255, 255, 0.12)",
-            borderRadius: "6px",
-            padding: "4px 8px",
+            background: "rgba(255, 255, 255, 0.05)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            borderRadius: "7px",
+            padding: "3px 4px",
             display: "flex",
-            gap: "5px",
-            fontSize: "0.72rem",
-            width: "fit-content",
+            gap: "3px",
           }}
         >
           <button
@@ -1194,164 +1099,259 @@ export default function RealWorld3DView({
             className={`real3d-subtab ${cameraView === "birdseye" ? "active" : ""}`}
             onClick={() => handleSetCameraPreset("birdseye")}
             style={{
-              padding: "4px 10px",
+              padding: "4px 9px",
               background: cameraView === "birdseye" ? "#0284c7" : "transparent",
               color: "#fff",
               border: "none",
-              borderRadius: "4px",
+              borderRadius: "5px",
               cursor: "pointer",
               fontWeight: 600,
+              fontSize: "0.7rem",
             }}
           >
-            🏙️ Birds-Eye 45°
+            🏙️ Birds-Eye
           </button>
           <button
             type="button"
             className={`real3d-subtab ${cameraView === "drone" ? "active" : ""}`}
             onClick={() => handleSetCameraPreset("drone")}
             style={{
-              padding: "4px 10px",
+              padding: "4px 9px",
               background: cameraView === "drone" ? "#0284c7" : "transparent",
               color: "#fff",
               border: "none",
-              borderRadius: "4px",
+              borderRadius: "5px",
               cursor: "pointer",
               fontWeight: 600,
+              fontSize: "0.7rem",
             }}
           >
-            🚁 Street Drone
+            🚁 Drone
           </button>
           <button
             type="button"
             className={`real3d-subtab ${cameraView === "surge" ? "active" : ""}`}
             onClick={() => handleSetCameraPreset("surge")}
             style={{
-              padding: "4px 10px",
+              padding: "4px 9px",
               background: cameraView === "surge" ? "#0284c7" : "transparent",
               color: "#fff",
               border: "none",
-              borderRadius: "4px",
+              borderRadius: "5px",
               cursor: "pointer",
               fontWeight: 600,
+              fontSize: "0.7rem",
             }}
           >
-            🌊 Coastline Surge
+            🌊 Surge
           </button>
           <button
             type="button"
             className={`real3d-subtab ${cameraView === "orbit" ? "active" : ""}`}
             onClick={() => handleSetCameraPreset("orbit")}
             style={{
-              padding: "4px 10px",
+              padding: "4px 9px",
               background: cameraView === "orbit" ? "#0284c7" : "transparent",
               color: "#fff",
               border: "none",
-              borderRadius: "4px",
+              borderRadius: "5px",
               cursor: "pointer",
               fontWeight: 600,
+              fontSize: "0.7rem",
             }}
           >
-            🔄 360° Orbit
+            🔄 Orbit
           </button>
+        </div>
+
+        {/* Right: Quick Location Jump & Back Button */}
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          {onSelectPreset && (
+            <div style={{ display: "flex", gap: "4px" }}>
+              <button
+                type="button"
+                onClick={() => onSelectPreset("landfall_amphan")}
+                style={{
+                  background: Math.abs(center.lat - 21.62) < 0.2 ? "#0284c7" : "rgba(255, 255, 255, 0.07)",
+                  border: Math.abs(center.lat - 21.62) < 0.2 ? "1px solid #38bdf8" : "1px solid rgba(255, 255, 255, 0.12)",
+                  color: "#fff",
+                  borderRadius: "5px",
+                  padding: "3px 8px",
+                  fontSize: "0.68rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Digha
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectPreset("landfall_fani")}
+                style={{
+                  background: Math.abs(center.lat - 19.81) < 0.2 ? "#0284c7" : "rgba(255, 255, 255, 0.07)",
+                  border: Math.abs(center.lat - 19.81) < 0.2 ? "1px solid #38bdf8" : "1px solid rgba(255, 255, 255, 0.12)",
+                  color: "#fff",
+                  borderRadius: "5px",
+                  padding: "3px 8px",
+                  fontSize: "0.68rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Puri
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectPreset("landfall_hudhud")}
+                style={{
+                  background: Math.abs(center.lat - 17.68) < 0.2 ? "#0284c7" : "rgba(255, 255, 255, 0.07)",
+                  border: Math.abs(center.lat - 17.68) < 0.2 ? "1px solid #38bdf8" : "1px solid rgba(255, 255, 255, 0.12)",
+                  color: "#fff",
+                  borderRadius: "5px",
+                  padding: "3px 8px",
+                  fontSize: "0.68rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Vizag
+              </button>
+            </div>
+          )}
+
+          {onExitReal3D && (
+            <button
+              type="button"
+              onClick={onExitReal3D}
+              style={{
+                background: "rgba(239, 68, 68, 0.25)",
+                border: "1px solid rgba(239, 68, 68, 0.5)",
+                color: "#fca5a5",
+                borderRadius: "6px",
+                padding: "4px 10px",
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                marginLeft: "4px",
+              }}
+              title="Return to 2D Map Tactical Perspective"
+            >
+              &larr; Back to 2D
+            </button>
+          )}
         </div>
       </div>
 
-      {/* 3D Physics Simulation Controls Panel (Top Right, strictly below master command ribbon) */}
+      {/* Compact 3D Simulation Controls Panel (Bottom Right) */}
       <div
         className="real3d-simulation-tools"
         style={{
           position: "absolute",
-          top: "68px",
+          bottom: "16px",
           right: "16px",
           zIndex: 1100,
-          background: "rgba(8, 16, 28, 0.94)",
-          backdropFilter: "blur(14px)",
-          WebkitBackdropFilter: "blur(14px)",
-          border: "1px solid rgba(255, 255, 255, 0.16)",
-          borderRadius: "8px",
+          background: "rgba(6, 12, 22, 0.90)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
+          borderRadius: "10px",
           padding: "10px 14px",
           display: "flex",
           flexDirection: "column",
           gap: "8px",
           color: "#e2e8f0",
-          fontSize: "0.74rem",
-          minWidth: "240px",
+          fontSize: "0.72rem",
+          minWidth: "220px",
           pointerEvents: "auto",
           boxShadow: "0 8px 30px rgba(0, 0, 0, 0.6)",
         }}
       >
-        <div style={{ fontWeight: 800, color: "#38bdf8", borderBottom: "1px solid rgba(255, 255, 255, 0.12)", paddingBottom: "5px" }}>
-          ⚡ 3D PHYSICS SIMULATION
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255, 255, 255, 0.1)", paddingBottom: "4px" }}>
+          <span style={{ fontWeight: 800, color: "#38bdf8" }}>⚡ 3D PHYSICS CONTROLS</span>
+          <button
+            type="button"
+            onClick={() => setVisualMode(visualMode === "realistic" ? "heatmap" : "realistic")}
+            style={{
+              padding: "2px 6px",
+              background: visualMode === "realistic" ? "rgba(37, 99, 235, 0.4)" : "rgba(217, 119, 6, 0.4)",
+              border: "1px solid rgba(255, 255, 255, 0.15)",
+              borderRadius: "4px",
+              color: "#fff",
+              cursor: "pointer",
+              fontWeight: 700,
+              fontSize: "0.64rem",
+            }}
+          >
+            {visualMode === "realistic" ? "🏛️ Realistic" : "🔴 Heatmap"}
+          </button>
         </div>
 
         {/* Basemap Imagery Mode */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          <span style={{ fontSize: "0.68rem", color: "#94a3b8" }}>Terrain Basemap Layer:</span>
-          <div style={{ display: "flex", gap: "4px" }}>
-            <button
-              type="button"
-              onClick={() => setBasemapMode("esri")}
-              style={{
-                flex: 1,
-                padding: "3px 6px",
-                background: basemapMode === "esri" ? "#0284c7" : "rgba(255,255,255,0.06)",
-                border: "none",
-                borderRadius: "4px",
-                color: "#fff",
-                fontSize: "0.68rem",
-                fontWeight: basemapMode === "esri" ? 700 : 500,
-                cursor: "pointer",
-              }}
-            >
-              🛰️ Satellite
-            </button>
-            <button
-              type="button"
-              onClick={() => setBasemapMode("osm")}
-              style={{
-                flex: 1,
-                padding: "3px 6px",
-                background: basemapMode === "osm" ? "#0284c7" : "rgba(255,255,255,0.06)",
-                border: "none",
-                borderRadius: "4px",
-                color: "#fff",
-                fontSize: "0.68rem",
-                fontWeight: basemapMode === "osm" ? 700 : 500,
-                cursor: "pointer",
-              }}
-            >
-              🗺️ OSM
-            </button>
-            <button
-              type="button"
-              onClick={() => setBasemapMode("carto_dark")}
-              style={{
-                flex: 1,
-                padding: "3px 6px",
-                background: basemapMode === "carto_dark" ? "#0284c7" : "rgba(255,255,255,0.06)",
-                border: "none",
-                borderRadius: "4px",
-                color: "#fff",
-                fontSize: "0.68rem",
-                fontWeight: basemapMode === "carto_dark" ? 700 : 500,
-                cursor: "pointer",
-              }}
-            >
-              ⚡ Dark
-            </button>
-          </div>
+        <div style={{ display: "flex", gap: "4px" }}>
+          <button
+            type="button"
+            onClick={() => setBasemapMode("esri")}
+            style={{
+              flex: 1,
+              padding: "3px 4px",
+              background: basemapMode === "esri" ? "#0284c7" : "rgba(255,255,255,0.06)",
+              border: "none",
+              borderRadius: "4px",
+              color: "#fff",
+              fontSize: "0.66rem",
+              fontWeight: basemapMode === "esri" ? 700 : 500,
+              cursor: "pointer",
+            }}
+          >
+            🛰️ Sat
+          </button>
+          <button
+            type="button"
+            onClick={() => setBasemapMode("osm")}
+            style={{
+              flex: 1,
+              padding: "3px 4px",
+              background: basemapMode === "osm" ? "#0284c7" : "rgba(255,255,255,0.06)",
+              border: "none",
+              borderRadius: "4px",
+              color: "#fff",
+              fontSize: "0.66rem",
+              fontWeight: basemapMode === "osm" ? 700 : 500,
+              cursor: "pointer",
+            }}
+          >
+            🗺️ OSM
+          </button>
+          <button
+            type="button"
+            onClick={() => setBasemapMode("carto_dark")}
+            style={{
+              flex: 1,
+              padding: "3px 4px",
+              background: basemapMode === "carto_dark" ? "#0284c7" : "rgba(255,255,255,0.06)",
+              border: "none",
+              borderRadius: "4px",
+              color: "#fff",
+              fontSize: "0.66rem",
+              fontWeight: basemapMode === "carto_dark" ? 700 : 500,
+              cursor: "pointer",
+            }}
+          >
+            ⚡ Dark
+          </button>
         </div>
 
         {/* Storm Surge Slider */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "2px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
+            <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "5px" }}>
               <input
                 type="checkbox"
                 checked={showSurge}
                 onChange={(e) => setShowSurge(e.target.checked)}
+                style={{ accentColor: "#0284c7" }}
               />
-              <span>🌊 Storm Surge Flood</span>
+              <span>🌊 Storm Surge</span>
             </label>
             <span style={{ color: "#38bdf8", fontWeight: 800 }}>+{surgeHeightM.toFixed(1)} m</span>
           </div>
@@ -1368,45 +1368,26 @@ export default function RealWorld3DView({
           )}
         </div>
 
-        {/* Wind Streamlines Toggle */}
-        <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
-          <input
-            type="checkbox"
-            checked={showWindStreams}
-            onChange={(e) => setShowWindStreams(e.target.checked)}
-          />
-          <span>💨 Aerodynamic Wind Streamlines</span>
-        </label>
-
-        {/* Rain Effect Toggle */}
-        <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
-          <input
-            type="checkbox"
-            checked={showRain}
-            onChange={(e) => setShowRain(e.target.checked)}
-          />
-          <span>🌧️ Tropical Torrential Rain</span>
-        </label>
-
-        {/* Realistic vs Heatmap Mode Switcher */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px", borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: "6px" }}>
-          <span>Shading:</span>
-          <button
-            type="button"
-            onClick={() => setVisualMode(visualMode === "realistic" ? "heatmap" : "realistic")}
-            style={{
-              padding: "4px 10px",
-              background: visualMode === "realistic" ? "#2563eb" : "#d97706",
-              border: "none",
-              borderRadius: "4px",
-              color: "#fff",
-              cursor: "pointer",
-              fontWeight: 700,
-              fontSize: "0.7rem",
-            }}
-          >
-            {visualMode === "realistic" ? "🏛️ Realistic Materials" : "🔴 Damage Heatmap"}
-          </button>
+        {/* Wind Streamlines & Rain Toggles */}
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}>
+          <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "5px" }}>
+            <input
+              type="checkbox"
+              checked={showWindStreams}
+              onChange={(e) => setShowWindStreams(e.target.checked)}
+              style={{ accentColor: "#0284c7" }}
+            />
+            <span>💨 Wind</span>
+          </label>
+          <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "5px" }}>
+            <input
+              type="checkbox"
+              checked={showRain}
+              onChange={(e) => setShowRain(e.target.checked)}
+              style={{ accentColor: "#0284c7" }}
+            />
+            <span>🌧️ Rain</span>
+          </label>
         </div>
       </div>
 

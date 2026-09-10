@@ -13,8 +13,8 @@ import {
   useMap as useLeafletMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import Google3DCityView from "./Google3DCityView";
-import GoogleGlobeView from "./GoogleGlobeView";
+import RealWorld3DView from "./RealWorld3DView";
+import Globe3DView from "./Globe3DView";
 import type { BuildingFeature, RiskFeature, FullCellAnalysis, ZoneFeature, EvacuationPlan } from "./api";
 
 export type MapAnalysisMode = "DAMAGE" | "HIT" | "WIND" | "EXPOSURE" | "BUILDINGS" | "OBSTACLES" | "ZONES" | "EVACUATION";
@@ -640,7 +640,7 @@ export default function RiskMap({
 
       {/* 3D Real-World City & Buildings */}
       {viewDimension === "real3d" && (
-        <Google3DCityView
+        <RealWorld3DView
           center={center}
           locationName={locationName}
           features={features}
@@ -655,7 +655,7 @@ export default function RiskMap({
 
       {/* 3D Planetary Globe */}
       {viewDimension === "globe" && (
-        <GoogleGlobeView
+        <Globe3DView
           center={center}
           trajectory={trajectory}
           headingDeg={headingDeg}
