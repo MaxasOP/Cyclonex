@@ -16,6 +16,8 @@ import {
   Globe,
   HardDrive,
   FileCode,
+  Play,
+  Layers
 } from "lucide-react";
 
 interface DataSource {
@@ -31,6 +33,7 @@ interface DataSource {
   coverage: string;
   description: string;
   dataPoints: number;
+  flowColor: string;
 }
 
 const DATA_SOURCES: DataSource[] = [
@@ -47,453 +50,419 @@ const DATA_SOURCES: DataSource[] = [
     coverage: "North Indian Ocean (0°N–35°N, 45°E–105°E)",
     description: "Primary multispectral thermal infrared feed utilized for Automated Dvorak eye/CDO temperature contrast and deep convective cloud-top tracking.",
     dataPoints: 14400,
+    flowColor: "#38bdf8",
   },
   {
-    id: "gpm-imerg",
-    name: "GPM IMERG Early Run",
-    provider: "NASA / JAXA",
-    instrument: "Dual-frequency Precipitation Radar & Microwave",
-    spectrum: "Passive Microwave + PMW Calibrated IR",
-    resolution: "0.1° × 0.1° (~10 km)",
-    cadence: "30 Minutes",
-    latency: "28 min latency",
+    id: "imd-dwr",
+    name: "IMD Doppler Weather Radars",
+    provider: "India Meteorological Dept",
+    instrument: "S-Band & C-Band Coastal Radars",
+    spectrum: "2.7–3.0 GHz Polarimetric",
+    resolution: "250m Gate Resolution",
+    cadence: "10 Minutes (Volume Scan)",
+    latency: "2.1 min network latency",
+    status: "ONLINE",
+    coverage: "Mumbai, Goa, Kochi, Chennai, Visakhapatnam, Paradip, Kolkata",
+    description: "Ground-truth radial velocity and precipitation reflectivity (Z) matrices validating eyewall mesovortices and rainfall rate conversion.",
+    dataPoints: 21600,
+    flowColor: "#10b981",
+  },
+  {
+    id: "ecmwf-ifs",
+    name: "ECMWF IFS & GFS Ensembles",
+    provider: "ECMWF / NOAA NCEP",
+    instrument: "Numerical Weather Prediction Suite",
+    spectrum: "Synoptic Pressure & 500 hPa Steering",
+    resolution: "0.25° × 0.25° (~25 km)",
+    cadence: "6 Hours (00, 06, 12, 18 UTC)",
+    latency: "45 min post-cycle",
     status: "SYNCED",
-    coverage: "Global Maritime & Coastal Belt",
-    description: "Multi-satellite combined precipitation estimates feeding 200m spatial grid flood-depth and convective outer rainband simulations.",
-    dataPoints: 28800,
+    coverage: "Synoptic NIO Domain",
+    description: "Global numerical atmospheric boundary conditions providing steering flows, deep tropospheric shear, and 72h track dispersion.",
+    dataPoints: 8640,
+    flowColor: "#f59e0b",
   },
   {
-    id: "sentinel-1",
-    name: "Copernicus Sentinel-1 SAR",
-    provider: "ESA / Copernicus",
-    instrument: "C-band Synthetic Aperture Radar (C-SAR)",
-    spectrum: "5.405 GHz (VV/VH cross-polarization)",
-    resolution: "10m – 20m Ground Range",
-    cadence: "Selected Landfall Swaths (6–12 Days)",
-    latency: "6 hr Ground Station Ingest",
-    status: "STANDBY",
-    coverage: "East & West Indian Coastlines",
-    description: "High-resolution sea-surface roughness measurements for non-saturating extreme wind field (>50 m/s) calibration near coastal zones.",
-    dataPoints: 8520,
-  },
-  {
-    id: "noaa-hursat",
-    name: "NOAA HURSAT B1 Historical Archive",
+    id: "noaa-ibtracs",
+    name: "NOAA IBTrACS v04 Archive",
     provider: "NOAA NCEI",
-    instrument: "ISCCP B1 Normalized Geostationary Suite",
-    spectrum: "11.0 µm Calibrated IR",
-    resolution: "8.0 km Centered on Storm Center",
-    cadence: "3-Hourly Historical Tracks",
-    latency: "Offline Curated (1982–Present)",
-    status: "ARCHIVED",
-    coverage: "North Indian Ocean & Global Basins",
-    description: "Standardized 128×128 pixel cyclone centered tensor database used for fine-tuning ResNet/ConvNeXt intensity models and out-of-sample benchmarking.",
-    dataPoints: 125000,
+    instrument: "Best-Track Multi-Agency Archive",
+    spectrum: "1848–Present Historical NIO Tracks",
+    resolution: "Point Coordinates & 1-min / 3-min Vmax",
+    cadence: "Historical Benchmark Suite",
+    latency: "Post-Season Validated",
+    status: "ONLINE",
+    coverage: "Global Tropical Basins",
+    description: "Verified historical cyclone tracks and central pressure series utilized for back-testing Holland B peaking parameters.",
+    dataPoints: 34200,
+    flowColor: "#a855f7",
   },
   {
-    id: "osm-overpass",
-    name: "OpenStreetMap Infrastructure Overpass",
-    provider: "OpenStreetMap Foundation",
-    instrument: "Crowdsourced Vector & Structural Attributes",
-    spectrum: "Vector GeoJSON (Roads, Buildings, MPCS)",
-    resolution: "Centimeter Polygon Precision",
-    cadence: "Weekly Ingest / Local GeoPackage Cache",
-    latency: "Sub-second Local Query",
+    id: "osm-cadastre",
+    name: "OpenStreetMap Building Cadastre",
+    provider: "OSM / Local Municipal GIS",
+    instrument: "Vector Building Footprints & Roads",
+    spectrum: "200m Spatial Exposure Grid",
+    resolution: "Parcel-Level Polygon Geometry",
+    cadence: "Dynamic Continuous Ingestion",
+    latency: "Instant Database Cache",
     status: "ONLINE",
-    coverage: "12 Coastal Indian Municipal Corporations",
-    description: "Building footprint geometry, height tiers, roof structural types, and primary evacuation road network graph topology for vulnerable wards.",
-    dataPoints: 46280,
-  },
-  {
-    id: "imd-rsmc",
-    name: "IMD RSMC Real-Time GTS Feed",
-    provider: "India Meteorological Department",
-    instrument: "Doppler Radars (DWR) + Buoy Network + RSMC Bulletins",
-    spectrum: "S-band / C-band Radar + Surface Synoptic",
-    resolution: "Point & Polygon Best Track Vectors",
-    cadence: "3-Hourly Synoptic (Hourly on Alert 4)",
-    latency: "Live Push via Webhook",
-    status: "ONLINE",
-    coverage: "Bay of Bengal & Arabian Sea",
-    description: "Official meteorological advisories, quadrant wind radii ($R_{34}, R_{50}, R_{64}$), central pressure estimates, and designated storm naming authority.",
-    dataPoints: 3420,
+    coverage: "Coastal Districts of Maharashtra & Gujarat",
+    description: "Structural GIS polygons and lifelines intersected with wind pressure fields to calculate parcel-level damage fragility.",
+    dataPoints: 54000,
+    flowColor: "#ec4899",
   },
 ];
 
-interface ApiEndpoint {
-  method: "GET" | "POST";
-  path: string;
-  summary: string;
-  description: string;
-  sampleRequest?: string;
-  sampleResponse: string;
-}
-
-const API_ENDPOINTS: ApiEndpoint[] = [
+const API_ENDPOINTS = [
   {
-    method: "POST",
-    path: "/api/ml-infer",
-    summary: "Multimodal Cyclone Intensity & Trajectory Inference",
-    description: "Submits satellite imagery metadata or live sensor feeds to compute Dvorak T-Numbers, Holland parameters, and 6h/12h/24h track forecasts.",
-    sampleRequest: JSON.stringify(
-      {
-        storm_name: "Cyclone Dana",
-        lat: 16.5,
-        lon: 88.2,
-        current_wind_kph: 125,
-        current_pressure_hpa: 982,
-        heading_deg: 320,
-        speed_kph: 18,
-      },
-      null,
-      2
-    ),
-    sampleResponse: JSON.stringify(
-      {
-        dvorak_t_number: 4.5,
-        intensity_class: "Very Severe Cyclonic Storm (VSCS)",
-        max_sustained_wind_kph: 138.5,
-        central_pressure_hpa: 974.2,
-        confidence_interval: "±6.8 km/h",
-        forecast_6h: { centre_lat: 17.3, centre_lon: 87.5, max_wind_kph: 145, central_pressure_hpa: 968 },
-        forecast_12h: { centre_lat: 18.2, centre_lon: 86.8, max_wind_kph: 155, central_pressure_hpa: 960 },
-        forecast_24h: { centre_lat: 19.8, centre_lon: 85.5, max_wind_kph: 130, central_pressure_hpa: 976 },
-      },
-      null,
-      2
-    ),
+    method: "GET" as const,
+    path: "/api/dataset/summary",
+    description: "Retrieve active cyclone target telemetry, storm metadata, and real-time bounding box.",
+    sampleResponse: `{\n  "total_records": 14400,\n  "storm_name": "NISARGA",\n  "active_coordinates": { "lat": 18.35, "lon": 72.98 },\n  "current_vmax_kph": 120,\n  "min_pressure_hpa": 984,\n  "resolution": "200m Physical Grid"\n}`,
   },
   {
-    method: "POST",
-    path: "/api/calculate-risk",
-    summary: "200m Spatial Grid Vulnerability & Damage Engine",
-    description: "Executes Holland wind dynamic pressure formulas and elevation-based flood runup across urban grid cells and structural assets.",
-    sampleRequest: JSON.stringify(
-      {
-        city: "Paradip",
-        cyclone_lat: 19.8,
-        cyclone_lon: 86.8,
-        wind_kph: 145,
-        surge_height_m: 3.2,
-        rainfall_mm_hr: 45,
-      },
-      null,
-      2
-    ),
-    sampleResponse: JSON.stringify(
-      {
-        total_buildings_at_risk: 1840,
-        high_risk_count: 412,
-        total_economic_loss_usd: 14850000,
-        critical_infrastructure_threatened: ["Paradip Major Port Terminal", "Refinery Pumping Complex", "IOCL Marine Terminal"],
-        recommended_evacuation_count: 34200,
-      },
-      null,
-      2
-    ),
+    method: "POST" as const,
+    path: "/api/ai/analyze-cyclone",
+    description: "Execute Automated Dvorak Technique (ADT) and ResNet inference on coordinate/intensity parameters.",
+    samplePayload: `{\n  "lat": 18.35,\n  "lon": 72.98,\n  "wind_kph": 120,\n  "pressure_hpa": 984\n}`,
+    sampleResponse: `{\n  "dvorak_t_number": 4.5,\n  "raw_adt": 4.38,\n  "eye_temp_c": -38.2,\n  "cloud_top_c": -74.8,\n  "confidence": 0.947,\n  "category": "VSCS"\n}`,
   },
   {
-    method: "GET",
-    path: "/api/buildings/geojson?city=Paradip",
-    summary: "Real-World Building Footprints & Structural Risk Polygons",
-    description: "Streams GeoJSON FeatureCollection with height extrusions, construction material flags, and dynamic damage indices.",
-    sampleResponse: JSON.stringify(
-      {
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            id: "bld_10492",
-            properties: {
-              height_m: 24.5,
-              floors: 7,
-              structural_type: "Reinforced Concrete",
-              damage_probability: 0.18,
-              risk_level: "MODERATE",
-            },
-            geometry: {
-              type: "Polygon",
-              coordinates: [[[86.685, 20.295], [86.687, 20.295], [86.687, 20.297], [86.685, 20.297], [86.685, 20.295]]],
-            },
-          },
-        ],
-      },
-      null,
-      2
-    ),
-  },
-  {
-    method: "GET",
-    path: "/api/health",
-    summary: "CycloneX Microservices & Inference Worker Health",
-    description: "Returns uptime, active GPU worker count, Redis cache sync, and satellite stream queue depth.",
-    sampleResponse: JSON.stringify(
-      {
-        status: "HEALTHY",
-        uptime_seconds: 482910,
-        fastapi_version: "0.115.0",
-        active_gpu_workers: 4,
-        redis_cache: "CONNECTED",
-        ingest_queue_depth: 0,
-        telemetry_clock_utc: new Date().toISOString(),
-      },
-      null,
-      2
-    ),
+    method: "POST" as const,
+    path: "/api/scenario/simulate",
+    description: "Run Holland 1980 wind profile and 200m building fragility screening for coastal landfalls.",
+    samplePayload: `{\n  "storm_name": "nisarga",\n  "holland_b": 1.25,\n  "rmax_km": 28,\n  "pn_hpa": 1008,\n  "pc_hpa": 984\n}`,
+    sampleResponse: `{\n  "peak_wind_kph": 120,\n  "peak_pressure_kpa": 1.82,\n  "critical_parcels": 24,\n  "estimated_loss_inr": 48000000\n}`,
   },
 ];
 
 export default function DataSourcesPage() {
-  const [selectedEndpoint, setSelectedEndpoint] = useState<ApiEndpoint>(API_ENDPOINTS[0]);
-  const [copied, setCopied] = useState(false);
-  const [testResult, setTestResult] = useState<string | null>(null);
-  const [isTesting, setIsTesting] = useState(false);
+  const [selectedSourceId, setSelectedSourceId] = useState<string>("insat-3dr");
+  const [activeEndpointIdx, setActiveEndpointIdx] = useState<number>(0);
+  const [apiOutput, setApiOutput] = useState<string>("");
+  const [isRunningApi, setIsRunningApi] = useState<boolean>(false);
+  const [copiedPath, setCopiedPath] = useState<string | null>(null);
+
+  const activeSource = DATA_SOURCES.find(s => s.id === selectedSourceId) || DATA_SOURCES[0];
+  const activeEndpoint = API_ENDPOINTS[activeEndpointIdx];
+
+  const handleRunEndpoint = () => {
+    setIsRunningApi(true);
+    setTimeout(() => {
+      setApiOutput(activeEndpoint.sampleResponse);
+      setIsRunningApi(false);
+    }, 400);
+  };
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleRunTest = async () => {
-    setIsTesting(true);
-    setTestResult(null);
-    try {
-      if (selectedEndpoint.path.includes("/api/health")) {
-        const res = await fetch("http://127.0.0.1:8000/api/health").catch(() => null);
-        if (res && res.ok) {
-          const data = await res.json();
-          setTestResult(JSON.stringify(data, null, 2));
-        } else {
-          setTestResult(selectedEndpoint.sampleResponse);
-        }
-      } else {
-        await new Promise((r) => setTimeout(r, 600));
-        setTestResult(selectedEndpoint.sampleResponse);
-      }
-    } catch {
-      setTestResult(selectedEndpoint.sampleResponse);
-    } finally {
-      setIsTesting(false);
-    }
+    setCopiedPath(text);
+    setTimeout(() => setCopiedPath(null), 1500);
   };
 
   return (
-    <div className="page-container">
-      {/* Header */}
-      <div className="page-header">
-        <div>
-          <div className="page-tag">
-            <Radio size={14} className="text-emerald-400 animate-pulse" />
-            <span>REAL-TIME INGEST & DEVELOPER API</span>
-          </div>
-          <h1 className="page-title">Data Feeds & Telemetry Pipeline</h1>
-          <p className="page-subtitle">
-            Multispectral satellite streams, weather radar integrations, crowdsourced geospatial graph layers, and CycloneX open developer APIs.
-          </p>
-        </div>
+    <div className="op-showcase-root">
+      <div className="op-showcase-container">
 
-        <div className="page-header-actions">
-          <div className="telemetry-badge">
-            <Activity size={14} className="text-emerald-400" />
-            <span>Pipeline Ingest: <strong>1.4 GB/hr</strong></span>
-          </div>
-          <div className="telemetry-badge">
-            <CheckCircle2 size={14} className="text-blue-400" />
-            <span>All 6 Primary Feeds Synchronized</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Sensor Ingest Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        {DATA_SOURCES.map((source) => (
-          <div key={source.id} className="data-source-card">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700/60 text-cyan-400">
-                  {source.id.includes("insat") || source.id.includes("sentinel") ? (
-                    <Satellite size={18} />
-                  ) : source.id.includes("osm") ? (
-                    <Globe size={18} />
-                  ) : source.id.includes("noaa") ? (
-                    <HardDrive size={18} />
-                  ) : (
-                    <Server size={18} />
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-white tracking-wide">{source.name}</h3>
-                  <div className="text-xs text-slate-400">{source.provider}</div>
-                </div>
-              </div>
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                  source.status === "ONLINE"
-                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                    : source.status === "SYNCED"
-                    ? "bg-blue-500/10 text-blue-400 border-blue-500/30"
-                    : source.status === "STANDBY"
-                    ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                    : "bg-purple-500/10 text-purple-400 border-purple-500/30"
-                }`}
-              >
-                {source.status}
-              </span>
+        {/* Editorial Header */}
+        <div className="op-editorial-header" style={{ marginBottom: "20px" }}>
+          <div>
+            <div className="op-section-kicker">
+              <Radio size={12} style={{ display: "inline", marginRight: "6px" }} />
+              TELEMETRY INGESTION PIPELINE &middot; MULTI-SOURCE FEEDS
             </div>
-
-            <p className="text-xs text-slate-300 mb-4 line-clamp-2 leading-relaxed">
-              {source.description}
+            <h1 className="op-section-title" style={{ fontSize: "28px" }}>
+              Data Sources &amp; REST API Pipeline
+            </h1>
+            <p className="op-section-desc" style={{ marginBottom: "0" }}>
+              Visualizing the multi-source earth observation architecture assimilating geostationary radiometry,
+              Doppler radar scans, numerical atmospheric models, and cadastral GIS layers into the CycloneX engine.
             </p>
+          </div>
 
-            <div className="space-y-1.5 pt-3 border-t border-slate-800/80 text-xs">
-              <div className="flex justify-between text-slate-400">
-                <span>Instrument:</span>
-                <span className="text-slate-200 font-mono text-[11px] truncate max-w-[180px]">{source.instrument}</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>Spatial Res:</span>
-                <span className="text-slate-200 font-mono text-[11px]">{source.resolution}</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>Refresh Cadence:</span>
-                <span className="text-slate-200 font-mono text-[11px]">{source.cadence}</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>Ingest Latency:</span>
-                <span className="text-emerald-400 font-mono text-[11px] flex items-center gap-1">
-                  <Clock size={11} /> {source.latency}
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#10b981", display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#10b981" }} />
+              INGESTION BUS ACTIVE (99.98% UPTIME)
+            </span>
+          </div>
+        </div>
+
+        {/* PRIMARY VISUAL OBJECT: Animated Multi-Source Ingestion Pipeline Diagram */}
+        <div style={{
+          position: "relative",
+          background: "#030508",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          borderRadius: "4px",
+          padding: "24px",
+          marginBottom: "28px",
+          overflow: "hidden"
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "10px" }}>
+            <span style={{ fontSize: "11px", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#38bdf8" }}>
+              DATA INGESTION BUS ARCHITECTURE
+            </span>
+            <span style={{ fontSize: "10.5px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
+              CLICK ANY SOURCE TO INSPECT PACKET SPECIFICATION
+            </span>
+          </div>
+
+          <div className="op-split-grid" style={{ gridTemplateColumns: "1.1fr 0.9fr", gap: "28px", alignItems: "center" }}>
+            
+            {/* Left: Interactive Data Pipeline Diagram */}
+            <svg width="100%" height="280" viewBox="0 0 480 280" style={{ display: "block" }}>
+              <defs>
+                <linearGradient id="busGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.2" />
+                  <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.8" />
+                </linearGradient>
+              </defs>
+
+              {/* Source Nodes (Left Stack) */}
+              {DATA_SOURCES.map((s, idx) => {
+                const y = 30 + idx * 52;
+                const isSelected = s.id === selectedSourceId;
+
+                return (
+                  <g key={s.id} onClick={() => setSelectedSourceId(s.id)} style={{ cursor: "pointer" }}>
+                    {/* Source Box */}
+                    <rect
+                      x="10"
+                      y={y - 18}
+                      width="150"
+                      height="38"
+                      rx="3"
+                      fill={isSelected ? "rgba(56, 189, 248, 0.12)" : "#070b12"}
+                      stroke={isSelected ? s.flowColor : "rgba(255, 255, 255, 0.1)"}
+                      strokeWidth={isSelected ? 1.8 : 1}
+                    />
+                    <circle cx="24" cy={y + 1} r="4" fill={s.flowColor} />
+                    <text x="36" y={y - 3} fill={isSelected ? "#ffffff" : "#cbd5e1"} fontSize="9.5" fontWeight="bold" fontFamily="'JetBrains Mono', monospace">
+                      {s.name.split(" ")[0]}
+                    </text>
+                    <text x="36" y={y + 10} fill="#64748b" fontSize="8" fontFamily="'JetBrains Mono', monospace">
+                      {s.provider} &middot; {s.cadence.split(" ")[0]}
+                    </text>
+
+                    {/* Animated Flow Connecting Line */}
+                    <path
+                      d={`M 160,${y + 1} C 240,${y + 1} 260,140 330,140`}
+                      fill="none"
+                      stroke={isSelected ? s.flowColor : "rgba(255, 255, 255, 0.15)"}
+                      strokeWidth={isSelected ? 2 : 1}
+                      strokeDasharray={isSelected ? "5 5" : undefined}
+                      className={isSelected ? "op-stream-flow-line" : undefined}
+                    />
+                  </g>
+                );
+              })}
+
+              {/* Central CycloneX Processing Engine Target Box */}
+              <g transform="translate(330, 80)">
+                <rect
+                  x="0"
+                  y="0"
+                  width="140"
+                  height="120"
+                  rx="4"
+                  fill="#06090e"
+                  stroke="#38bdf8"
+                  strokeWidth="2"
+                  filter="drop-shadow(0 0 16px rgba(56, 189, 248, 0.25))"
+                />
+                <circle cx="70" cy="35" r="14" fill="rgba(56, 189, 248, 0.1)" stroke="#38bdf8" strokeWidth="1.5" />
+                <text x="70" y="39" textAnchor="middle" fill="#38bdf8" fontSize="10" fontWeight="bold" fontFamily="'JetBrains Mono', monospace">X</text>
+                
+                <text x="70" y="65" textAnchor="middle" fill="#ffffff" fontSize="11" fontWeight="bold" fontFamily="'JetBrains Mono', monospace">CYCLONEX</text>
+                <text x="70" y="80" textAnchor="middle" fill="#94a3b8" fontSize="8" fontFamily="'JetBrains Mono', monospace">NORMALIZATION</text>
+                <text x="70" y="93" textAnchor="middle" fill="#10b981" fontSize="8" fontWeight="bold" fontFamily="'JetBrains Mono', monospace">200m GRID ENGINE</text>
+                <text x="70" y="106" textAnchor="middle" fill="#64748b" fontSize="7.5" fontFamily="'JetBrains Mono', monospace">LATENCY: &lt; 1.8s</text>
+              </g>
+            </svg>
+
+            {/* Right: Selected Feed Telemetry Inspector Card */}
+            <div style={{ background: "#05080e", border: "1px solid rgba(255, 255, 255, 0.08)", padding: "16px", borderRadius: "3px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <span style={{ fontSize: "13px", fontWeight: 700, color: "#ffffff" }}>{activeSource.name}</span>
+                <span style={{ fontSize: "10px", fontFamily: "'JetBrains Mono', monospace", color: activeSource.flowColor, border: `1px solid ${activeSource.flowColor}`, padding: "1px 6px", borderRadius: "2px" }}>
+                  {activeSource.status}
                 </span>
               </div>
-            </div>
-          </div>
-        ))}
-      </div>
+              <div style={{ fontSize: "11px", color: "#64748b", marginBottom: "12px" }}>
+                {activeSource.provider} &middot; {activeSource.instrument}
+              </div>
 
-      {/* REST API Explorer */}
-      <div className="analytics-card">
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800/80">
-          <div className="flex items-center gap-2">
-            <Terminal size={18} className="text-cyan-400" />
-            <h2 className="text-base font-semibold text-white">CycloneX Developer REST API</h2>
+              <p style={{ fontSize: "11.5px", color: "#94a3b8", lineHeight: 1.5, margin: "0 0 14px" }}>
+                {activeSource.description}
+              </p>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "10.5px", fontFamily: "'JetBrains Mono', monospace" }}>
+                <div style={{ padding: "6px 8px", background: "#020407", border: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div style={{ color: "#64748b", fontSize: "9px" }}>RESOLUTION</div>
+                  <div style={{ color: "#cbd5e1" }}>{activeSource.resolution}</div>
+                </div>
+                <div style={{ padding: "6px 8px", background: "#020407", border: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div style={{ color: "#64748b", fontSize: "9px" }}>CADENCE</div>
+                  <div style={{ color: "#38bdf8" }}>{activeSource.cadence}</div>
+                </div>
+                <div style={{ padding: "6px 8px", background: "#020407", border: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div style={{ color: "#64748b", fontSize: "9px" }}>INGEST LATENCY</div>
+                  <div style={{ color: "#10b981" }}>{activeSource.latency}</div>
+                </div>
+                <div style={{ padding: "6px 8px", background: "#020407", border: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div style={{ color: "#64748b", fontSize: "9px" }}>COVERAGE</div>
+                  <div style={{ color: "#cbd5e1" }}>{activeSource.coverage.split("(")[0]}</div>
+                </div>
+              </div>
+            </div>
+
           </div>
-          <div className="text-xs text-slate-400 font-mono">Base: http://127.0.0.1:8000</div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Endpoint List */}
-          <div className="lg:col-span-4 space-y-2">
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Available Endpoints</div>
-            {API_ENDPOINTS.map((endpoint) => (
+        {/* Tabular Ingestion Infrastructure Ledger */}
+        <div className="op-technical-panel" style={{ padding: "16px 20px", marginBottom: "28px" }}>
+          <div className="op-tech-panel-header" style={{ marginBottom: "10px" }}>
+            <div className="op-tech-panel-title">
+              <Database size={13} style={{ color: "#38bdf8" }} />
+              <span>EARTH OBSERVATION DATA FEEDS SPECIFICATION</span>
+            </div>
+            <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
+              5 FEDERATED STREAMS
+            </span>
+          </div>
+
+          <table className="op-ledger-table" style={{ fontSize: "11.5px" }}>
+            <thead>
+              <tr>
+                <th>SOURCE</th>
+                <th>OPERATOR</th>
+                <th>SPECTRUM / INSTRUMENT</th>
+                <th>SPATIAL RESOLUTION</th>
+                <th>CADENCE</th>
+                <th>INGEST LATENCY</th>
+                <th>STATUS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {DATA_SOURCES.map(s => (
+                <tr
+                  key={s.id}
+                  style={{
+                    background: s.id === selectedSourceId ? "rgba(56, 189, 248, 0.06)" : undefined,
+                    cursor: "pointer"
+                  }}
+                  onClick={() => setSelectedSourceId(s.id)}
+                >
+                  <td style={{ fontWeight: 700, color: s.id === selectedSourceId ? "#38bdf8" : "#ffffff" }}>
+                    {s.name}
+                  </td>
+                  <td>{s.provider}</td>
+                  <td style={{ fontFamily: "'JetBrains Mono', monospace" }}>{s.spectrum}</td>
+                  <td style={{ fontFamily: "'JetBrains Mono', monospace" }}>{s.resolution}</td>
+                  <td style={{ fontFamily: "'JetBrains Mono', monospace", color: "#38bdf8" }}>{s.cadence}</td>
+                  <td style={{ fontFamily: "'JetBrains Mono', monospace", color: "#10b981" }}>{s.latency}</td>
+                  <td>
+                    <span style={{ color: "#10b981", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", fontSize: "10.5px" }}>
+                      {s.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Interactive Developer REST API Test Bench */}
+        <div className="op-technical-panel">
+          <div className="op-tech-panel-header">
+            <div className="op-tech-panel-title">
+              <Terminal size={14} style={{ color: "#38bdf8" }} />
+              <span>INTERACTIVE DEVELOPER REST API CONSOLE</span>
+            </div>
+            <span className="op-tech-panel-badge">FASTAPI BACKEND :8000</span>
+          </div>
+
+          <div style={{ display: "flex", gap: "8px", marginBottom: "16px", overflowX: "auto" }}>
+            {API_ENDPOINTS.map((ep, idx) => (
               <button
-                key={endpoint.path}
+                key={ep.path}
+                type="button"
+                className={`op-layer-tab ${activeEndpointIdx === idx ? "active" : ""}`}
                 onClick={() => {
-                  setSelectedEndpoint(endpoint);
-                  setTestResult(null);
+                  setActiveEndpointIdx(idx);
+                  setApiOutput("");
                 }}
-                className={`w-full text-left p-3 rounded-lg border transition-all ${
-                  selectedEndpoint.path === endpoint.path
-                    ? "bg-cyan-950/40 border-cyan-500/50 text-white shadow-lg shadow-cyan-950/50"
-                    : "bg-slate-900/50 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-800/50"
-                }`}
+                style={{ padding: "6px 12px", fontSize: "11px" }}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <span
-                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono ${
-                      endpoint.method === "POST"
-                        ? "bg-blue-500/20 text-blue-400 border border-blue-500/40"
-                        : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                    }`}
-                  >
-                    {endpoint.method}
-                  </span>
-                  <span className="text-xs font-mono font-semibold text-slate-200">{endpoint.path}</span>
-                </div>
-                <div className="text-[11px] text-slate-400 truncate">{endpoint.summary}</div>
+                <span style={{ color: ep.method === "GET" ? "#10b981" : "#38bdf8", marginRight: "6px", fontWeight: 800 }}>
+                  {ep.method}
+                </span>
+                {ep.path}
               </button>
             ))}
           </div>
 
-          {/* Interactive Console */}
-          <div className="lg:col-span-8 bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+          <div className="op-split-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
             <div>
-              <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-800/80">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-xs font-bold px-2 py-0.5 rounded font-mono ${
-                      selectedEndpoint.method === "POST"
-                        ? "bg-blue-500/20 text-blue-400"
-                        : "bg-emerald-500/20 text-emerald-400"
-                    }`}
-                  >
-                    {selectedEndpoint.method}
-                  </span>
-                  <span className="text-sm font-mono font-medium text-white">{selectedEndpoint.path}</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() =>
-                      handleCopy(
-                        selectedEndpoint.method === "POST"
-                          ? `curl -X POST http://127.0.0.1:8000${selectedEndpoint.path} \\\n  -H "Content-Type: application/json" \\\n  -d '${selectedEndpoint.sampleRequest?.replace(/\n/g, "")}'`
-                          : `curl http://127.0.0.1:8000${selectedEndpoint.path}`
-                      )
-                    }
-                    className="flex items-center gap-1 text-xs px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-                  >
-                    {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-                    <span>{copied ? "Copied" : "Copy cURL"}</span>
-                  </button>
-
-                  <button
-                    onClick={handleRunTest}
-                    disabled={isTesting}
-                    className="flex items-center gap-1 text-xs px-3 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition disabled:opacity-50"
-                  >
-                    {isTesting ? <RefreshCw size={12} className="animate-spin" /> : <Zap size={12} />}
-                    <span>{isTesting ? "Executing..." : "Test Endpoint"}</span>
-                  </button>
-                </div>
+              <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "8px" }}>
+                {activeEndpoint.description}
               </div>
 
-              <p className="text-xs text-slate-300 mb-4">{selectedEndpoint.description}</p>
-
-              {selectedEndpoint.sampleRequest && (
-                <div className="mb-4">
-                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                    <FileCode size={12} /> Request Payload (JSON)
+              {activeEndpoint.samplePayload && (
+                <div style={{ marginBottom: "12px" }}>
+                  <div style={{ fontSize: "10px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace", marginBottom: "4px" }}>
+                    REQUEST BODY (JSON):
                   </div>
-                  <pre className="p-3 bg-slate-900/90 rounded-lg border border-slate-800 text-xs text-cyan-300 font-mono overflow-x-auto max-h-44">
-                    {selectedEndpoint.sampleRequest}
+                  <pre style={{ margin: 0, padding: "10px", background: "#020408", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "3px", fontSize: "11px", color: "#38bdf8", fontFamily: "'JetBrains Mono', monospace" }}>
+                    {activeEndpoint.samplePayload}
                   </pre>
                 </div>
               )}
 
-              <div>
-                <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                  <Terminal size={12} /> Response Output (200 OK)
-                </div>
-                <pre className="p-3 bg-slate-900/90 rounded-lg border border-slate-800 text-xs text-emerald-400 font-mono overflow-x-auto max-h-60">
-                  {testResult || selectedEndpoint.sampleResponse}
-                </pre>
-              </div>
+              <button
+                type="button"
+                className="op-btn-primary"
+                onClick={handleRunEndpoint}
+                disabled={isRunningApi}
+                style={{ padding: "8px 16px", fontSize: "12px" }}
+              >
+                <Play size={13} />
+                <span>{isRunningApi ? "Executing Request..." : "Test Endpoint Live"}</span>
+              </button>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500">
-              <span>FastAPI OpenAPI Specification 3.1.0</span>
-              <a
-                href="http://127.0.0.1:8000/docs"
-                target="_blank"
-                rel="noreferrer"
-                className="text-cyan-400 hover:underline flex items-center gap-1"
-              >
-                <span>Interactive Swagger UI</span>
-                <ArrowUpRight size={11} />
-              </a>
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                <span style={{ fontSize: "10px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
+                  RESPONSE PAYLOAD (200 OK):
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(apiOutput || activeEndpoint.sampleResponse)}
+                  style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", fontSize: "10.5px" }}
+                >
+                  {copiedPath ? <Check size={12} style={{ color: "#10b981" }} /> : <Copy size={12} />}
+                </button>
+              </div>
+              <pre style={{
+                margin: 0,
+                padding: "12px",
+                background: "#020408",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: "3px",
+                fontSize: "11px",
+                color: "#10b981",
+                fontFamily: "'JetBrains Mono', monospace",
+                minHeight: "140px",
+                overflowX: "auto"
+              }}>
+                {apiOutput || activeEndpoint.sampleResponse}
+              </pre>
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );

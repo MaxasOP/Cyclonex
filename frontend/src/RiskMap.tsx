@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useState, useMemo, lazy, Suspense } from "react";
 import L from "leaflet";
 import {
   Circle,
@@ -10,6 +10,7 @@ import {
   Polyline,
   Popup,
   TileLayer,
+  ZoomControl,
   useMap as useLeafletMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -29,21 +30,21 @@ export type MapAnalysisMode = "DAMAGE" | "HIT" | "WIND" | "EXPOSURE" | "BUILDING
 const cycloneVortexSvg = `
 <div class="cyclone-tactical-marker" title="Target Tropical Cyclone - Click to inspect dossier">
   <div class="radar-ping-ring"></div>
-  <svg class="vortex-svg-animated" viewBox="0 0 100 100" width="56" height="56">
-    <circle cx="50" cy="50" r="46" fill="rgba(2, 6, 23, 0.4)" stroke="rgba(0, 243, 255, 0.2)" stroke-width="1" stroke-dasharray="2 4" />
+  <svg class="vortex-svg-animated" viewBox="0 0 100 100" width="36" height="36">
+    <circle cx="50" cy="50" r="46" fill="rgba(2, 6, 23, 0.45)" stroke="rgba(0, 243, 255, 0.25)" stroke-width="1" stroke-dasharray="2 4" />
     <!-- Spiral arm 1 -->
-    <path d="M 50 12 C 70 12 88 28 88 50 C 88 62 80 72 70 78 C 60 84 46 80 40 70 C 34 60 38 46 48 42 C 56 38 66 44 66 52" fill="none" stroke="rgba(255, 255, 255, 0.85)" stroke-width="2.6" stroke-linecap="round" />
+    <path d="M 50 12 C 70 12 88 28 88 50 C 88 62 80 72 70 78 C 60 84 46 80 40 70 C 34 60 38 46 48 42 C 56 38 66 44 66 52" fill="none" stroke="rgba(255, 255, 255, 0.9)" stroke-width="1.8" stroke-linecap="round" />
     <!-- Spiral arm 2 -->
-    <path d="M 50 88 C 30 88 12 72 12 50 C 12 38 20 28 30 22 C 40 16 54 20 60 30 C 66 40 62 54 52 58 C 44 62 34 56 34 48" fill="none" stroke="rgba(0, 243, 255, 0.9)" stroke-width="2.6" stroke-linecap="round" />
+    <path d="M 50 88 C 30 88 12 72 12 50 C 12 38 20 28 30 22 C 40 16 54 20 60 30 C 66 40 62 54 52 58 C 44 62 34 56 34 48" fill="none" stroke="rgba(0, 243, 255, 0.95)" stroke-width="1.8" stroke-linecap="round" />
     <!-- Eyewall circle ring -->
-    <circle cx="50" cy="50" r="14" fill="rgba(2, 6, 23, 0.85)" stroke="#ff4436" stroke-width="2" stroke-dasharray="3 2" />
+    <circle cx="50" cy="50" r="14" fill="rgba(2, 6, 23, 0.85)" stroke="#ff4436" stroke-width="1.6" stroke-dasharray="3 2" />
     <!-- Hairline tactical crosshairs -->
-    <line x1="50" y1="41" x2="50" y2="45" stroke="#ffffff" stroke-width="1.5" />
-    <line x1="50" y1="55" x2="50" y2="59" stroke="#ffffff" stroke-width="1.5" />
-    <line x1="41" y1="50" x2="45" y2="50" stroke="#ffffff" stroke-width="1.5" />
-    <line x1="55" y1="50" x2="59" y2="50" stroke="#ffffff" stroke-width="1.5" />
+    <line x1="50" y1="41" x2="50" y2="45" stroke="#ffffff" stroke-width="1.2" />
+    <line x1="50" y1="55" x2="50" y2="59" stroke="#ffffff" stroke-width="1.2" />
+    <line x1="41" y1="50" x2="45" y2="50" stroke="#ffffff" stroke-width="1.2" />
+    <line x1="55" y1="50" x2="59" y2="50" stroke="#ffffff" stroke-width="1.2" />
     <!-- Eye core -->
-    <circle cx="50" cy="50" r="3.5" fill="#ff4436" stroke="#ffffff" stroke-width="1" />
+    <circle cx="50" cy="50" r="3.2" fill="#ff4436" stroke="#ffffff" stroke-width="1" />
   </svg>
 </div>
 `;
@@ -51,9 +52,95 @@ const cycloneVortexSvg = `
 const cycloneDivIcon = L.divIcon({
   className: "cyclone-vortex-leaflet-icon",
   html: cycloneVortexSvg,
-  iconSize: [56, 56],
-  iconAnchor: [28, 28],
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
 });
+
+function createShelterIcon(priority: "IMMEDIATE" | "HIGH" | "ADVISORY" | "STANDBY", capacity: number) {
+  const priClass = (priority || "advisory").toLowerCase();
+  const capText = capacity >= 1000 ? `${(capacity / 1000).toFixed(1)}k` : `${capacity}`;
+  return L.divIcon({
+    className: "shelter-leaflet-marker",
+    html: `
+      <div class="shelter-badge-pill ${priClass}" title="Multipurpose Cyclone Shelter (Capacity: ${capacity.toLocaleString()} persons)">
+        <span class="shelter-badge-icon">🏠</span>
+        <span>${capText}</span>
+      </div>
+    `,
+    iconSize: [64, 26],
+    iconAnchor: [32, 13],
+  });
+}
+
+export interface WindVector {
+  id: string;
+  coords: [number, number][]; // [start, end, arrowhead_left, arrowhead_right]
+  windKph: number;
+  color: string;
+}
+
+function computeWindStreamlines(center: { lat: number; lng: number }, maxWindKph: number): WindVector[] {
+  const vectors: WindVector[] = [];
+  // Radii: eyewall (~22km), inner core (~48km), outer gale ring (~85km)
+  const rings = [
+    { radiusKm: 22, count: 8, speedFactor: 0.96 },
+    { radiusKm: 48, count: 10, speedFactor: 0.78 },
+    { radiusKm: 85, count: 12, speedFactor: 0.52 },
+  ];
+
+  let idCounter = 0;
+  for (const ring of rings) {
+    const localSpeed = Math.round(maxWindKph * ring.speedFactor);
+    const color =
+      localSpeed >= 160 ? "#dc2626" :
+      localSpeed >= 120 ? "#ea580c" :
+      localSpeed >= 80 ? "#d97706" :
+      localSpeed >= 50 ? "#ca8a04" : "#16a34a";
+
+    for (let i = 0; i < ring.count; i++) {
+      const thetaDeg = (360 / ring.count) * i;
+      const thetaRad = (thetaDeg * Math.PI) / 180;
+      // Position on the ring
+      const startLat = center.lat + (ring.radiusKm / 111.0) * Math.sin(thetaRad);
+      const startLng = center.lng + (ring.radiusKm / (111.0 * Math.cos((center.lat * Math.PI) / 180))) * Math.cos(thetaRad);
+
+      // Tangential velocity with 22 deg inward cyclonic spiral inflow (Northern Hemisphere counter-clockwise)
+      const flowHeadingDeg = (thetaDeg + 90 + 22) % 360;
+      const flowHeadingRad = (flowHeadingDeg * Math.PI) / 180;
+
+      const arrowLengthKm = Math.min(10, ring.radiusKm * 0.22);
+      const endLat = startLat + (arrowLengthKm / 111.0) * Math.sin(flowHeadingRad);
+      const endLng = startLng + (arrowLengthKm / (111.0 * Math.cos((startLat * Math.PI) / 180))) * Math.cos(flowHeadingRad);
+
+      // Arrow head barb points
+      const barbLengthKm = arrowLengthKm * 0.35;
+      const barbAngle1 = flowHeadingRad + Math.PI - 0.55;
+      const barbAngle2 = flowHeadingRad + Math.PI + 0.55;
+
+      const barb1Lat = endLat + (barbLengthKm / 111.0) * Math.sin(barbAngle1);
+      const barb1Lng = endLng + (barbLengthKm / (111.0 * Math.cos((endLat * Math.PI) / 180))) * Math.cos(barbAngle1);
+
+      const barb2Lat = endLat + (barbLengthKm / 111.0) * Math.sin(barbAngle2);
+      const barb2Lng = endLng + (barbLengthKm / (111.0 * Math.cos((endLat * Math.PI) / 180))) * Math.cos(barbAngle2);
+
+      vectors.push({
+        id: `wvec-${idCounter++}`,
+        coords: [
+          [startLat, startLng],
+          [endLat, endLng],
+          [barb1Lat, barb1Lng],
+          [endLat, endLng],
+          [barb2Lat, barb2Lng],
+        ],
+        windKph: localSpeed,
+        color,
+      });
+    }
+  }
+
+  return vectors;
+}
+
 
 function IconCube3D() {
   return (
@@ -185,27 +272,26 @@ type RiskMapProps = {
   onCustomLocationChange?: (lat: number, lng: number) => void;
   showPhysicsGrid?: boolean;
   onCycloneClick?: () => void;
+  theme?: "dark" | "light";
 };
-
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
 type BasemapType = "google_dark" | "google_satellite" | "google_street";
 
-const BASEMAPS: Record<BasemapType, { name: string; url: string; attribution: string }> = {
+const BASEMAPS: Record<BasemapType, { name: string; url: string; subdomains?: string; attribution: string }> = {
   google_dark: {
     name: "Dark Radar",
-    url: `https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&key=${GOOGLE_MAPS_API_KEY}&style=feature:all|element:geometry|color:0x0a1a2e&style=feature:all|element:labels.text.fill|color:0x8fa4bf`,
-    attribution: '&copy; <a href="https://maps.google.com">Google Maps</a>',
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    attribution: '&copy; <a href="https://www.esri.com/">Esri</a>, HERE, Garmin, &copy; OpenStreetMap contributors',
   },
   google_satellite: {
     name: "Satellite",
-    url: `https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&key=${GOOGLE_MAPS_API_KEY}`,
-    attribution: '&copy; <a href="https://maps.google.com">Google Maps</a>',
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution: '&copy; <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics',
   },
   google_street: {
-    name: "Street Map",
-    url: `https://mt{s}.google.com/vt/lyrs=r&x={x}&y={y}&z={z}&key=${GOOGLE_MAPS_API_KEY}`,
-    attribution: '&copy; <a href="https://maps.google.com">Google Maps</a>',
+    name: "Light Map",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    attribution: '&copy; <a href="https://www.esri.com/">Esri</a>, HERE, Garmin, &copy; OpenStreetMap contributors',
   },
 };
 
@@ -479,7 +565,7 @@ export default function RiskMap({
   headingDeg = 315,
   speedKph = 25,
   analysisMode = "DAMAGE",
-  showZones = true,
+  showZones = false,
   showShelters = true,
   viewDimension: viewDimensionProp,
   onViewDimensionChange: onViewDimensionChangeProp,
@@ -489,8 +575,17 @@ export default function RiskMap({
   onCustomLocationChange,
   showPhysicsGrid = false,
   onCycloneClick,
+  theme = "dark",
 }: RiskMapProps) {
-  const [activeBasemap, setActiveBasemap] = useState<BasemapType>("google_dark");
+  const [activeBasemap, setActiveBasemap] = useState<BasemapType>(() => (theme === "light" ? "google_street" : "google_dark"));
+
+  useEffect(() => {
+    if (theme === "light" && activeBasemap === "google_dark") {
+      setActiveBasemap("google_street");
+    } else if (theme === "dark" && activeBasemap === "google_street") {
+      setActiveBasemap("google_dark");
+    }
+  }, [theme]);
   const [gridOpacity, setGridOpacity] = useState<number>(0.74);
   const [playbackIndex, setPlaybackIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -537,6 +632,147 @@ export default function RiskMap({
     activeEyePoint.lat + vectorLengthKm * Math.cos((((90 - headingDeg) % 360) * Math.PI) / 180),
     activeEyePoint.lng + vectorLengthKm * Math.sin((((90 - headingDeg) % 360) * Math.PI) / 180),
   ] as [number, number];
+
+  // Extract max wind speed from features or fallback
+  const maxWindKph = useMemo(() => {
+    let max = 0;
+    for (const f of features) {
+      if (f.properties?.wind_kph && f.properties.wind_kph > max) {
+        max = f.properties.wind_kph;
+      }
+    }
+    return max > 0 ? max : (speedKph ? speedKph * 6.5 : 180);
+  }, [features, speedKph]);
+
+  // Compute cyclonic streamlines for WIND analysis mode
+  const windStreamlines = useMemo(() => {
+    if (analysisMode !== "WIND") return [];
+    return computeWindStreamlines(center, maxWindKph);
+  }, [analysisMode, center, maxWindKph]);
+
+  // Unified Shelter Resolution: Combines backend scenario shelters with National MPCS Registry
+  const unifiedShelters = useMemo(() => {
+    const list: Array<{
+      id: string;
+      name: string;
+      lat: number;
+      lon: number;
+      capacity: number;
+      currentOccupancy: number;
+      evacuationPriority: "IMMEDIATE" | "HIGH" | "ADVISORY" | "STANDBY";
+      facilityType: string;
+      district?: string;
+      state?: string;
+      distanceKm?: number;
+      amenities: {
+        backupGenerator: boolean;
+        solarROWater: boolean;
+        helipad: boolean;
+        medicalTriage: boolean;
+        satelliteComms: boolean;
+        foodRationsDays: number;
+      };
+      contactOfficer: string;
+      contactPhone: string;
+    }> = [];
+
+    const seenIds = new Set<string>();
+
+    // 1. First add scenario-specific shelters from backend if available
+    if (sheltersPlan?.shelters && sheltersPlan.shelters.length > 0) {
+      for (const s of sheltersPlan.shelters) {
+        seenIds.add(s.id);
+        const national = NATIONAL_CYCLONE_SHELTERS.find(
+          (n) => n.id === s.id || (Math.abs(n.lat - s.lat) < 0.05 && Math.abs(n.lon - s.lon) < 0.05)
+        );
+        list.push({
+          id: s.id,
+          name: s.name,
+          lat: s.lat,
+          lon: s.lon,
+          capacity: s.capacity,
+          currentOccupancy: national?.currentOccupancy ?? Math.round(s.capacity * (s.evacuation_priority === "IMMEDIATE" ? 0.88 : 0.45)),
+          evacuationPriority: (s.evacuation_priority as any) || "ADVISORY",
+          facilityType: s.facility_type || national?.facilityType || "Multipurpose Cyclone Shelter (MPCS)",
+          district: s.district || national?.district,
+          state: s.state || national?.state,
+          distanceKm: s.distance_km,
+          amenities: national?.amenities ?? {
+            backupGenerator: s.backup_generator ?? true,
+            solarROWater: true,
+            helipad: s.helipad ?? false,
+            medicalTriage: true,
+            satelliteComms: true,
+            foodRationsDays: 14,
+          },
+          contactOfficer: national?.contactOfficer || "District Disaster Officer",
+          contactPhone: national?.contactPhone || "+91-1077 (NDMA Toll-Free)",
+        });
+      }
+    }
+
+    // 2. Add national shelters within ~350 km of map center
+    const haversine = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+      const R = 6371;
+      const dLat = ((lat2 - lat1) * Math.PI) / 180;
+      const dLon = ((lon2 - lon1) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    };
+
+    for (const nat of NATIONAL_CYCLONE_SHELTERS) {
+      if (seenIds.has(nat.id)) continue;
+      const dist = haversine(center.lat, center.lng, nat.lat, nat.lon);
+      if (dist <= 350 || list.length === 0) {
+        list.push({
+          id: nat.id,
+          name: nat.name,
+          lat: nat.lat,
+          lon: nat.lon,
+          capacity: nat.capacity,
+          currentOccupancy: nat.currentOccupancy,
+          evacuationPriority: nat.evacuationPriority,
+          facilityType: nat.facilityType,
+          district: nat.district,
+          state: nat.state,
+          distanceKm: Math.round(dist * 10) / 10,
+          amenities: nat.amenities,
+          contactOfficer: nat.contactOfficer,
+          contactPhone: nat.contactPhone,
+        });
+      }
+    }
+
+    // 3. Fallback to nearest 5 shelters if list is empty
+    if (list.length === 0) {
+      const sorted = [...NATIONAL_CYCLONE_SHELTERS].sort(
+        (a, b) => haversine(center.lat, center.lng, a.lat, a.lon) - haversine(center.lat, center.lng, b.lat, b.lon)
+      );
+      for (const nat of sorted.slice(0, 5)) {
+        list.push({
+          id: nat.id,
+          name: nat.name,
+          lat: nat.lat,
+          lon: nat.lon,
+          capacity: nat.capacity,
+          currentOccupancy: nat.currentOccupancy,
+          evacuationPriority: nat.evacuationPriority,
+          facilityType: nat.facilityType,
+          district: nat.district,
+          state: nat.state,
+          distanceKm: Math.round(haversine(center.lat, center.lng, nat.lat, nat.lon) * 10) / 10,
+          amenities: nat.amenities,
+          contactOfficer: nat.contactOfficer,
+          contactPhone: nat.contactPhone,
+        });
+      }
+    }
+
+    return list;
+  }, [sheltersPlan, center.lat, center.lng]);
+
 
   return (
     <div className="leaflet-map-wrapper">
@@ -725,29 +961,31 @@ export default function RiskMap({
           zoom={10}
           scrollWheelZoom={true}
           preferCanvas={true}
+          zoomControl={false}
           style={{ width: "100%", height: "100%", minHeight: "620px" }}
         >
+          <ZoomControl position="bottomright" />
           <LeafletResizer analysisMode={analysisMode} viewDimension={viewDimension} />
-            <LeafletBoundsFitter
-              center={center}
-          features={features}
-          buildings={buildings}
-          trajectory={trajectory}
-          scenarioId={scenarioId}
-          zoomMode={zoomMode}
-        />
-        <LeafletPlaybackPanner
-          activePoint={activeEyePoint}
-          isNavigating={isPlaying || playbackIndex > 0}
-        />
+          <LeafletBoundsFitter
+            center={center}
+            features={features}
+            buildings={buildings}
+            trajectory={trajectory}
+            scenarioId={scenarioId}
+            zoomMode={zoomMode}
+          />
+          <LeafletPlaybackPanner
+            activePoint={activeEyePoint}
+            isNavigating={isPlaying || playbackIndex > 0}
+          />
 
-        <TileLayer
-          key={activeBasemap}
-          attribution={BASEMAPS[activeBasemap].attribution}
-          url={BASEMAPS[activeBasemap].url}
-          subdomains="0123"
-          maxZoom={20}
-        />
+          <TileLayer
+            key={activeBasemap}
+            attribution={BASEMAPS[activeBasemap].attribution}
+            url={BASEMAPS[activeBasemap].url}
+            subdomains={BASEMAPS[activeBasemap].subdomains || "abcd"}
+            maxZoom={20}
+          />
 
         {/* 0. Official IMD/NHC Cone of Uncertainty Polygon */}
         {conePolygonCoords.length > 2 && (
@@ -776,7 +1014,7 @@ export default function RiskMap({
         )}
 
         {/* 1. 200 m Spatial Damage & Hazard Grid (Underneath tracks/markers) */}
-        {showPhysicsGrid && features.length > 0 && (
+        {(showPhysicsGrid || Boolean(analysisMode)) && features.length > 0 && (
           <GeoJSON
             key={`risk-${scenarioId || "live"}-${features[0]?.id || "f0"}-${analysisMode}`}
             data={{ type: "FeatureCollection", features } as never}
@@ -926,6 +1164,30 @@ export default function RiskMap({
           />
         )}
 
+        {/* 1b. Cyclonic Inflow Wind Streamlines (Active in WIND mode) */}
+        {analysisMode === "WIND" &&
+          windStreamlines.map((v) => (
+            <Polyline
+              key={v.id}
+              positions={v.coords}
+              pathOptions={{
+                color: v.color,
+                weight: 2.5,
+                opacity: 0.92,
+                lineCap: "round",
+                lineJoin: "round",
+              }}
+            >
+              <Popup>
+                <div style={{ fontFamily: "var(--font-sans, -apple-system, sans-serif)", fontSize: "11px", minWidth: "180px", padding: "2px" }}>
+                  <strong style={{ color: v.color }}>💨 Cyclonic Inflow Streamline</strong>
+                  <div style={{ marginTop: "4px" }}>Local Velocity: <strong>{v.windKph} km/h</strong></div>
+                  <div style={{ color: "#64748b", fontSize: "10px", marginTop: "2px" }}>Tangential vortex flow with 22° inward boundary-layer spiral</div>
+                </div>
+              </Popup>
+            </Polyline>
+          ))}
+
         {/* 2. Building Footprints Layer */}
         {buildings.length > 0 && (
           <GeoJSON
@@ -1036,83 +1298,74 @@ export default function RiskMap({
           />
         )}
 
-        {/* 2c. Multipurpose Cyclone Shelters (MPCS) */}
-        {(analysisMode === "EVACUATION" || showShelters) && sheltersPlan && sheltersPlan.shelters.map((s) => (
-          <CircleMarker
-            key={s.id}
-            center={[s.lat, s.lon]}
-            radius={s.evacuation_priority === "IMMEDIATE" ? 10 : 8}
-            pathOptions={{
-              fillColor: s.evacuation_priority === "IMMEDIATE" ? "#d4483b" : "#35a66f",
-              color: "#ffffff",
-              weight: 2.5,
-              fillOpacity: 0.95,
-            }}
-          >
-            <Popup>
-              <div style={{ fontFamily: "-apple-system, system-ui, sans-serif", minWidth: "220px" }}>
-                <div style={{ fontWeight: 700, color: s.evacuation_priority === "IMMEDIATE" ? "#ff6b5b" : "#35a66f", fontSize: "0.95rem", marginBottom: "4px" }}>
-                  {s.name}
-                </div>
-                <div style={{ fontSize: "0.8rem", color: "#d7e5f5", lineHeight: "1.5" }}>
-                  <div>Capacity: <strong style={{ color: "#75c9f1" }}>{s.capacity.toLocaleString()} persons</strong></div>
-                  <div>District: <strong>{s.district}, {s.state}</strong></div>
-                  <div>Facility: <strong>{s.facility_type}</strong></div>
-                  <div>Distance from eye: <strong>{s.distance_km} km</strong></div>
-                  <div style={{ marginTop: "4px" }}>
-                    Status: <span style={{
-                      padding: "2px 6px",
-                      borderRadius: "4px",
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      background: s.evacuation_priority === "IMMEDIATE" ? "#d4483b" : "#35a66f",
-                      color: "#ffffff",
-                    }}>{s.evacuation_priority} ACTIVE</span>
-                  </div>
-                </div>
-              </div>
-            </Popup>
-          </CircleMarker>
-        ))}
+        {/* 2c. Multipurpose Cyclone Shelters (MPCS Network) */}
+        {(showShelters || showMitigationLayer || analysisMode === "EVACUATION") &&
+          unifiedShelters.map((s) => {
+            const priColor =
+              s.evacuationPriority === "IMMEDIATE" ? "#dc2626" :
+              s.evacuationPriority === "HIGH" ? "#ea580c" :
+              s.evacuationPriority === "ADVISORY" ? "#d97706" : "#16a34a";
 
-        {/* === CYCLONE MITIGATION MEASURES & REFUGEE SHELTERS INTELLIGENCE LAYERS === */}
-        {/* Toggle via "Shelters" button in dock. These are independent of sheltersPlan prop. */}
+            const occupancyPct = Math.min(100, Math.round((s.currentOccupancy / s.capacity) * 100));
 
-        {/* M1. MPCS National Shelter Network (richer dataset) — shown when no sheltersPlan AND mitigation layer active */}
-        {showMitigationLayer && !sheltersPlan && NATIONAL_CYCLONE_SHELTERS.map((s) => (
-          <CircleMarker
-            key={s.id}
-            center={[s.lat, s.lon]}
-            radius={s.evacuationPriority === "IMMEDIATE" ? 11 : s.evacuationPriority === "HIGH" ? 9 : 7}
-            pathOptions={{
-              fillColor: s.evacuationPriority === "IMMEDIATE" ? "#d4483b" : s.evacuationPriority === "HIGH" ? "#ed8a28" : "#35a66f",
-              color: "#ffffff",
-              weight: 2.5,
-              fillOpacity: 0.95,
-            }}
-          >
-            <Popup>
-              <div style={{ fontFamily: "-apple-system, system-ui, sans-serif", minWidth: "250px" }}>
-                <div style={{ fontWeight: 700, color: s.evacuationPriority === "IMMEDIATE" ? "#ff6b5b" : "#35a66f", fontSize: "0.9rem", marginBottom: "6px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "4px" }}>
-                  🏠 {s.name}
-                </div>
-                <div style={{ fontSize: "0.78rem", color: "#d7e5f5", lineHeight: "1.6" }}>
-                  <div>Type: <strong>{s.facilityType}</strong></div>
-                  <div>District: <strong>{s.district}, {s.state}</strong></div>
-                  <div>Capacity: <strong style={{ color: "#75c9f1" }}>{s.capacity.toLocaleString()} persons</strong></div>
-                  <div>Occupancy: <strong style={{ color: "#f59e0b" }}>{s.currentOccupancy.toLocaleString()} / {s.capacity.toLocaleString()}</strong></div>
-                  <div>Food Rations: <strong>{s.amenities.foodRationsDays} days</strong></div>
-                  <div>Helipad: <strong>{s.amenities.helipad ? "✅ Yes" : "❌ No"}</strong> &nbsp;|&nbsp; Sat Comms: <strong>{s.amenities.satelliteComms ? "✅" : "❌"}</strong></div>
-                  <div>Medical Triage: <strong>{s.amenities.medicalTriage ? "✅ Operational" : "❌ None"}</strong></div>
-                  <div style={{ marginTop: "4px" }}>
-                    Status: <span style={{ padding: "2px 6px", borderRadius: "4px", fontSize: "0.72rem", fontWeight: 700, background: s.evacuationPriority === "IMMEDIATE" ? "#d4483b" : s.evacuationPriority === "HIGH" ? "#ed8a28" : "#35a66f", color: "#ffffff" }}>{s.evacuationPriority}</span>
+            return (
+              <Marker
+                key={s.id}
+                position={[s.lat, s.lon]}
+                icon={createShelterIcon(s.evacuationPriority, s.capacity)}
+              >
+                <Popup>
+                  <div style={{ fontFamily: "var(--font-sans, -apple-system, sans-serif)", minWidth: "260px", padding: "2px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "6px" }}>
+                      <div style={{ fontWeight: 700, color: "#ffffff", fontSize: "0.92rem" }}>
+                        🏠 {s.name}
+                      </div>
+                      <span style={{
+                        padding: "2px 7px",
+                        borderRadius: "12px",
+                        fontSize: "0.68rem",
+                        fontWeight: 700,
+                        background: priColor,
+                        color: "#ffffff",
+                        whiteSpace: "nowrap"
+                      }}>
+                        {s.evacuationPriority}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: "0.8rem", color: "#cbd5e1", lineHeight: "1.6" }}>
+                      <div style={{ color: "#94a3b8", fontSize: "0.74rem" }}>{s.facilityType}</div>
+                      <div>District: <strong style={{ color: "#ffffff" }}>{s.district || "Coastal"}, {s.state || "India"}</strong></div>
+                      {s.distanceKm != null && <div>Distance from Cyclone Eye: <strong style={{ color: "#38bdf8" }}>{s.distanceKm} km</strong></div>}
+                      
+                      {/* Occupancy Progress Bar */}
+                      <div style={{ marginTop: "8px", marginBottom: "8px", background: "rgba(0,0,0,0.35)", padding: "6px 8px", borderRadius: "6px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", marginBottom: "3px" }}>
+                          <span style={{ color: "#94a3b8" }}>Occupancy Load</span>
+                          <strong style={{ color: occupancyPct >= 85 ? "#f97316" : "#10b981" }}>{s.currentOccupancy.toLocaleString()} / {s.capacity.toLocaleString()} ({occupancyPct}%)</strong>
+                        </div>
+                        <div style={{ height: "5px", background: "rgba(255,255,255,0.1)", borderRadius: "3px", overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${occupancyPct}%`, background: occupancyPct >= 85 ? "#f97316" : "#10b981", borderRadius: "3px" }} />
+                        </div>
+                      </div>
+
+                      {/* Amenities Grid */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", fontSize: "0.72rem", marginTop: "4px" }}>
+                        <div>Helipad: <strong>{s.amenities.helipad ? "✅ Available" : "❌ None"}</strong></div>
+                        <div>Comms: <strong>{s.amenities.satelliteComms ? "✅ Satellite" : "VHF Radio"}</strong></div>
+                        <div>Power: <strong>{s.amenities.backupGenerator ? "✅ 100% DG" : "Grid Only"}</strong></div>
+                        <div>Rations: <strong>{s.amenities.foodRationsDays} Days</strong></div>
+                      </div>
+
+                      <div style={{ marginTop: "8px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "5px", color: "#94a3b8", fontSize: "0.72rem" }}>
+                        Contact: <strong style={{ color: "#ffffff" }}>{s.contactOfficer}</strong> ({s.contactPhone})
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ marginTop: "4px", color: "#8fa4bf", fontSize: "0.72rem" }}>{s.contactOfficer} · {s.contactPhone}</div>
-                </div>
-              </div>
-            </Popup>
-          </CircleMarker>
-        ))}
+                </Popup>
+              </Marker>
+            );
+          })}
 
         {/* M2. Coastal Defense Seawalls */}
         {showMitigationLayer && COASTAL_DEFENSE_SEAWALLS.map((wall) => (
@@ -1189,7 +1442,7 @@ export default function RiskMap({
         ))}
 
         {/* M5. Evacuation Corridors & Arteries */}
-        {showMitigationLayer && EVACUATION_CORRIDORS.map((corridor) => (
+        {(showShelters || showMitigationLayer || analysisMode === "EVACUATION") && EVACUATION_CORRIDORS.map((corridor) => (
           <Polyline
             key={corridor.id}
             positions={corridor.coordinates as [number, number][]}
@@ -1256,16 +1509,16 @@ export default function RiskMap({
           </CircleMarker>
         ))}
 
-        {/* 6. Pulsing Rmax Wind Core Danger Boundary (28 km Radius) */}
+        {/* 6. Pulsing Rmax Wind Core Danger Boundary (15 km Eyewall Radius) */}
         <Circle
           center={[activeEyePoint.lat, activeEyePoint.lng]}
-          radius={28000}
+          radius={15000}
           pathOptions={{
             color: "#ff4436",
             fillColor: "#ff4436",
-            fillOpacity: 0.08,
-            weight: 1.5,
-            dashArray: "5, 5",
+            fillOpacity: 0.04,
+            weight: 1.2,
+            dashArray: "4, 6",
           }}
         />
 

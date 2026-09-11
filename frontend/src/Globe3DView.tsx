@@ -1137,11 +1137,11 @@ export default function Globe3DView({
     scene.add(cycloneGroup);
 
     // 3D Spiral Cloud Disc with gentle translucency (compact scale)
-    const cycloneDiscGeom = new THREE.PlaneGeometry(6.5, 6.5);
+    const cycloneDiscGeom = new THREE.PlaneGeometry(3.2, 3.2);
     const cycloneDiscMat = new THREE.MeshBasicMaterial({
       map: createCycloneCloudTexture(),
       transparent: true,
-      opacity: 0.50,
+      opacity: 0.45,
       side: THREE.DoubleSide,
       depthWrite: false,
     });
@@ -1150,8 +1150,8 @@ export default function Globe3DView({
     cycloneDisc.position.z = 0.5;
     cycloneGroup.add(cycloneDisc);
 
-    // 3D Concentric Warning Radius Rings (Isotachs: R64, R50, R34) - Compact & Calibrated
-    const r64Geom = new THREE.RingGeometry(1.6, 1.85, 48);
+    // 3D Concentric Warning Radius Rings (Isotachs: R64, R50, R34) - Sleek & Refined
+    const r64Geom = new THREE.RingGeometry(0.8, 0.95, 48);
     const r64Mat = new THREE.MeshBasicMaterial({
       color: 0xef4444,
       side: THREE.DoubleSide,
@@ -1163,7 +1163,7 @@ export default function Globe3DView({
     r64Mesh.position.z = 0.65;
     cycloneGroup.add(r64Mesh);
 
-    const r50Geom = new THREE.RingGeometry(2.8, 3.05, 48);
+    const r50Geom = new THREE.RingGeometry(1.4, 1.55, 48);
     const r50Mat = new THREE.MeshBasicMaterial({
       color: 0xf59e0b,
       side: THREE.DoubleSide,
@@ -1175,7 +1175,7 @@ export default function Globe3DView({
     r50Mesh.position.z = 0.60;
     cycloneGroup.add(r50Mesh);
 
-    const r34Geom = new THREE.RingGeometry(4.2, 4.45, 48);
+    const r34Geom = new THREE.RingGeometry(2.1, 2.25, 48);
     const r34Mat = new THREE.MeshBasicMaterial({
       color: 0x38bdf8,
       side: THREE.DoubleSide,
@@ -1188,7 +1188,7 @@ export default function Globe3DView({
     cycloneGroup.add(r34Mesh);
 
     // Vertical Eyewall Column (Tropospheric Vortex - Compact)
-    const eyeWallGeom = new THREE.CylinderGeometry(0.3, 0.7, 2.0, 24, 1, true);
+    const eyeWallGeom = new THREE.CylinderGeometry(0.15, 0.35, 1.2, 24, 1, true);
     const eyeWallMat = new THREE.MeshBasicMaterial({
       color: 0xff3b30,
       wireframe: true,
@@ -1207,10 +1207,10 @@ export default function Globe3DView({
       cycloneGroup.scale.setScalar(scaleMultiplier);
     };
 
-    updateCyclonePosition(activeStage.lat, activeStage.lng, 0.55 + (activeStage.windSpeedKph / 250) * 0.25);
+    updateCyclonePosition(activeStage.lat, activeStage.lng, 0.35 + (activeStage.windSpeedKph / 250) * 0.15);
 
     // 8. 3D Swirling Wind Speed Field (Particles spiraling into eyewall - Fine & Compact)
-    const windParticleCount = 380;
+    const windParticleCount = 240;
     const windPositions = new Float32Array(windParticleCount * 3);
     const windColors = new Float32Array(windParticleCount * 3);
     const particleThetas = new Float32Array(windParticleCount);
@@ -1219,7 +1219,7 @@ export default function Globe3DView({
 
     for (let i = 0; i < windParticleCount; i++) {
       const theta = Math.random() * Math.PI * 2;
-      const r = 0.9 + Math.pow(Math.random(), 1.4) * 5.2;
+      const r = 0.5 + Math.pow(Math.random(), 1.4) * 2.8;
       particleThetas[i] = theta;
       particleRadii[i] = r;
       particleSpeeds[i] = 0.025 + (1.0 / Math.max(1.0, r)) * 0.20;
@@ -1570,117 +1570,15 @@ export default function Globe3DView({
     };
   }, [stages]);
 
-  // ── Shelter & NDRF Markers on Globe ──────────────────────────────────────
-  // Separate effect so marker data can change without rebuilding the full scene
-
+  // Clean, uncluttered 3D globe presentation
   useEffect(() => {
-    // Wait until the Three.js renderer is attached (mountRef holds the canvas)
     const container = mountRef.current;
     if (!container) return;
-
-    // Find the Three.js renderer canvas's parent scene via traversal is not possible,
-    // so we keep a separate Group ref that we inject into the scene when the
-    // main useEffect runs. We accomplish this by working at the DOM level:
-    // we add a new canvas overlay — but for Three.js we must share the same scene.
-    // Since we cannot access the scene object outside the main useEffect, we instead
-    // attach shelf data as DOM-layer Leaflet-style overlays using the existing
-    // Three.js canvas via a second lightweight scene drawn on top.
-    // ▸ Practical approach: attach markers as HTML elements positioned over the canvas.
-
-    // Calculate approximate screen positions for each shelter/NDRF depot
-    // and render them as absolutely positioned DOM badges.
-    // This avoids the complexity of sharing the Three.js scene ref.
-
-    // Clean up existing shelter overlay
     const existing = container.querySelector(".globe-shelter-overlay");
     if (existing) existing.remove();
-
-    if (!shelterNodes.length && !ndrfDepots.length) return;
-
-    const overlay = document.createElement("div");
-    overlay.className = "globe-shelter-overlay";
-    overlay.style.cssText = `
-      position: absolute; inset: 0; pointer-events: none;
-      z-index: 10; overflow: hidden;
-    `;
-
-    // Helper: project lat/lng to approximate 2D canvas pixel position
-    // Uses a simple mercator-like projection centred on India
-    const projectToCanvas = (lat: number, lng: number): { x: number; y: number } | null => {
-      const centerLat = 20;
-      const centerLng = 82;
-      const fov = 40; // approx degrees visible in canvas
-      const dLat = lat - centerLat;
-      const dLng = lng - centerLng;
-      if (Math.abs(dLat) > fov || Math.abs(dLng) > fov * 1.5) return null; // off-screen
-      const w = container.clientWidth || 800;
-      const h = container.clientHeight || 560;
-      const x = w / 2 + (dLng / fov) * (w / 2.6);
-      const y = h / 2 - (dLat / fov) * (h / 2.2);
-      return { x, y };
-    };
-
-    // Render MPCS Shelter dots with priority color
-    shelterNodes.forEach((shelter) => {
-      const pos = projectToCanvas(shelter.lat, shelter.lon);
-      if (!pos) return;
-      const color = shelter.evacuationPriority === "IMMEDIATE" ? "#ef4444"
-        : shelter.evacuationPriority === "HIGH" ? "#f97316"
-        : shelter.evacuationPriority === "ADVISORY" ? "#22c55e"
-        : "#64748b";
-      const size = shelter.evacuationPriority === "IMMEDIATE" ? 10 : shelter.evacuationPriority === "HIGH" ? 8 : 6;
-      const label = shelter.evacuationPriority === "IMMEDIATE"
-        ? `<div style="position:absolute;left:${pos.x + size + 2}px;top:${pos.y - 7}px;
-            background:rgba(6,14,26,0.82);border:1px solid ${color};border-radius:3px;
-            padding:2px 5px;font-size:9px;font-family:monospace;color:#fff;white-space:nowrap;
-            line-height:1.3;pointer-events:none;">
-            🏠 ${shelter.name.split(" ").slice(0, 3).join(" ")}<br/>
-            <span style="color:${color};font-weight:700">${shelter.evacuationPriority}</span> · Cap ${shelter.capacity.toLocaleString()}
-          </div>` : "";
-      const dot = document.createElement("div");
-      dot.innerHTML = `
-        <div style="position:absolute;left:${pos.x - size / 2}px;top:${pos.y - size / 2}px;
-          width:${size}px;height:${size}px;border-radius:50%;
-          background:${color};border:1.5px solid #fff;
-          box-shadow:0 0 6px ${color}88;"></div>
-        ${label}
-      `;
-      overlay.appendChild(dot);
-    });
-
-    // Render NDRF Staging Depots as gold/amber hexagonal markers
-    ndrfDepots.forEach((depot) => {
-      const pos = projectToCanvas(depot.lat, depot.lon);
-      if (!pos) return;
-      const depotEl = document.createElement("div");
-      depotEl.innerHTML = `
-        <div style="position:absolute;left:${pos.x - 7}px;top:${pos.y - 7}px;
-          width:14px;height:14px;border-radius:3px;
-          background:#a16207;border:2px solid #fbbf24;
-          box-shadow:0 0 8px #fbbf2488;display:flex;align-items:center;justify-content:center;
-          font-size:8px;">🪖</div>
-        <div style="position:absolute;left:${pos.x + 9}px;top:${pos.y - 9}px;
-          background:rgba(6,14,26,0.82);border:1px solid #fbbf24;border-radius:3px;
-          padding:2px 5px;font-size:9px;font-family:monospace;color:#fff;white-space:nowrap;
-          line-height:1.3;pointer-events:none;">
-          ${depot.battalion.replace("BN NDRF", "BN")}<br/>
-          <span style="color:#fbbf24;font-weight:700">${depot.personnelCount} personnel</span>
-        </div>
-      `;
-      overlay.appendChild(depotEl);
-    });
-
-    container.style.position = "relative";
-    container.appendChild(overlay);
-
-    return () => {
-      const el = container.querySelector(".globe-shelter-overlay");
-      if (el) el.remove();
-    };
   }, [shelterNodes, ndrfDepots]);
 
   // Smoothly move the 3D Cyclone Vortex across the planetary sphere surface whenever stage changes or plays
-
   useEffect(() => {
     if (!stages[currentStageIdx] || !cycloneGroupRef.current) return;
     const stage = stages[currentStageIdx];
@@ -1690,7 +1588,7 @@ export default function Globe3DView({
       new THREE.Vector3(0, 0, 1),
       targetPos.clone().normalize()
     );
-    const targetScale = 0.55 + (stage.windSpeedKph / 250) * 0.25;
+    const targetScale = 0.35 + (stage.windSpeedKph / 250) * 0.15;
 
     const grp = cycloneGroupRef.current;
     const startPos = grp.position.clone();

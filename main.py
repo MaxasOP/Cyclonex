@@ -976,3 +976,26 @@ def api_get_realtime_weather(
     }
 
 
+# =========================================================
+# AI / ML SATELLITE CYCLONE IDENTIFICATION & CLASSIFICATION
+# =========================================================
+
+@app.post("/api/ai/analyze-cyclone")
+@app.post("/api/v2/ai-cyclone/analyze")
+def api_analyze_cyclone(req: CycloneAnalysisRequest):
+    """Execute AI/ML Satellite Analysis: Detection, Dvorak Pattern, Prediction & RI."""
+    try:
+        result = ai_service.analyze_cyclone(req)
+        return result
+    except Exception as e:
+        print(f"[AI SERVICE ERROR] {e}", flush=True)
+        raise HTTPException(status_code=500, detail=f"AI inference error: {str(e)}")
+
+
+@app.get("/api/ai/models-status")
+def api_get_ai_models_status():
+    """Report real-time loaded PyTorch model statuses and device configuration."""
+    return ai_service.get_models_status()
+
+
+

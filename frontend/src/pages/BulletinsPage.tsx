@@ -13,6 +13,9 @@ import {
   CheckCircle2,
   AlertTriangle,
   Download,
+  ChevronDown,
+  ChevronUp,
+  Activity
 } from "lucide-react";
 import type { MLInferenceResult } from "../api";
 
@@ -42,7 +45,7 @@ const PORT_SIGNALS: PortSignal[] = [
     signalNumber: 10,
     name: "Great Danger Signal No. X",
     flagCode: "GD-X",
-    ports: ["Paradip Major Port", "Dhamra Port", "Gopalpur Port"],
+    ports: ["Jawaharlal Nehru Port (JNPT)", "Mumbai Port Trust", "Dharamtar Port"],
     meaning: "Severe cyclonic storm expected to cross coast over or very close to the port. Extreme winds (>120 km/h) & surge imminent.",
     severity: "critical",
   },
@@ -50,7 +53,7 @@ const PORT_SIGNALS: PortSignal[] = [
     signalNumber: 8,
     name: "Great Danger Signal No. VIII",
     flagCode: "GD-VIII",
-    ports: ["Visakhapatnam Port", "Gangavaram Port"],
+    ports: ["Dighi Port", "Jaigad Port"],
     meaning: "Severe cyclonic storm expected to cross coast keeping port to the left of its track.",
     severity: "high",
   },
@@ -58,7 +61,7 @@ const PORT_SIGNALS: PortSignal[] = [
     signalNumber: 4,
     name: "Local Warning Signal No. IV",
     flagCode: "LW-IV",
-    ports: ["Kolkata / Haldia Dock Complex", "Chennai Port", "Ennore Port"],
+    ports: ["Kandla Port", "Mormugao Port"],
     meaning: "Port threatened by squally weather / cyclonic storm, but not expected to be directly crossed.",
     severity: "medium",
   },
@@ -66,57 +69,58 @@ const PORT_SIGNALS: PortSignal[] = [
     signalNumber: 2,
     name: "Distant Warning Signal No. II",
     flagCode: "DW-II",
-    ports: ["Mormugao Port", "Mumbai Port Trust", "Kandla Port"],
+    ports: ["Cochin Port", "Mangalore Port"],
     meaning: "Cyclonic storm in deep open sea. Ships leaving port advised to exercise caution.",
     severity: "low",
   },
 ];
 
-const DISTRICT_ALERTS = [
+interface OperationalEvent {
+  id: string;
+  time: string;
+  source: string;
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "INFO";
+  title: string;
+  summary: string;
+  details: string;
+}
+
+const OPERATIONAL_EVENTS: OperationalEvent[] = [
   {
-    district: "Jagatsinghpur",
-    state: "Odisha",
-    color: "RED",
-    windGustKph: "135–150",
-    surgeM: "3.2m – 4.1m",
-    action: "Mandatory In-Shelter Curfew. Complete evacuation of 0-3 km belt.",
-    vulnerablePop: "185,000",
+    id: "ev-1",
+    time: "06:00 UTC · T-0H (NOW)",
+    source: "IMD Cyclone Warning Division",
+    severity: "CRITICAL",
+    title: "Very Severe Cyclonic Storm NISARGA — Landfall Warning (Red Alert)",
+    summary: "Eye located at 18.35°N 72.98°E. Landfall expected within 2 hours near Alibaug coast.",
+    details: "Sustained winds 120 km/h gusting to 135 km/h. Astronomical high tide of 4.2m combined with 1.5m storm surge will inundate low-lying coastal belts of Raigad district. Total suspension of marine fishing operations enforced.",
   },
   {
-    district: "Kendrapara",
-    state: "Odisha",
-    color: "RED",
-    windGustKph: "120–140",
-    surgeM: "2.8m – 3.6m",
-    action: "Evacuation of low-lying riverine delta villages to MPCS shelters.",
-    vulnerablePop: "210,000",
+    id: "ev-2",
+    time: "03:30 UTC · T-2.5H",
+    source: "Maharashtra Maritime Board",
+    severity: "HIGH",
+    title: "Great Danger Signal No. X Hoisted at JNPT and Mumbai Anchorage",
+    summary: "All cargo handling, pilotage, and container crane operations suspended indefinitely.",
+    details: "Vessels at berth directed to double mooring hawsers. Outer anchorage vessels directed to heave anchor and steam to open deep-sea waters to avoid dragging anchor.",
   },
   {
-    district: "Bhadrak",
-    state: "Odisha",
-    color: "ORANGE",
-    windGustKph: "100–120",
-    surgeM: "1.8m – 2.5m",
-    action: "Pre-position NDRF boats and power restoration taskforces.",
-    vulnerablePop: "140,000",
+    id: "ev-3",
+    time: "01:00 UTC · T-5H",
+    source: "INCOIS / NDMA",
+    severity: "HIGH",
+    title: "Storm Surge Inundation Watch Issued for Revdanda & Alibag Creeks",
+    summary: "Hydrodynamic surge modeling projects water runup penetrating 1.8 km inland.",
+    details: "Evacuation of 4,820 residents from Kutcha coastal housing to designated MPCS facilities in Ward 1 and Ward 2 completed by SDRF/NDRF 5th Battalion.",
   },
   {
-    district: "East Medinipur (Digha)",
-    state: "West Bengal",
-    color: "ORANGE",
-    windGustKph: "90–115",
-    surgeM: "1.5m – 2.2m",
-    action: "Beachfront access prohibited. Coastal tourist resorts evacuated.",
-    vulnerablePop: "165,000",
-  },
-  {
-    district: "Puri",
-    state: "Odisha",
-    color: "YELLOW",
-    windGustKph: "75–90",
-    surgeM: "0.8m – 1.4m",
-    action: "Continuous monitoring; fishermen banned from entering sea.",
-    vulnerablePop: "95,000",
+    id: "ev-4",
+    time: "21:00 UTC (T-9H)",
+    source: "District Disaster Management Authority (Raigad)",
+    severity: "MEDIUM",
+    title: "Pre-Evacuation Advisory and Highway Traffic Diversion Notice",
+    summary: "Coastal causeway Beta closed to vehicular traffic; Route Alpha designated primary corridor.",
+    details: "Medical triage centers activated at Alibag Civil Hospital and Pen Sub-district Hospital. Emergency diesel generation reserves confirmed at 100% across all 28 shelters.",
   },
 ];
 
@@ -126,300 +130,241 @@ export default function BulletinsPage({
   lon,
   windKph,
   pressureHpa,
-  headingDeg,
-  speedKph,
-  mlResult,
   onNavigateToCommand,
 }: BulletinsPageProps) {
-  const [activeTab, setActiveTab] = useState<"sitrep" | "ports" | "fishermen" | "districts">("sitrep");
-  const bulletinTimestamp = new Date().toUTCString();
+  const [expandedEventId, setExpandedEventId] = useState<string>("ev-1");
+  const [activeSignalFilter, setActiveSignalFilter] = useState<string>("ALL");
 
-  const handlePrint = () => {
+  const handlePrintSitrep = () => {
     window.print();
   };
 
   return (
-    <div className="page-container">
-      {/* Header */}
-      <div className="page-header">
-        <div>
-          <div className="page-tag">
-            <AlertOctagon size={14} className="text-red-400 animate-pulse" />
-            <span>OFFICIAL EMERGENCY BULLETINS & SITREP</span>
-          </div>
-          <h1 className="page-title">National Warning Bulletins & Port Signals</h1>
-          <p className="page-subtitle">
-            Synchronized coastal disaster advisories, port warning signal flags, deep-sea marine warnings, and printable incident situation reports.
-          </p>
-        </div>
+    <div className="op-showcase-root">
+      <div className="op-showcase-container">
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handlePrint}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition"
-          >
-            <Printer size={14} />
-            <span>Print SITREP</span>
-          </button>
-          <button
-            onClick={onNavigateToCommand}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition shadow-lg shadow-cyan-900/50"
-          >
-            <MapPin size={14} />
-            <span>Open Tactical Map</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex bg-slate-900/80 p-1 rounded-xl border border-slate-800 mb-6 max-w-xl">
-        <button
-          onClick={() => setActiveTab("sitrep")}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition ${
-            activeTab === "sitrep" ? "bg-cyan-600 text-white shadow-md shadow-cyan-900/50" : "text-slate-400 hover:text-slate-200"
-          }`}
-        >
-          <FileText size={14} />
-          <span>Official SITREP</span>
-        </button>
-        <button
-          onClick={() => setActiveTab("ports")}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition ${
-            activeTab === "ports" ? "bg-cyan-600 text-white shadow-md shadow-cyan-900/50" : "text-slate-400 hover:text-slate-200"
-          }`}
-        >
-          <Anchor size={14} />
-          <span>Port Warning Flags</span>
-        </button>
-        <button
-          onClick={() => setActiveTab("districts")}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition ${
-            activeTab === "districts" ? "bg-cyan-600 text-white shadow-md shadow-cyan-900/50" : "text-slate-400 hover:text-slate-200"
-          }`}
-        >
-          <ShieldAlert size={14} />
-          <span>District Alerts</span>
-        </button>
-        <button
-          onClick={() => setActiveTab("fishermen")}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition ${
-            activeTab === "fishermen" ? "bg-cyan-600 text-white shadow-md shadow-cyan-900/50" : "text-slate-400 hover:text-slate-200"
-          }`}
-        >
-          <Fish size={14} />
-          <span>Fishermen Marine</span>
-        </button>
-      </div>
-
-      {/* SITREP VIEW */}
-      {activeTab === "sitrep" && (
-        <div className="analytics-card print:border-none print:shadow-none bg-slate-950/90 border border-slate-800">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
-            <div>
-              <div className="text-[11px] font-mono text-cyan-400 tracking-wider">CYCLONEX NATIONAL CYCLONE WARNING CENTRE (RSMC)</div>
-              <h2 className="text-xl font-bold text-white tracking-tight mt-0.5">
-                CYCLONE SITUATION REPORT (SITREP) — {stormName.toUpperCase()}
-              </h2>
+        {/* Editorial Header */}
+        <div className="op-editorial-header" style={{ marginBottom: "20px" }}>
+          <div>
+            <div className="op-section-kicker">
+              <AlertOctagon size={12} style={{ display: "inline", marginRight: "6px" }} />
+              OPERATIONAL SITUATION LOG &middot; NDMA SITREP
             </div>
-            <div className="text-right">
-              <div className="text-xs font-mono text-slate-300">BULLETIN NO: CX-NIO-04</div>
-              <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1 justify-end">
-                <Clock size={11} /> {bulletinTimestamp}
+            <h1 className="op-section-title" style={{ fontSize: "28px" }}>
+              Port Warnings &amp; Operational Stream
+            </h1>
+            <p className="op-section-desc" style={{ marginBottom: "0" }}>
+              Real-time maritime advisory stream, Indian Maritime Board Port Warning Signals (1–11),
+              and official printable NDMA Situation Reports (SITREP).
+            </p>
+          </div>
+
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <button
+              type="button"
+              className="op-btn-secondary"
+              onClick={onNavigateToCommand}
+              style={{ fontSize: "12px", padding: "8px 14px" }}
+            >
+              <Activity size={13} />
+              <span>Tactical Map Console</span>
+            </button>
+            <button
+              type="button"
+              className="op-btn-primary"
+              onClick={handlePrintSitrep}
+              style={{ fontSize: "12px", padding: "8px 14px" }}
+            >
+              <Printer size={13} />
+              <span>Print Official SITREP</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Top Active Port Signal Banner */}
+        <div style={{
+          background: "rgba(239, 68, 68, 0.08)",
+          border: "1px solid rgba(239, 68, 68, 0.3)",
+          borderRadius: "4px",
+          padding: "16px 20px",
+          marginBottom: "24px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "14px"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+            <div style={{
+              width: "44px",
+              height: "44px",
+              background: "#ef4444",
+              borderRadius: "4px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#ffffff",
+              fontWeight: 800,
+              fontSize: "16px",
+              fontFamily: "'JetBrains Mono', monospace"
+            }}>
+              X
+            </div>
+            <div>
+              <div style={{ fontSize: "13.5px", fontWeight: 800, color: "#ffffff" }}>
+                GREAT DANGER SIGNAL NO. 10 ACTIVE
+              </div>
+              <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>
+                Ports of JNPT &amp; Mumbai Anchorage under direct landfall trajectory &middot; All marine operations suspended
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800 mb-6 text-xs">
-            <div>
-              <span className="text-slate-400 block">Observed Center</span>
-              <span className="text-white font-mono font-bold text-sm">
-                {lat.toFixed(2)}°N, {lon.toFixed(2)}°E
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-400 block">Sustained Wind Speed</span>
-              <span className="text-cyan-400 font-mono font-bold text-sm">
-                {windKph} km/h ({Math.round(windKph / 1.852)} knots)
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-400 block">Central Pressure</span>
-              <span className="text-white font-mono font-bold text-sm">{pressureHpa} hPa</span>
-            </div>
-            <div>
-              <span className="text-slate-400 block">Track Movement</span>
-              <span className="text-emerald-400 font-mono font-bold text-sm">
-                {headingDeg}° @ {speedKph} km/h
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-4 text-xs text-slate-300 leading-relaxed">
-            <div>
-              <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-1 text-cyan-400">1. Intensity & Synoptic Assessment</h3>
-              <p>
-                The Severe Cyclonic Storm <strong>&quot;{stormName}&quot;</strong> over the North-Western Bay of Bengal has maintained steady rapid intensification, exhibiting well-defined CDO cloud curvature with Dvorak T-Number {mlResult?.dvorak_t_number ?? "4.5"}. The Holland pressure deficit indicates central pressure of {pressureHpa} hPa surrounded by strong pressure gradient forces.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-1 text-cyan-400">2. Track & Landfall Trajectory</h3>
-              <p>
-                The system is forecast to continue tracking north-northwestward at ~{speedKph} km/h. Coastal landfall is projected between Paradip and Dhamra Port within the next 18 to 24 hours with peak sustained wind speeds reaching 130–145 km/h gusting to 160 km/h.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-1 text-cyan-400">3. Storm Surge Inundation Warning</h3>
-              <p>
-                Storm surge of height about <strong>2.5 to 4.2 metres</strong> above astronomical tide is likely to inundate low-lying coastal areas of Jagatsinghpur, Kendrapara, and Bhadrak districts during the time of landfall.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-1 text-cyan-400">4. Action Triggered for Disaster Management Authorities</h3>
-              <p>
-                • Total suspension of maritime shipping, fishing, and port cargo handling operations.<br />
-                • Mandatory evacuation of coastal wards within 5 km zone to designated Multipurpose Cyclone Shelters (MPCS).<br />
-                • Pre-positioning of NDRF/SDRF teams with satellite phones and flood rescue zodiac boats.
-              </p>
-            </div>
+          <div style={{ display: "flex", gap: "16px", fontFamily: "'JetBrains Mono', monospace", fontSize: "11px" }}>
+            <div>Vmax: <strong style={{ color: "#38bdf8" }}>{windKph} km/h</strong></div>
+            <div>Pressure: <strong style={{ color: "#f59e0b" }}>{pressureHpa} hPa</strong></div>
+            <div>Status: <strong style={{ color: "#ef4444" }}>RED ALERT</strong></div>
           </div>
         </div>
-      )}
 
-      {/* PORT SIGNALS VIEW */}
-      {activeTab === "ports" && (
-        <div className="space-y-4">
-          <div className="text-xs text-slate-300 mb-2">
-            Standard port warning signals hoisted across Indian Maritime Board and Port Trust harbors in accordance with IMD/MoS guidelines.
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {PORT_SIGNALS.map((port) => (
-              <div
-                key={port.signalNumber}
-                className={`p-4 rounded-xl border ${
-                  port.severity === "critical"
-                    ? "bg-red-950/20 border-red-500/40"
-                    : port.severity === "high"
-                    ? "bg-orange-950/20 border-orange-500/40"
-                    : "bg-slate-900/60 border-slate-800"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-xs font-bold px-2 py-0.5 rounded font-mono ${
-                        port.severity === "critical"
-                          ? "bg-red-500/20 text-red-400"
-                          : port.severity === "high"
-                          ? "bg-orange-500/20 text-orange-400"
-                          : "bg-blue-500/20 text-blue-400"
-                      }`}
+        {/* Main Grid: Operational Timeline Stream (Left) & Port Warning Signals (Right) */}
+        <div className="op-split-grid" style={{ gridTemplateColumns: "1.2fr 0.8fr", gap: "28px" }}>
+          
+          {/* Left: Operational Situation Stream Timeline */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div className="op-technical-panel">
+              <div className="op-tech-panel-header">
+                <div className="op-tech-panel-title">
+                  <Clock size={14} style={{ color: "#38bdf8" }} />
+                  <span>CHRONOLOGICAL SITUATION STREAM</span>
+                </div>
+                <span className="op-tech-panel-badge">LIVE FEED</span>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {OPERATIONAL_EVENTS.map(ev => {
+                  const isExpanded = ev.id === expandedEventId;
+                  const sevColor = ev.severity === "CRITICAL" ? "#ef4444" : ev.severity === "HIGH" ? "#f59e0b" : "#38bdf8";
+
+                  return (
+                    <div
+                      key={ev.id}
+                      onClick={() => setExpandedEventId(isExpanded ? "" : ev.id)}
+                      style={{
+                        padding: "12px 14px",
+                        background: isExpanded ? "rgba(56, 189, 248, 0.05)" : "rgba(255, 255, 255, 0.02)",
+                        border: "1px solid",
+                        borderColor: isExpanded ? "#38bdf8" : "rgba(255, 255, 255, 0.06)",
+                        borderLeft: `3px solid ${sevColor}`,
+                        borderRadius: "3px",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease"
+                      }}
                     >
-                      SIGNAL {port.signalNumber} ({port.flagCode})
-                    </span>
-                    <h3 className="text-sm font-semibold text-white">{port.name}</h3>
-                  </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                        <span style={{ fontSize: "10px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
+                          {ev.time} &middot; {ev.source}
+                        </span>
+                        <span style={{ fontSize: "9px", fontFamily: "'JetBrains Mono', monospace", color: sevColor, fontWeight: 700 }}>
+                          {ev.severity}
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: "12.5px", fontWeight: 700, color: isExpanded ? "#ffffff" : "#cbd5e1", marginBottom: "4px" }}>
+                        {ev.title}
+                      </div>
+
+                      <div style={{ fontSize: "11px", color: "#94a3b8" }}>
+                        {ev.summary}
+                      </div>
+
+                      {isExpanded && (
+                        <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: "1px solid rgba(255,255,255,0.06)", fontSize: "11px", color: "#64748b", lineHeight: 1.55 }}>
+                          {ev.details}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Port Warning Signals Matrix & Marine Directives */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            
+            {/* Port Signals Matrix */}
+            <div className="op-technical-panel">
+              <div className="op-tech-panel-header">
+                <div className="op-tech-panel-title">
+                  <Anchor size={14} style={{ color: "#38bdf8" }} />
+                  <span>PORT WARNING SIGNALS (1–11)</span>
                 </div>
+                <span className="op-tech-panel-badge">MARITIME BOARD</span>
+              </div>
 
-                <p className="text-xs text-slate-300 mb-3 leading-relaxed">{port.meaning}</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {PORT_SIGNALS.map(ps => {
+                  const sevColor = ps.severity === "critical" ? "#ef4444" : ps.severity === "high" ? "#f59e0b" : ps.severity === "medium" ? "#38bdf8" : "#10b981";
 
-                <div className="pt-2 border-t border-slate-800/80">
-                  <span className="text-[11px] text-slate-400 block mb-1">Affected Ports:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {port.ports.map((p) => (
-                      <span key={p} className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700 font-mono">
-                        {p}
-                      </span>
-                    ))}
-                  </div>
+                  return (
+                    <div
+                      key={ps.signalNumber}
+                      className="op-port-signal-card"
+                      style={{ borderLeft: `3px solid ${sevColor}` }}
+                    >
+                      <div className="op-port-signal-flag" style={{ background: sevColor, color: "#ffffff" }}>
+                        {ps.signalNumber}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: "11.5px", fontWeight: 700, color: "#ffffff", marginBottom: "2px" }}>
+                          {ps.name}
+                        </div>
+                        <div style={{ fontSize: "10px", color: "#94a3b8", marginBottom: "4px" }}>
+                          Ports: {ps.ports.join(", ")}
+                        </div>
+                        <div style={{ fontSize: "10.5px", color: "#64748b", lineHeight: 1.4 }}>
+                          {ps.meaning}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Marine Prohibition Notice */}
+            <div className="op-technical-panel">
+              <div className="op-tech-panel-header">
+                <div className="op-tech-panel-title">
+                  <Fish size={14} style={{ color: "#ef4444" }} />
+                  <span>FISHERIES MARINE PROHIBITION</span>
+                </div>
+                <span className="op-tech-panel-badge" style={{ color: "#ef4444", borderColor: "#ef4444" }}>ENFORCED</span>
+              </div>
+
+              <div style={{ fontSize: "11.5px", color: "#94a3b8", lineHeight: 1.5, marginBottom: "10px" }}>
+                Complete ban on deep-sea and coastal mechanized fishing along Maharashtra and South Gujarat coasts
+                until further notice.
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "10px", fontFamily: "'JetBrains Mono', monospace" }}>
+                <div style={{ padding: "6px", background: "#03060a", border: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div style={{ color: "#64748b" }}>HARBOR RECALL</div>
+                  <div style={{ color: "#10b981", fontWeight: 700 }}>100% BOATS IN PORT</div>
+                </div>
+                <div style={{ padding: "6px", background: "#03060a", border: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div style={{ color: "#64748b" }}>COAST GUARD PATROL</div>
+                  <div style={{ color: "#38bdf8", fontWeight: 700 }}>ACTIVE AIR/SEA</div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* DISTRICT ALERTS VIEW */}
-      {activeTab === "districts" && (
-        <div className="analytics-card">
-          <h2 className="text-base font-bold text-white mb-4">District-Level Cyclone Hazard Matrix</h2>
-          <div className="overflow-x-auto">
-            <table className="forecast-table">
-              <thead>
-                <tr>
-                  <th>District / State</th>
-                  <th>Alert Level</th>
-                  <th>Wind Gusts</th>
-                  <th>Expected Surge</th>
-                  <th>Vulnerable Population</th>
-                  <th>Mandated Response</th>
-                </tr>
-              </thead>
-              <tbody>
-                {DISTRICT_ALERTS.map((dist) => (
-                  <tr key={dist.district}>
-                    <td className="font-semibold text-white">
-                      {dist.district}, <span className="text-slate-400 font-normal">{dist.state}</span>
-                    </td>
-                    <td>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          dist.color === "RED"
-                            ? "bg-red-500/20 text-red-400 border border-red-500/40"
-                            : dist.color === "ORANGE"
-                            ? "bg-orange-500/20 text-orange-400 border border-orange-500/40"
-                            : "bg-yellow-500/20 text-yellow-400 border border-yellow-500/40"
-                        }`}
-                      >
-                        {dist.color} ALERT
-                      </span>
-                    </td>
-                    <td className="font-mono text-cyan-400">{dist.windGustKph} km/h</td>
-                    <td className="font-mono text-amber-400">{dist.surgeM}</td>
-                    <td className="font-mono text-slate-200">{dist.vulnerablePop}</td>
-                    <td className="text-xs text-slate-300 max-w-xs">{dist.action}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* FISHERMEN VIEW */}
-      {activeTab === "fishermen" && (
-        <div className="space-y-4">
-          <div className="p-4 rounded-xl border border-red-500/40 bg-red-950/20 flex items-start gap-3">
-            <AlertTriangle className="text-red-400 flex-shrink-0 mt-0.5" size={20} />
-            <div>
-              <h3 className="text-sm font-bold text-red-300">TOTAL PROHIBITION OF SEA VENTURING (ODISHA & WEST BENGAL COASTS)</h3>
-              <p className="text-xs text-slate-300 mt-1">
-                Sea condition will be <strong>HIGH to PHENOMENAL</strong> over North and adjoining Central Bay of Bengal. Fishermen are strictly advised not to venture into North and Westcentral Bay of Bengal. Those out at deep sea are advised to return to coast immediately.
-              </p>
             </div>
+
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-              <h4 className="text-xs font-bold text-slate-300 uppercase mb-2">North Bay of Bengal</h4>
-              <div className="text-sm font-bold text-red-400 mb-1">PHENOMENAL (Wave Ht &gt; 9.0m)</div>
-              <p className="text-xs text-slate-400">Zero maritime navigation permitted. Heavy rolling and extreme spray.</p>
-            </div>
-            <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-              <h4 className="text-xs font-bold text-slate-300 uppercase mb-2">Westcentral Bay of Bengal</h4>
-              <div className="text-sm font-bold text-orange-400 mb-1">VERY HIGH (Wave Ht 6.0m – 9.0m)</div>
-              <p className="text-xs text-slate-400">Dangerous squalls with wind force 9 to 11 on Beaufort Scale.</p>
-            </div>
-            <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-              <h4 className="text-xs font-bold text-slate-300 uppercase mb-2">South Andhra Coast</h4>
-              <div className="text-sm font-bold text-yellow-400 mb-1">ROUGH (Wave Ht 2.5m – 4.0m)</div>
-              <p className="text-xs text-slate-400">Small craft advisory in effect. Caution advised near harbor entrances.</p>
-            </div>
-          </div>
         </div>
-      )}
+
+      </div>
     </div>
   );
 }

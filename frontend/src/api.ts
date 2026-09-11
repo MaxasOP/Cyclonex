@@ -560,20 +560,40 @@ export interface AICycloneAnalysisResponse {
     cyclone_detected: boolean;
     confidence: number;
     center: { latitude: number; longitude: number };
+    method?: string;
   };
   classification: {
     pattern: string;
     confidence: number;
     probabilities: Record<string, number>;
+    dvorak?: {
+      warmest_eye_k?: number;
+      coldest_eyewall_k?: number;
+      eye_eyewall_contrast_k?: number;
+      cdo_circularity?: number;
+      automated_dvorak_ci?: number;
+      dvorak_t_number?: string;
+    };
+    method?: string;
+  };
+  rapid_intensification?: {
+    probability: number;
+    is_ri_expected: boolean;
+    threshold_knots_24h: number;
+    warning_level: string;
+    drivers?: string[];
   };
   current_conditions: {
     wind_speed_kmh: number;
     pressure_hpa: number;
+    sst_c?: number;
+    shear_kt?: number;
   };
   prediction: {
     "6h": { wind_speed_kmh: number; pressure_hpa: number };
     "12h": { wind_speed_kmh: number; pressure_hpa: number };
     "24h": { wind_speed_kmh: number; pressure_hpa: number };
+    "48h"?: { wind_speed_kmh: number; pressure_hpa: number };
   };
   track_forecast: Array<{
     hours: number;
@@ -583,6 +603,11 @@ export interface AICycloneAnalysisResponse {
     pressure_hpa: number;
     uncertainty_km: number;
   }>;
+  explainability?: {
+    method: string;
+    target_class: string;
+    attention_grid_28x28?: number[][];
+  };
   risk_integration: {
     grid_updated: boolean;
     building_risk_updated: boolean;
@@ -591,6 +616,7 @@ export interface AICycloneAnalysisResponse {
   model_status: {
     detection: string;
     classification: string;
+    rapid_intensification?: string;
     intensity: string;
   };
   scenario_id?: string;
@@ -609,4 +635,15 @@ export async function analyzeAICyclone(data: AICycloneAnalysisRequest): Promise<
     return null;
   }
 }
+
+export async function fetchAIModelsStatus(): Promise<Record<string, unknown> | null> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/ai/models-status`);
+    if (!response.ok) return null;
+    return response.json() as Promise<Record<string, unknown>>;
+  } catch {
+    return null;
+  }
+}
+
 
