@@ -675,9 +675,13 @@ export default function App() {
     }
   }
 
-  const mapCenter = scenario?.input
-    ? { lat: scenario.input.center_lat, lng: scenario.input.center_lon }
-    : { lat: Number(form.lat || 21.62), lng: Number(form.lon || 87.51) };
+  const mapCenter = useMemo(
+    () => ({
+      lat: Number(form.lat) || 21.62,
+      lng: Number(form.lon) || 87.51,
+    }),
+    [form.lat, form.lon]
+  );
 
   const currentForecast: ForecastHorizon | null = mlResult
     ? mlResult[`forecast_${selectedHorizon}h`]
