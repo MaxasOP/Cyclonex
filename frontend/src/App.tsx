@@ -447,6 +447,52 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
+  // Interactive Location Search & Dropdown State
+  const [searchLocationQuery, setSearchLocationQuery] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const coastalLocations = useMemo(
+    () => [
+      { name: "Digha, West Bengal", lat: "21.6235", lon: "87.5220", presetKey: "landfall_amphan" },
+      { name: "Puri, Odisha", lat: "19.8035", lon: "85.8280", presetKey: "landfall_fani" },
+      { name: "Visakhapatnam, Andhra Pradesh", lat: "17.6868", lon: "83.2185", presetKey: "landfall_hudhud" },
+      { name: "Paradeep Port, Odisha", lat: "20.3164", lon: "86.6105", presetKey: "landfall_fani" },
+      { name: "Kolkata, West Bengal", lat: "22.5726", lon: "88.3639", presetKey: "landfall_amphan" },
+      { name: "Chennai Port, Tamil Nadu", lat: "13.0827", lon: "80.2707", presetKey: "custom" },
+      { name: "Kakinada Coast, AP", lat: "16.9891", lon: "82.2475", presetKey: "custom" },
+      { name: "Bhubaneswar Sector, Odisha", lat: "20.2961", lon: "85.8245", presetKey: "landfall_fani" },
+      { name: "Balasore Coastal Belt, Odisha", lat: "21.4934", lon: "86.9135", presetKey: "landfall_amphan" },
+      { name: "Bhadrak / Dhamra Port, Odisha", lat: "20.7964", lon: "86.8835", presetKey: "landfall_amphan" },
+      { name: "Kakdwip / Sundarbans, WB", lat: "21.8770", lon: "88.1887", presetKey: "landfall_amphan" },
+      { name: "Haldia Port, West Bengal", lat: "22.0620", lon: "88.0776", presetKey: "landfall_amphan" },
+    ],
+    []
+  );
+
+  const filteredLocations = useMemo(() => {
+    if (!searchLocationQuery.trim()) return coastalLocations;
+    const q = searchLocationQuery.toLowerCase();
+    return coastalLocations.filter((loc) => loc.name.toLowerCase().includes(q));
+  }, [searchLocationQuery, coastalLocations]);
+
+  // Keyboard Shortcuts: 1 (2D), 2 (Real 3D), 3 (Globe), Esc (Close panels)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (e.key === "1") setViewDimension("2d");
+      if (e.key === "2") setViewDimension("real3d");
+      if (e.key === "3") setViewDimension("globe");
+      if (e.key === "Escape") {
+        setSelectedCell(null);
+        setIsSearchOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   // AI Cyclone Analysis State
   const [showAiLayer, setShowAiLayer] = useState(true);
   const [aiAnalysis, setAiAnalysis] = useState<AICycloneAnalysisResponse | null>(null);
@@ -830,6 +876,43 @@ export default function App() {
         </div>
 
         <div className="header-meta">
+          {/* Instant Coastal District Search Bar */}
+          <div className="search-location-box">
+            <span className="search-location-icon">🔍</span>
+            <input
+              type="text"
+              className="search-location-input"
+              placeholder="Search coastal district... (e.g. Digha, Puri, Vizag)"
+              value={searchLocationQuery}
+              onChange={(e) => {
+                setSearchLocationQuery(e.target.value);
+                setIsSearchOpen(true);
+              }}
+              onFocus={() => setIsSearchOpen(true)}
+            />
+            {isSearchOpen && filteredLocations.length > 0 && (
+              <div className="search-dropdown-menu">
+                {filteredLocations.map((loc) => (
+                  <div
+                    key={loc.name}
+                    className="search-dropdown-item"
+                    onClick={() => {
+                      setForm((prev) => ({ ...prev, lat: loc.lat, lon: loc.lon }));
+                      setSearchLocationQuery(loc.name);
+                      setIsSearchOpen(false);
+                      void handlePresetChange(loc.presetKey as keyof typeof presets);
+                    }}
+                  >
+                    <span>📍 {loc.name}</span>
+                    <span style={{ fontSize: "10px", color: "#90a4ae", fontFamily: "monospace" }}>
+                      {loc.lat}°N, {loc.lon}°E
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="time-display">
             <span className="time-label">LIVE OPERATIONS TIME</span>
             <span className="time-value">{currentTimeIST}</span>
@@ -902,31 +985,93 @@ export default function App() {
             </div>
 
             <div className="subbar-right">
+              {/* 1-Click Interactive Viewport Dimension Switcher */}
+              <div style={{ display: "flex", gap: "4px", background: "rgba(15, 23, 42, 0.6)", padding: "3px", borderRadius: "6px", border: "1px solid #cbd5e1" }}>
+                <button
+                  type="button"
+                  onClick={() => setViewDimension("2d")}
+                  style={{
+                    padding: "3px 8px",
+                    borderRadius: "4px",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    background: viewDimension === "2d" ? "#1769aa" : "transparent",
+                    color: viewDimension === "2d" ? "#ffffff" : "#475569",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                  title="Press '1' key for 2D Spatial Risk Map"
+                >
+                  🗺️ 2D Grid <span className="kbd-pill">1</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewDimension("real3d")}
+                  style={{
+                    padding: "3px 8px",
+                    borderRadius: "4px",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    background: viewDimension === "real3d" ? "#1769aa" : "transparent",
+                    color: viewDimension === "real3d" ? "#ffffff" : "#475569",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                  title="Press '2' key for 3D City CAD Dossier"
+                >
+                  🏢 3D City <span className="kbd-pill">2</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewDimension("globe")}
+                  style={{
+                    padding: "3px 8px",
+                    borderRadius: "4px",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    background: viewDimension === "globe" ? "#1769aa" : "transparent",
+                    color: viewDimension === "globe" ? "#ffffff" : "#475569",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                  title="Press '3' key for Global 3D Globe"
+                >
+                  🌐 3D Globe <span className="kbd-pill">3</span>
+                </button>
+              </div>
+
               {realtimeWeather && (
                 <span
                   className="badge badge-info"
                   style={{
-                    background: "rgba(6, 182, 212, 0.2)",
-                    borderColor: "#38bdf8",
-                    color: "#38bdf8",
+                    background: "#e0f2fe",
+                    borderColor: "#0284c7",
+                    color: "#0369a1",
                     cursor: "pointer",
+                    fontWeight: 700,
                   }}
                   onClick={() => setIsNewsPanelOpen(true)}
                   title="Click to view live weather telemetry & news panel"
                 >
-                  🔴 REALTIME LIVE: {realtimeWeather.wind_speed_kph} km/h · {realtimeWeather.surface_pressure_hpa} hPa
+                  🔴 LIVE WEATHER: {realtimeWeather.wind_speed_kph} km/h · {realtimeWeather.surface_pressure_hpa} hPa
                 </span>
               )}
-              <span className="badge badge-info">
-                {datasetSummary ? `${datasetSummary.model_status}` : "SYSTEM ONLINE"}
-              </span>
               <button
                 type="button"
                 className="btn-print-top"
                 onClick={() => setIsNewsPanelOpen(true)}
                 style={{ background: "#0284c7", color: "#fff", borderColor: "#38bdf8" }}
               >
-                📰 News Panel & Scraping
+                📰 Bulletins
               </button>
               <button
                 type="button"
