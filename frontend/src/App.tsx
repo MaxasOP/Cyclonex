@@ -9,6 +9,7 @@ import {
   fetchZones,
   runMLInference,
   fetchRealtimeWeather,
+  analyzeAICyclone,
   type BuildingFeature,
   type CycloneShelter,
   type DatasetSummary,
@@ -19,9 +20,11 @@ import {
   type ScenarioResult,
   type ZoneFeature,
   type RealtimeWeather,
+  type AICycloneAnalysisResponse,
 } from "./api";
 import RiskMap, { type MapAnalysisMode } from "./RiskMap";
 import NewsPanel from "./NewsPanel";
+import AICyclonePanel from "./AICyclonePanel";
 
 // Safe min/max for large arrays to avoid "Maximum call stack size exceeded"
 // caused by Math.min(...arr) / Math.max(...arr) with spread on very large arrays.
@@ -411,6 +414,28 @@ export default function App() {
   const [selectedCell, setSelectedCell] = useState<FullCellAnalysis | null>(null);
   const [showDevPanel, setShowDevPanel] = useState(false);
 
+  // AI Cyclone Analysis State
+  const [showAiLayer, setShowAiLayer] = useState(true);
+  const [aiAnalysis, setAiAnalysis] = useState<AICycloneAnalysisResponse | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  async function handleRunAiAnalysis(latNum?: number, lonNum?: number, windNum?: number, presNum?: number) {
+    setAiLoading(true);
+    try {
+      const res = await analyzeAICyclone({
+        latitude: latNum ?? Number(form.lat) || 21.62,
+        longitude: lonNum ?? Number(form.lon) || 87.51,
+        wind_speed: windNum ?? Number(form.wind) || 165,
+        pressure: presNum ?? Number(form.pressure) || 950,
+      });
+      if (res) setAiAnalysis(res);
+    } catch (e) {
+      console.error("Error running AI cyclone analysis:", e);
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   async function runFullPipeline(
     latStr: string,
     lonStr: string,
@@ -443,6 +468,7 @@ export default function App() {
       });
       setMlResult(res);
       void fetchDatasetSummary().then(setDatasetSummary);
+      void handleRunAiAnalysis(lat, lon, wind, pressure);
 
       const horizonData = res[`forecast_${selectedHorizon}h`] || res.forecast_24h;
 
@@ -1010,6 +1036,16 @@ export default function App() {
                   {loading ? "Calculating..." : "📊 Generate Damage Map"}
                 </button>
               </form>
+
+              {showAiLayer && (
+                <div style={{ marginBottom: "16px" }}>
+                  <AICyclonePanel
+                    analysis={aiAnalysis}
+                    loading={aiLoading}
+                    onAnalyze={() => void handleRunAiAnalysis()}
+                  />
+                </div>
+              )}
 
               {mlResult && (
                 <div style={{ marginTop: "18px" }}>
@@ -1813,6 +1849,10 @@ export default function App() {
               <label className="ribbon-toggle" title="Toggle MPCS Shelters layer">
                 <input type="checkbox" checked={showShelters} onChange={(e) => setShowShelters(e.target.checked)} />
                 <span>Shelters ({sheltersPlan?.shelters.length ?? 0})</span>
+              </label>
+              <label className="ribbon-toggle" title="Toggle AI Cyclone Analysis Layer">
+                <input type="checkbox" checked={showAiLayer} onChange={(e) => setShowAiLayer(e.target.checked)} />
+                <span>🤖 AI Layer</span>
               </label>
               <span className="active-mode-indicator">
                 <span className="indicator-pulse" />

@@ -38,6 +38,7 @@ from news_service import (
     get_news_sources,
     scrape_all_active_sources,
 )
+from ai_cyclone_service import ai_service, CycloneAnalysisRequest
 
 app = FastAPI(
     title="CYCLONEX Ocean Data Service",
@@ -209,6 +210,33 @@ def _containing_risk_cell(point: tuple[float, float], features: list[dict]) -> d
         if west <= lon <= east and south <= lat <= north:
             return feature
     return None
+
+
+@app.post("/api/ai/analyze-cyclone")
+def analyze_cyclone_ai(req: CycloneAnalysisRequest):
+    """Multi-source satellite AI identification, pattern classification & intensity/track prediction."""
+    res = ai_service.analyze_cyclone(req)
+    
+    # Connect directly to risk engine to update 200m spatial damage grid & risk layers
+    try:
+        scn_input = ScenarioInput(
+            name=f"AI Analysis ({res['classification']['pattern']})",
+            center_lat=req.latitude,
+            center_lon=req.longitude,
+            max_wind_kph=req.wind_speed,
+            central_pressure_hpa=req.pressure,
+            heading_deg=315.0,
+            speed_kph=25.0,
+            rain_rate_mm_hr=75.0,
+            storm_surge_m=2.8,
+            field_radius_km=30.0,
+        )
+        scn_res = create_scenario(scn_input)
+        res["scenario_id"] = scn_res["id"]
+    except Exception as e:
+        print(f"[AI ENDPOINT WARN] Could not trigger scenario risk engine: {e}")
+
+    return res
 
 
 @app.post("/api/v2/scenarios", status_code=201)

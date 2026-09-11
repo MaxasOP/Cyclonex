@@ -520,3 +520,74 @@ export async function fetchRealtimeWeather(lat: number, lon: number): Promise<Re
   }
 }
 
+export interface AICycloneAnalysisRequest {
+  satellite_images?: {
+    visible?: string;
+    infrared?: string;
+    water_vapor?: string;
+    microwave?: string;
+  };
+  latitude: number;
+  longitude: number;
+  wind_speed: number;
+  pressure: number;
+  timestamp?: string;
+}
+
+export interface AICycloneAnalysisResponse {
+  status: string;
+  active_channels: string[];
+  identification: {
+    cyclone_detected: boolean;
+    confidence: number;
+    center: { latitude: number; longitude: number };
+  };
+  classification: {
+    pattern: string;
+    confidence: number;
+    probabilities: Record<string, number>;
+  };
+  current_conditions: {
+    wind_speed_kmh: number;
+    pressure_hpa: number;
+  };
+  prediction: {
+    "6h": { wind_speed_kmh: number; pressure_hpa: number };
+    "12h": { wind_speed_kmh: number; pressure_hpa: number };
+    "24h": { wind_speed_kmh: number; pressure_hpa: number };
+  };
+  track_forecast: Array<{
+    hours: number;
+    latitude: number;
+    longitude: number;
+    wind_speed_kmh: number;
+    pressure_hpa: number;
+    uncertainty_km: number;
+  }>;
+  risk_integration: {
+    grid_updated: boolean;
+    building_risk_updated: boolean;
+    storm_surge_updated: boolean;
+  };
+  model_status: {
+    detection: string;
+    classification: string;
+    intensity: string;
+  };
+  scenario_id?: string;
+}
+
+export async function analyzeAICyclone(data: AICycloneAnalysisRequest): Promise<AICycloneAnalysisResponse | null> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/ai/analyze-cyclone`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) return null;
+    return response.json() as Promise<AICycloneAnalysisResponse>;
+  } catch {
+    return null;
+  }
+}
+

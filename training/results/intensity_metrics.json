@@ -1,0 +1,10 @@
+{
+  "mae_wind_6h": 113.224,
+  "mae_pressure_6h": 63.262,
+  "mae_wind_12h": 32.904,
+  "mae_pressure_12h": 919.582,
+  "mae_wind_24h": 898.667,
+  "mae_pressure_24h": 873.043,
+  "overall_mae": 483.447,
+  "overall_rmse": 486.355
+}

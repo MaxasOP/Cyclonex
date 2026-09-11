@@ -1,0 +1,64 @@
+{
+  "accuracy": 0.6957,
+  "precision_macro": 0.5119,
+  "recall_macro": 0.6667,
+  "f1_macro": 0.5791,
+  "confusion_matrix": [
+    [
+      0,
+      3,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      4,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      4,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      4,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      4,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      4,
+      0
+    ]
+  ],
+  "classes": [
+    "curved_band",
+    "central_dense_overcast",
+    "eye_formation",
+    "mature_eye",
+    "sheared_system",
+    "weakening_system"
+  ]
+}
