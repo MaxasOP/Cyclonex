@@ -1,5 +1,12 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import LandingPage from "./LandingPage";
+import AILabPage from "./pages/AILabPage";
+import ForecastPage from "./pages/ForecastPage";
+import RiskEvacuationPage from "./pages/RiskEvacuationPage";
+import HistoricalAnalyticsPage from "./pages/HistoricalAnalyticsPage";
+import DataSourcesPage from "./pages/DataSourcesPage";
+import DocumentationPage from "./pages/DocumentationPage";
+import BulletinsPage from "./pages/BulletinsPage";
 import {
   createScenario,
   fetchBuildings,
@@ -25,6 +32,30 @@ import {
 import RiskMap, { type MapAnalysisMode } from "./RiskMap";
 import NewsPanel from "./NewsPanel";
 import AICyclonePanel from "./AICyclonePanel";
+
+export type AppPage =
+  | "landing"
+  | "app"
+  | "ai-lab"
+  | "forecast"
+  | "evacuation"
+  | "analytics"
+  | "data-sources"
+  | "docs"
+  | "bulletins";
+
+function getPageFromHash(): AppPage {
+  const hash = window.location.hash.replace("#", "").toLowerCase();
+  if (hash === "landing") return "landing";
+  if (hash === "ai-lab" || hash === "ailab") return "ai-lab";
+  if (hash === "forecast") return "forecast";
+  if (hash === "evacuation" || hash === "shelters" || hash === "risk") return "evacuation";
+  if (hash === "analytics" || hash === "historical") return "analytics";
+  if (hash === "data-sources" || hash === "datasources" || hash === "api") return "data-sources";
+  if (hash === "docs" || hash === "documentation") return "docs";
+  if (hash === "bulletins" || hash === "sitrep") return "bulletins";
+  return "app";
+}
 
 // Safe min/max for large arrays to avoid "Maximum call stack size exceeded"
 function safeMin(arr: number[], fallback = 0): number {
@@ -265,9 +296,15 @@ function getAccuracyInfo(scorePercent: number) {
 }
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<"landing" | "app">(() => {
-    return window.location.hash === "#landing" ? "landing" : "app";
-  });
+  const [currentView, setCurrentView] = useState<AppPage>(() => getPageFromHash());
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setCurrentView(getPageFromHash());
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
   
   // Single Clean Primary Navigation
   const [activeNavTab, setActiveNavTab] = useState<"risk_map" | "forecast" | "sitrep" | "analytics">("risk_map");
@@ -539,9 +576,9 @@ export default function App() {
     });
   }
 
-  function navigateTo(view: "landing" | "app") {
+  function navigateTo(view: AppPage) {
     setCurrentView(view);
-    window.location.hash = view === "app" ? "#app" : "#landing";
+    window.location.hash = `#${view}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -656,41 +693,75 @@ export default function App() {
         <nav className="primary-nav-bar" aria-label="Primary Platform Navigation">
           <button
             type="button"
-            className={`primary-nav-item ${activeNavTab === "risk_map" ? "active" : ""}`}
+            className={`primary-nav-item ${currentView === "landing" ? "active" : ""}`}
+            onClick={() => navigateTo("landing")}
+          >
+            <span>Overview</span>
+          </button>
+          <button
+            type="button"
+            className={`primary-nav-item ${currentView === "app" ? "active" : ""}`}
             onClick={() => {
               setActiveNavTab("risk_map");
               setAnalysisMode("DAMAGE");
+              navigateTo("app");
             }}
           >
             <IconGrid />
-            <span>Risk Map</span>
+            <span>Tactical Map</span>
           </button>
           <button
             type="button"
-            className={`primary-nav-item ${activeNavTab === "forecast" ? "active" : ""}`}
-            onClick={() => {
-              setActiveNavTab("forecast");
-              setAnalysisMode("WIND");
-            }}
-          >
-            <IconRadar />
-            <span>Storm Forecast</span>
-          </button>
-          <button
-            type="button"
-            className={`primary-nav-item ${activeNavTab === "sitrep" ? "active" : ""}`}
-            onClick={() => setActiveNavTab("sitrep")}
-          >
-            <IconShield />
-            <span>SITREP</span>
-          </button>
-          <button
-            type="button"
-            className={`primary-nav-item ${activeNavTab === "analytics" ? "active" : ""}`}
-            onClick={() => setActiveNavTab("analytics")}
+            className={`primary-nav-item ${currentView === "ai-lab" ? "active" : ""}`}
+            onClick={() => navigateTo("ai-lab")}
           >
             <IconActivity />
+            <span>AI Lab</span>
+          </button>
+          <button
+            type="button"
+            className={`primary-nav-item ${currentView === "forecast" ? "active" : ""}`}
+            onClick={() => navigateTo("forecast")}
+          >
+            <IconRadar />
+            <span>Forecast</span>
+          </button>
+          <button
+            type="button"
+            className={`primary-nav-item ${currentView === "evacuation" ? "active" : ""}`}
+            onClick={() => navigateTo("evacuation")}
+          >
+            <IconShield />
+            <span>Shelters &amp; Risk</span>
+          </button>
+          <button
+            type="button"
+            className={`primary-nav-item ${currentView === "analytics" ? "active" : ""}`}
+            onClick={() => navigateTo("analytics")}
+          >
+            <IconCompass />
             <span>Analytics</span>
+          </button>
+          <button
+            type="button"
+            className={`primary-nav-item ${currentView === "data-sources" ? "active" : ""}`}
+            onClick={() => navigateTo("data-sources")}
+          >
+            <span>Data Feeds</span>
+          </button>
+          <button
+            type="button"
+            className={`primary-nav-item ${currentView === "docs" ? "active" : ""}`}
+            onClick={() => navigateTo("docs")}
+          >
+            <span>Methodology</span>
+          </button>
+          <button
+            type="button"
+            className={`primary-nav-item ${currentView === "bulletins" ? "active" : ""}`}
+            onClick={() => navigateTo("bulletins")}
+          >
+            <span>Port Warnings</span>
           </button>
         </nav>
 
@@ -706,7 +777,7 @@ export default function App() {
           <button
             type="button"
             className="btn-header-action"
-            onClick={() => setIsNewsPanelOpen(true)}
+            onClick={() => navigateTo("bulletins")}
             title="Open Live Cyclone Bulletins"
           >
             📰 Bulletins
@@ -723,10 +794,11 @@ export default function App() {
         </div>
       </header>
 
-      {/* View Switcher: Landing vs Command Console */}
+      {/* View Switcher: Landing vs Specialized Pages vs Command Console */}
       {currentView === "landing" ? (
         <LandingPage
           onLaunchConsole={handleLaunchConsole}
+          onNavigatePage={(page) => navigateTo(page as AppPage)}
           datasetSummary={datasetSummary}
           scenario={scenario}
           buildings={buildings}
@@ -736,6 +808,84 @@ export default function App() {
           mapCenter={mapCenter}
           headingDeg={Number(form.heading || 35)}
           speedKph={Number(form.speed || 22)}
+        />
+      ) : currentView === "ai-lab" ? (
+        <AILabPage
+          analysis={aiAnalysis}
+          loading={aiLoading}
+          onRunAnalysis={handleRunAiAnalysis}
+          stormName={presets[selectedPreset]?.name || form.name}
+          lat={Number(form.lat) || 18.35}
+          lon={Number(form.lon) || 72.98}
+          windKph={Number(form.wind) || 120}
+          pressureHpa={Number(form.pressure) || 984}
+          onNavigateToCommand={(presetKey) => {
+            if (presetKey && presetKey in presets) {
+              void handlePresetChange(presetKey as keyof typeof presets);
+            }
+            navigateTo("app");
+          }}
+        />
+      ) : currentView === "forecast" ? (
+        <ForecastPage
+          mlResult={mlResult}
+          stormName={presets[selectedPreset]?.name || form.name}
+          lat={Number(form.lat) || 18.35}
+          lon={Number(form.lon) || 72.98}
+          windKph={Number(form.wind) || 120}
+          pressureHpa={Number(form.pressure) || 984}
+          headingDeg={Number(form.heading) || 35}
+          speedKph={Number(form.speed) || 22}
+          onNavigateToCommand={(presetKey) => {
+            if (presetKey && presetKey in presets) {
+              void handlePresetChange(presetKey as keyof typeof presets);
+            }
+            navigateTo("app");
+          }}
+        />
+      ) : currentView === "evacuation" ? (
+        <RiskEvacuationPage
+          scenario={scenario}
+          buildings={buildings}
+          sheltersPlan={sheltersPlan}
+          locationName={presets[selectedPreset]?.name || form.name}
+          onNavigateToCommand={(presetKey) => {
+            if (presetKey && presetKey in presets) {
+              void handlePresetChange(presetKey as keyof typeof presets);
+            }
+            navigateTo("app");
+          }}
+          onSelectCity3D={() => {
+            setViewDimension("real3d");
+            navigateTo("app");
+          }}
+        />
+      ) : currentView === "analytics" ? (
+        <HistoricalAnalyticsPage
+          datasetSummary={datasetSummary}
+          onLoadPreset={(presetKey) => {
+            if (presetKey && presetKey in presets) {
+              void handlePresetChange(presetKey as keyof typeof presets);
+            }
+            navigateTo("app");
+          }}
+          onNavigateToCommand={() => navigateTo("app")}
+        />
+      ) : currentView === "data-sources" ? (
+        <DataSourcesPage />
+      ) : currentView === "docs" ? (
+        <DocumentationPage />
+      ) : currentView === "bulletins" ? (
+        <BulletinsPage
+          stormName={presets[selectedPreset]?.name || form.name}
+          lat={Number(form.lat) || 18.35}
+          lon={Number(form.lon) || 72.98}
+          windKph={Number(form.wind) || 120}
+          pressureHpa={Number(form.pressure) || 984}
+          headingDeg={Number(form.heading) || 35}
+          speedKph={Number(form.speed) || 22}
+          mlResult={mlResult}
+          onNavigateToCommand={() => navigateTo("app")}
         />
       ) : (
         <main className="command-workspace-shell">

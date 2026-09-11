@@ -206,6 +206,7 @@ export type CycloneShelter = {
   lat: number;
   lon: number;
   capacity: number;
+  current_occupancy?: number;
   district: string;
   state: string;
   facility_type: string;
@@ -249,6 +250,21 @@ export type BuildingFeature = {
     wind_kph?: number;
     dynamic_pressure_pa?: number;
     load_to_resistance_ratio?: number;
+    effective_wind_loading_n_m2?: number;
+    material?: string;
+    structural_class?: string;
+    floors?: number;
+    data_provenance?: {
+      building_footprint?: string;
+      material?: string;
+      height?: string;
+      resistance_pa?: string;
+      structural_class?: string;
+      modeled?: string[];
+      note?: string;
+      observed?: string[];
+      inferred?: string[];
+    };
     capacity?: number;
     cell_id?: string;
     adjacent_taller_highlight?: string | null;
@@ -256,9 +272,11 @@ export type BuildingFeature = {
 };
 
 export type ForecastHorizon = {
+  horizon_hours: number;
   centre_lat: number;
   centre_lon: number;
   max_sustained_wind_kph: number;
+  max_wind_kph?: number;
   central_pressure_hpa: number;
   track_uncertainty_km: number;
   wind_uncertainty_kph: number;
@@ -267,6 +285,7 @@ export type ForecastHorizon = {
 };
 
 export type MLInferenceResult = {
+  dvorak_t_number?: number;
   model_provenance: {
     model_name: string;
     model_version: string;

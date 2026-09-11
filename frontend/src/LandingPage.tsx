@@ -126,6 +126,7 @@ function IconZap() {
 
 type LandingPageProps = {
   onLaunchConsole: (preset?: string) => void;
+  onNavigatePage?: (page: string) => void;
   datasetSummary: DatasetSummary | null;
   scenario?: ScenarioResult | null;
   buildings?: BuildingFeature[];
@@ -139,6 +140,7 @@ type LandingPageProps = {
 
 export default function LandingPage({
   onLaunchConsole,
+  onNavigatePage,
   datasetSummary,
   scenario,
   buildings = [],
@@ -632,11 +634,13 @@ export default function LandingPage({
           <div className="footer-col">
             <h4>Platform Capabilities</h4>
             <ul>
-              <li><a href="#architecture-section">Satellite Ingestion</a></li>
-              <li><a href="#physics-section">Holland-Rankine Vortex</a></li>
-              <li><a href="#architecture-section">200m Damage Grid</a></li>
-              <li><a href="#benchmarks-section">Shelter Logistics (MPCS)</a></li>
-              <li><a href="#benchmarks-section">NDMA Directive Matrix</a></li>
+              <li><button type="button" onClick={() => onNavigatePage ? onNavigatePage("ai-lab") : window.location.hash = "#ai-lab"} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", padding: 0, font: "inherit", textAlign: "left" }}>AI Satellite Lab</button></li>
+              <li><button type="button" onClick={() => onNavigatePage ? onNavigatePage("forecast") : window.location.hash = "#forecast"} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", padding: 0, font: "inherit", textAlign: "left" }}>Holland Wind Forecast</button></li>
+              <li><button type="button" onClick={() => onNavigatePage ? onNavigatePage("evacuation") : window.location.hash = "#evacuation"} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", padding: 0, font: "inherit", textAlign: "left" }}>Shelters &amp; Evacuation</button></li>
+              <li><button type="button" onClick={() => onNavigatePage ? onNavigatePage("analytics") : window.location.hash = "#analytics"} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", padding: 0, font: "inherit", textAlign: "left" }}>Historical Analytics</button></li>
+              <li><button type="button" onClick={() => onNavigatePage ? onNavigatePage("data-sources") : window.location.hash = "#data-sources"} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", padding: 0, font: "inherit", textAlign: "left" }}>Data Feeds &amp; Telemetry</button></li>
+              <li><button type="button" onClick={() => onNavigatePage ? onNavigatePage("docs") : window.location.hash = "#docs"} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", padding: 0, font: "inherit", textAlign: "left" }}>NDMA Protocols &amp; Docs</button></li>
+              <li><button type="button" onClick={() => onNavigatePage ? onNavigatePage("bulletins") : window.location.hash = "#bulletins"} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", padding: 0, font: "inherit", textAlign: "left" }}>Port Warning Signals</button></li>
             </ul>
           </div>
 

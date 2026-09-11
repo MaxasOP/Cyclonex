@@ -2464,3 +2464,125 @@ html, body, #root {
   from { opacity: 0; transform: scale(0.97); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* ==========================================================================
+   10. MULTI-PAGE VIEWPORT & DEDICATED PAGE LAYOUTS
+   ========================================================================== */
+.page-container {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 24px 24px 60px;
+  min-height: calc(100vh - 50px);
+  color: var(--text-primary);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.page-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #38bdf8;
+  margin-bottom: 6px;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+
+.page-subtitle {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+  max-width: 760px;
+  line-height: 1.5;
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.telemetry-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.analytics-card {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: 12px;
+  padding: 20px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  margin-bottom: 20px;
+}
+
+.data-source-card {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: 12px;
+  padding: 18px;
+  backdrop-filter: blur(12px);
+  transition: all 0.2s ease;
+}
+
+.data-source-card:hover {
+  border-color: rgba(56, 189, 248, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.forecast-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.forecast-table th {
+  text-align: left;
+  padding: 10px 14px;
+  background: rgba(30, 41, 59, 0.8);
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.8);
+}
+
+.forecast-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+  color: #e2e8f0;
+}
+
+.forecast-table tr:hover td {
+  background: rgba(30, 41, 59, 0.4);
+}
+
