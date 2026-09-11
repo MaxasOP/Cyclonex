@@ -4,41 +4,41 @@
    ========================================================================== */
 
 :root {
-  /* Institutional Palette (Light / Operations Mode Default) */
-  --bg-base: #f4f6f8;
+  /* Modern SaaS Design System (Clean, Simple, Human-Crafted) */
+  --bg-base: #f8fafc;
   --bg-surface: #ffffff;
-  --bg-surface-elevated: #f8fafc;
-  --bg-surface-hover: #eaf3f8;
+  --bg-surface-elevated: #f1f5f9;
+  --bg-surface-hover: #f1f5f9;
   --bg-input: #ffffff;
   
-  --header-bg: #0b1f33;
+  --header-bg: #0f172a;       /* Slate 900 */
   --header-text: #ffffff;
-  --sidebar-bg: #12395b;
-  --sidebar-text: #ffffff;
-  --sidebar-active: #1769aa;
+  --sidebar-bg: #1e293b;      /* Slate 800 */
+  --sidebar-text: #f8fafc;
+  --sidebar-active: #0284c7;  /* Sky 600 */
 
-  --border-subtle: #d8e0e7;
-  --border-medium: #b0bec5;
-  --border-accent: #1769aa;
+  --border-subtle: #e2e8f0;   /* Slate 200 */
+  --border-medium: #cbd5e1;   /* Slate 300 */
+  --border-accent: #0284c7;
 
-  --text-primary: #17212b;
-  --text-secondary: #37474f;
-  --text-muted: #5d6b78;
-  --text-dim: #90a4ae;
+  --text-primary: #0f172a;     /* Slate 900 */
+  --text-secondary: #334155;   /* Slate 700 */
+  --text-muted: #64748b;       /* Slate 500 */
+  --text-dim: #94a3b8;         /* Slate 400 */
   --text-light: #ffffff;
 
-  --primary-blue: #1769aa;
-  --primary-blue-dark: #0f4c7d;
-  --light-blue-bg: #eaf3f8;
+  --primary-blue: #0284c7;
+  --primary-blue-dark: #0369a1;
+  --light-blue-bg: #f0f9ff;
 
-  /* Operational Warning Hierarchy Standard */
-  --warning-green: #2e7d32;   /* Safe / Normal / Shelter Haven */
-  --warning-yellow: #f2c94c;  /* Cyclone Watch / Be Updated */
-  --warning-orange: #f2994a;  /* Cyclone Warning / Be Prepared */
-  --warning-red: #d32f2f;     /* Severe Risk / Immediate Action */
+  /* Human-Friendly Operational Warning Colors */
+  --warning-green: #16a34a;   /* Safe / Normal */
+  --warning-yellow: #d97706;  /* Advisory / Watch */
+  --warning-orange: #ea580c;  /* Warning / Prepare */
+  --warning-red: #dc2626;     /* Severe Risk / Evacuate */
 
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', 'Courier New', monospace;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
   
   font-family: var(--font-sans);
   color: var(--text-primary);
