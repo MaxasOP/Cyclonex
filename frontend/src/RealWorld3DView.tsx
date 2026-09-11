@@ -422,6 +422,8 @@ export default function RealWorld3DView({
       geoJson: { type: "FeatureCollection", features: featuresList } as any,
       buildingList: list,
     };
+  }, [buildings, activeCityKey, showGreenBuildings, speedKph, surgeHeightM, center.lat, center.lng]);
+
   // Construct Storm Surge Inundation Polygon
   const surgeGeoJson = useMemo(() => {
     const cLat = center.lat;
@@ -984,7 +986,7 @@ export default function RealWorld3DView({
             200m Cell Damage Breakdown ({riskAnalysisStats.totalCells || "1,976"} Cells)
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginBottom: "4px" }}>
-            <span style={{ color: "#ef4444", fontWeight: 700 }}>Severe Risk (≥0.55):</span>
+            <span style={{ color: "#ef4444", fontWeight: 700 }}>Severe Risk (&ge;0.55):</span>
             <span>{riskAnalysisStats.severeCount} cells</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginBottom: "4px" }}>
@@ -999,7 +1001,7 @@ export default function RealWorld3DView({
 
         {/* Visual Mode Selector */}
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          <label style={{ fontSize: "10px", fontWeight: 700, color: "#94a3b8", uppercase: "true" }}>
+          <label style={{ fontSize: "10px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase" }}>
             3D Building Visual Mode
           </label>
           <div style={{ display: "flex", gap: "6px" }}>
@@ -1039,20 +1041,20 @@ export default function RealWorld3DView({
         </div>
 
         {/* Environmental Layer Toggles */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px", pt: 1 }}>
-          <label style={{ display: "flex", alignItems: "center", justifyBetween: "true", fontSize: "11px", cursor: "pointer" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "4px" }}>
+          <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "11px", cursor: "pointer" }}>
             <span>🌊 Storm Surge Water Layer</span>
             <input type="checkbox" checked={showSurge} onChange={(e) => setShowSurge(e.target.checked)} />
           </label>
-          <label style={{ display: "flex", alignItems: "center", justifyBetween: "true", fontSize: "11px", cursor: "pointer" }}>
+          <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "11px", cursor: "pointer" }}>
             <span>🗺️ 200m Spatial Risk Grid</span>
             <input type="checkbox" checked={showRiskGrid} onChange={(e) => setShowRiskGrid(e.target.checked)} />
           </label>
-          <label style={{ display: "flex", alignItems: "center", justifyBetween: "true", fontSize: "11px", cursor: "pointer" }}>
+          <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "11px", cursor: "pointer" }}>
             <span>🛡️ Safe Shelter Havens</span>
             <input type="checkbox" checked={showGreenBuildings} onChange={(e) => setShowGreenBuildings(e.target.checked)} />
           </label>
-          <label style={{ display: "flex", alignItems: "center", justifyBetween: "true", fontSize: "11px", cursor: "pointer" }}>
+          <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "11px", cursor: "pointer" }}>
             <span>💨 Wind Vector Streamlines</span>
             <input type="checkbox" checked={showWindStreams} onChange={(e) => setShowWindStreams(e.target.checked)} />
           </label>
@@ -1081,8 +1083,8 @@ export default function RealWorld3DView({
             fontSize: "12px",
           }}
         >
-          <div style={{ display: "flex", itemsCenter: "center", justifyBetween: "true" }}>
-            <span style={{ fontSize: "10px", fontWeight: 800, color: "#38bdf8", uppercase: "true" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: "10px", fontWeight: 800, color: "#38bdf8", textTransform: "uppercase" }}>
               📋 3D Building Analysis Dossier
             </span>
             <span

@@ -414,6 +414,39 @@ export default function App() {
   const [selectedCell, setSelectedCell] = useState<FullCellAnalysis | null>(null);
   const [showDevPanel, setShowDevPanel] = useState(false);
 
+  const [currentTimeIST, setCurrentTimeIST] = useState(() => {
+    return (
+      new Date().toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      }) + " IST"
+    );
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTimeIST(
+        new Date().toLocaleString("en-IN", {
+          timeZone: "Asia/Kolkata",
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        }) + " IST"
+      );
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // AI Cyclone Analysis State
   const [showAiLayer, setShowAiLayer] = useState(true);
   const [aiAnalysis, setAiAnalysis] = useState<AICycloneAnalysisResponse | null>(null);
@@ -423,10 +456,10 @@ export default function App() {
     setAiLoading(true);
     try {
       const res = await analyzeAICyclone({
-        latitude: latNum ?? Number(form.lat) || 21.62,
-        longitude: lonNum ?? Number(form.lon) || 87.51,
-        wind_speed: windNum ?? Number(form.wind) || 165,
-        pressure: presNum ?? Number(form.pressure) || 950,
+        latitude: latNum ?? (Number(form.lat) || 21.62),
+        longitude: lonNum ?? (Number(form.lon) || 87.51),
+        wind_speed: windNum ?? (Number(form.wind) || 165),
+        pressure: presNum ?? (Number(form.pressure) || 950),
       });
       if (res) setAiAnalysis(res);
     } catch (e) {
@@ -782,104 +815,49 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <nav className="global-navbar">
-        <div className="nav-container">
-          <div
-            className="nav-brand"
-            onClick={() => navigateTo("landing")}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") navigateTo("landing");
-            }}
-          >
-            <div className="brand-icon-wrapper"><IconVortex /></div>
-            <div className="brand-text">
-              <span className="brand-title">CYCLONEX</span>
-              <span className="brand-sub">Cyclone Risk Intelligence</span>
+      <header className="institutional-header">
+        <div className="header-brand" onClick={() => navigateTo("landing")}>
+          <div className="brand-logo-symbol"><IconVortex /></div>
+          <div className="brand-titles">
+            <div className="brand-primary-row">
+              <span className="platform-name">CYCLONEX</span>
+              <span className="gov-tag">NATIONAL DISASTER OPERATIONS PLATFORM</span>
             </div>
-          </div>
-          <div className="nav-links">
-            <button
-              type="button"
-              className={`nav-link-btn ${currentView === "landing" ? "active" : ""}`}
-              onClick={() => navigateTo("landing")}
-            >
-              Platform Overview
-            </button>
-            <button
-              type="button"
-              className={`nav-link-btn ${currentView === "app" ? "active" : ""}`}
-              onClick={() => navigateTo("app")}
-            >
-              Risk Analysis
-            </button>
-            <a
-              href="#architecture-section"
-              onClick={() => {
-                if (currentView !== "landing") navigateTo("landing");
-              }}
-              className="nav-link-anchor"
-            >
-              Pipeline
-            </a>
-            <a
-              href="#physics-section"
-              onClick={() => {
-                if (currentView !== "landing") navigateTo("landing");
-              }}
-              className="nav-link-anchor"
-            >
-              Physics Engine
-            </a>
-            <a
-              href="#benchmarks-section"
-              onClick={() => {
-                if (currentView !== "landing") navigateTo("landing");
-              }}
-              className="nav-link-anchor"
-            >
-              Benchmarks
-            </a>
-          </div>
-          <div className="nav-actions">
-            <div className="status-beacon" title="NOAA HURSAT / IBTrACS Live Feed Connected">
-              <div className="beacon-dot-wrapper">
-                <div className="beacon-ping" />
-                <div className="beacon-dot" />
-              </div>
-              <span className="beacon-label">
-                {datasetSummary ? `${datasetSummary.model_status}` : "SYSTEM ONLINE"}
-              </span>
+            <div className="brand-subtitle">
+              Multi-Source Satellite AI/ML &amp; 200m Physics-Based Cyclone Risk Intelligence System
             </div>
-            <button
-              type="button"
-              className="nav-cta-btn nav-cta-outline"
-              onClick={() => setIsNewsPanelOpen(true)}
-              style={{ background: "rgba(6, 182, 212, 0.15)", borderColor: "#38bdf8", color: "#38bdf8" }}
-            >
-              📰 Cyclone News & Admin
-            </button>
-            {currentView === "landing" ? (
-              <button
-                type="button"
-                className="nav-cta-btn"
-                onClick={() => handleLaunchConsole()}
-              >
-                <IconCompass /> Start Analysis
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="nav-cta-btn nav-cta-outline"
-                onClick={() => navigateTo("landing")}
-              >
-                Overview
-              </button>
-            )}
           </div>
         </div>
-      </nav>
+
+        <div className="header-meta">
+          <div className="time-display">
+            <span className="time-label">LIVE OPERATIONS TIME</span>
+            <span className="time-value">{currentTimeIST}</span>
+          </div>
+          <div className="provenance-badges">
+            <span className="prov-badge prov-satellite" title="Satellite Sensors Connected: INSAT-3D, GPM, Sentinel-1">
+              <span className="pulse-dot green" /> INSAT-3D / GPM ACTIVE
+            </span>
+            <span className="prov-badge prov-model" title="Baseline Model Status">
+              {datasetSummary ? `${datasetSummary.model_status}` : "AI TENSOR FUSION v2.4"}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="header-action-btn"
+            onClick={() => setIsNewsPanelOpen(true)}
+          >
+            📰 Bulletins
+          </button>
+          <button
+            type="button"
+            className="header-action-btn header-action-primary"
+            onClick={() => window.print()}
+          >
+            <IconDownload /> Export SITREP
+          </button>
+        </div>
+      </header>
       {currentView === "landing" ? (
         <LandingPage
           onLaunchConsole={handleLaunchConsole}
