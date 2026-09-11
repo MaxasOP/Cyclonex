@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import type { CycloneShelterNode, NDRFStagingDepot } from "./data/mitigationAndShelters";
 
 export interface LifecycleStage {
   id: string;
@@ -25,6 +26,8 @@ interface Globe3DViewProps {
   headingDeg?: number;
   speedKph?: number;
   locationName?: string;
+  shelterNodes?: CycloneShelterNode[];
+  ndrfDepots?: NDRFStagingDepot[];
   onExit3DGlobe?: () => void;
   onSelectPreset?: (presetKey: string) => void;
 }
@@ -909,6 +912,8 @@ export default function Globe3DView({
   headingDeg = 315,
   speedKph = 25,
   locationName,
+  shelterNodes = [],
+  ndrfDepots = [],
   onExit3DGlobe,
   onSelectPreset,
 }: Globe3DViewProps) {
@@ -1565,7 +1570,117 @@ export default function Globe3DView({
     };
   }, [stages]);
 
+  // ── Shelter & NDRF Markers on Globe ──────────────────────────────────────
+  // Separate effect so marker data can change without rebuilding the full scene
+
+  useEffect(() => {
+    // Wait until the Three.js renderer is attached (mountRef holds the canvas)
+    const container = mountRef.current;
+    if (!container) return;
+
+    // Find the Three.js renderer canvas's parent scene via traversal is not possible,
+    // so we keep a separate Group ref that we inject into the scene when the
+    // main useEffect runs. We accomplish this by working at the DOM level:
+    // we add a new canvas overlay — but for Three.js we must share the same scene.
+    // Since we cannot access the scene object outside the main useEffect, we instead
+    // attach shelf data as DOM-layer Leaflet-style overlays using the existing
+    // Three.js canvas via a second lightweight scene drawn on top.
+    // ▸ Practical approach: attach markers as HTML elements positioned over the canvas.
+
+    // Calculate approximate screen positions for each shelter/NDRF depot
+    // and render them as absolutely positioned DOM badges.
+    // This avoids the complexity of sharing the Three.js scene ref.
+
+    // Clean up existing shelter overlay
+    const existing = container.querySelector(".globe-shelter-overlay");
+    if (existing) existing.remove();
+
+    if (!shelterNodes.length && !ndrfDepots.length) return;
+
+    const overlay = document.createElement("div");
+    overlay.className = "globe-shelter-overlay";
+    overlay.style.cssText = `
+      position: absolute; inset: 0; pointer-events: none;
+      z-index: 10; overflow: hidden;
+    `;
+
+    // Helper: project lat/lng to approximate 2D canvas pixel position
+    // Uses a simple mercator-like projection centred on India
+    const projectToCanvas = (lat: number, lng: number): { x: number; y: number } | null => {
+      const centerLat = 20;
+      const centerLng = 82;
+      const fov = 40; // approx degrees visible in canvas
+      const dLat = lat - centerLat;
+      const dLng = lng - centerLng;
+      if (Math.abs(dLat) > fov || Math.abs(dLng) > fov * 1.5) return null; // off-screen
+      const w = container.clientWidth || 800;
+      const h = container.clientHeight || 560;
+      const x = w / 2 + (dLng / fov) * (w / 2.6);
+      const y = h / 2 - (dLat / fov) * (h / 2.2);
+      return { x, y };
+    };
+
+    // Render MPCS Shelter dots with priority color
+    shelterNodes.forEach((shelter) => {
+      const pos = projectToCanvas(shelter.lat, shelter.lon);
+      if (!pos) return;
+      const color = shelter.evacuationPriority === "IMMEDIATE" ? "#ef4444"
+        : shelter.evacuationPriority === "HIGH" ? "#f97316"
+        : shelter.evacuationPriority === "ADVISORY" ? "#22c55e"
+        : "#64748b";
+      const size = shelter.evacuationPriority === "IMMEDIATE" ? 10 : shelter.evacuationPriority === "HIGH" ? 8 : 6;
+      const label = shelter.evacuationPriority === "IMMEDIATE"
+        ? `<div style="position:absolute;left:${pos.x + size + 2}px;top:${pos.y - 7}px;
+            background:rgba(6,14,26,0.82);border:1px solid ${color};border-radius:3px;
+            padding:2px 5px;font-size:9px;font-family:monospace;color:#fff;white-space:nowrap;
+            line-height:1.3;pointer-events:none;">
+            🏠 ${shelter.name.split(" ").slice(0, 3).join(" ")}<br/>
+            <span style="color:${color};font-weight:700">${shelter.evacuationPriority}</span> · Cap ${shelter.capacity.toLocaleString()}
+          </div>` : "";
+      const dot = document.createElement("div");
+      dot.innerHTML = `
+        <div style="position:absolute;left:${pos.x - size / 2}px;top:${pos.y - size / 2}px;
+          width:${size}px;height:${size}px;border-radius:50%;
+          background:${color};border:1.5px solid #fff;
+          box-shadow:0 0 6px ${color}88;"></div>
+        ${label}
+      `;
+      overlay.appendChild(dot);
+    });
+
+    // Render NDRF Staging Depots as gold/amber hexagonal markers
+    ndrfDepots.forEach((depot) => {
+      const pos = projectToCanvas(depot.lat, depot.lon);
+      if (!pos) return;
+      const depotEl = document.createElement("div");
+      depotEl.innerHTML = `
+        <div style="position:absolute;left:${pos.x - 7}px;top:${pos.y - 7}px;
+          width:14px;height:14px;border-radius:3px;
+          background:#a16207;border:2px solid #fbbf24;
+          box-shadow:0 0 8px #fbbf2488;display:flex;align-items:center;justify-content:center;
+          font-size:8px;">🪖</div>
+        <div style="position:absolute;left:${pos.x + 9}px;top:${pos.y - 9}px;
+          background:rgba(6,14,26,0.82);border:1px solid #fbbf24;border-radius:3px;
+          padding:2px 5px;font-size:9px;font-family:monospace;color:#fff;white-space:nowrap;
+          line-height:1.3;pointer-events:none;">
+          ${depot.battalion.replace("BN NDRF", "BN")}<br/>
+          <span style="color:#fbbf24;font-weight:700">${depot.personnelCount} personnel</span>
+        </div>
+      `;
+      overlay.appendChild(depotEl);
+    });
+
+    container.style.position = "relative";
+    container.appendChild(overlay);
+
+    return () => {
+      const el = container.querySelector(".globe-shelter-overlay");
+      if (el) el.remove();
+    };
+  }, [shelterNodes, ndrfDepots]);
+
   // Smoothly move the 3D Cyclone Vortex across the planetary sphere surface whenever stage changes or plays
+
   useEffect(() => {
     if (!stages[currentStageIdx] || !cycloneGroupRef.current) return;
     const stage = stages[currentStageIdx];

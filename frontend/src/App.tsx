@@ -780,7 +780,6 @@ export default function App() {
             type="button"
             className={`primary-nav-item ${currentView === "app" ? "active" : ""}`}
             onClick={() => {
-              setActiveNavTab("risk_map");
               setAnalysisMode("DAMAGE");
               navigateTo("app");
             }}

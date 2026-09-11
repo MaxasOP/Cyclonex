@@ -16,6 +16,13 @@ import "leaflet/dist/leaflet.css";
 const RealWorld3DView = lazy(() => import("./RealWorld3DView"));
 const Globe3DView = lazy(() => import("./Globe3DView"));
 import type { BuildingFeature, RiskFeature, FullCellAnalysis, ZoneFeature, EvacuationPlan } from "./api";
+import {
+  NATIONAL_CYCLONE_SHELTERS,
+  COASTAL_DEFENSE_SEAWALLS,
+  MANGROVE_BIOSHIELDS,
+  NDRF_STAGING_DEPOTS,
+  EVACUATION_CORRIDORS,
+} from "./data/mitigationAndShelters";
 
 export type MapAnalysisMode = "DAMAGE" | "HIT" | "WIND" | "EXPOSURE" | "BUILDINGS" | "OBSTACLES" | "ZONES" | "EVACUATION";
 
@@ -489,6 +496,7 @@ export default function RiskMap({
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [zoomMode, setZoomMode] = useState<"grid" | "track">("grid");
   const [internalViewDimension, setInternalViewDimension] = useState<"2d" | "real3d" | "globe">("real3d");
+  const [showMitigationLayer, setShowMitigationLayer] = useState<boolean>(false);
   const viewDimension = viewDimensionProp ?? internalViewDimension;
   const setViewDimension = onViewDimensionChangeProp ?? setInternalViewDimension;
 
@@ -599,6 +607,21 @@ export default function RiskMap({
             ))}
           </div>
           <div className="dock-divider" />
+          <div className="dock-group">
+            <button
+              type="button"
+              className={`dock-btn ${showMitigationLayer ? "active" : ""}`}
+              onClick={() => setShowMitigationLayer((v) => !v)}
+              title="Toggle Cyclone Mitigation Measures & Refugee Shelters Intelligence layer"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+              <span>{showMitigationLayer ? "Hide Shelters" : "Shelters"}</span>
+            </button>
+          </div>
+          <div className="dock-divider" />
           <div className="dock-opacity">
             <span className="dock-opacity-label">Grid {Math.round(gridOpacity * 100)}%</span>
             <input
@@ -675,6 +698,8 @@ export default function RiskMap({
             headingDeg={headingDeg}
             speedKph={speedKph}
             locationName={locationName}
+            shelterNodes={NATIONAL_CYCLONE_SHELTERS}
+            ndrfDepots={NDRF_STAGING_DEPOTS}
             onExit3DGlobe={() => setViewDimension("2d")}
             onSelectPreset={onSelectPreset}
           />
@@ -1048,6 +1073,142 @@ export default function RiskMap({
               </div>
             </Popup>
           </CircleMarker>
+        ))}
+
+        {/* === CYCLONE MITIGATION MEASURES & REFUGEE SHELTERS INTELLIGENCE LAYERS === */}
+        {/* Toggle via "Shelters" button in dock. These are independent of sheltersPlan prop. */}
+
+        {/* M1. MPCS National Shelter Network (richer dataset) — shown when no sheltersPlan AND mitigation layer active */}
+        {showMitigationLayer && !sheltersPlan && NATIONAL_CYCLONE_SHELTERS.map((s) => (
+          <CircleMarker
+            key={s.id}
+            center={[s.lat, s.lon]}
+            radius={s.evacuationPriority === "IMMEDIATE" ? 11 : s.evacuationPriority === "HIGH" ? 9 : 7}
+            pathOptions={{
+              fillColor: s.evacuationPriority === "IMMEDIATE" ? "#d4483b" : s.evacuationPriority === "HIGH" ? "#ed8a28" : "#35a66f",
+              color: "#ffffff",
+              weight: 2.5,
+              fillOpacity: 0.95,
+            }}
+          >
+            <Popup>
+              <div style={{ fontFamily: "-apple-system, system-ui, sans-serif", minWidth: "250px" }}>
+                <div style={{ fontWeight: 700, color: s.evacuationPriority === "IMMEDIATE" ? "#ff6b5b" : "#35a66f", fontSize: "0.9rem", marginBottom: "6px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "4px" }}>
+                  🏠 {s.name}
+                </div>
+                <div style={{ fontSize: "0.78rem", color: "#d7e5f5", lineHeight: "1.6" }}>
+                  <div>Type: <strong>{s.facilityType}</strong></div>
+                  <div>District: <strong>{s.district}, {s.state}</strong></div>
+                  <div>Capacity: <strong style={{ color: "#75c9f1" }}>{s.capacity.toLocaleString()} persons</strong></div>
+                  <div>Occupancy: <strong style={{ color: "#f59e0b" }}>{s.currentOccupancy.toLocaleString()} / {s.capacity.toLocaleString()}</strong></div>
+                  <div>Food Rations: <strong>{s.amenities.foodRationsDays} days</strong></div>
+                  <div>Helipad: <strong>{s.amenities.helipad ? "✅ Yes" : "❌ No"}</strong> &nbsp;|&nbsp; Sat Comms: <strong>{s.amenities.satelliteComms ? "✅" : "❌"}</strong></div>
+                  <div>Medical Triage: <strong>{s.amenities.medicalTriage ? "✅ Operational" : "❌ None"}</strong></div>
+                  <div style={{ marginTop: "4px" }}>
+                    Status: <span style={{ padding: "2px 6px", borderRadius: "4px", fontSize: "0.72rem", fontWeight: 700, background: s.evacuationPriority === "IMMEDIATE" ? "#d4483b" : s.evacuationPriority === "HIGH" ? "#ed8a28" : "#35a66f", color: "#ffffff" }}>{s.evacuationPriority}</span>
+                  </div>
+                  <div style={{ marginTop: "4px", color: "#8fa4bf", fontSize: "0.72rem" }}>{s.contactOfficer} · {s.contactPhone}</div>
+                </div>
+              </div>
+            </Popup>
+          </CircleMarker>
+        ))}
+
+        {/* M2. Coastal Defense Seawalls */}
+        {showMitigationLayer && COASTAL_DEFENSE_SEAWALLS.map((wall) => (
+          <Polyline
+            key={wall.id}
+            positions={wall.coordinates as [number, number][]}
+            pathOptions={{ color: "#06b6d4", weight: 5, dashArray: "10, 6", opacity: 0.88 }}
+          >
+            <Popup>
+              <div style={{ fontFamily: "-apple-system, system-ui, sans-serif", minWidth: "230px" }}>
+                <div style={{ fontWeight: 700, color: "#06b6d4", fontSize: "0.9rem", marginBottom: "6px" }}>
+                  🌊 {wall.name}
+                </div>
+                <div style={{ fontSize: "0.78rem", color: "#d7e5f5", lineHeight: "1.6" }}>
+                  <div>Type: <strong>{wall.defenseType}</strong></div>
+                  <div>District: <strong>{wall.district}</strong></div>
+                  <div>Design Surge Height: <strong style={{ color: "#06b6d4" }}>{wall.designSurgeHeightM} m</strong></div>
+                  <div>Length: <strong>{wall.lengthKm} km</strong></div>
+                  <div>Condition: <span style={{ padding: "2px 6px", borderRadius: "4px", fontSize: "0.72rem", fontWeight: 700, background: wall.condition === "OPTIMAL" ? "#35a66f" : "#ed8a28", color: "#fff" }}>{wall.condition}</span></div>
+                </div>
+              </div>
+            </Popup>
+          </Polyline>
+        ))}
+
+        {/* M3. Mangrove Bioshield Ecological Corridors */}
+        {showMitigationLayer && MANGROVE_BIOSHIELDS.map((bio) => (
+          <Polygon
+            key={bio.id}
+            positions={bio.coordinates as [number, number][][]}
+            pathOptions={{ fillColor: "#22c55e", color: "#16a34a", weight: 2, fillOpacity: 0.28, dashArray: "4, 4" }}
+          >
+            <Popup>
+              <div style={{ fontFamily: "-apple-system, system-ui, sans-serif", minWidth: "230px" }}>
+                <div style={{ fontWeight: 700, color: "#22c55e", fontSize: "0.9rem", marginBottom: "6px" }}>
+                  🌿 {bio.name}
+                </div>
+                <div style={{ fontSize: "0.78rem", color: "#d7e5f5", lineHeight: "1.6" }}>
+                  <div>Area: <strong style={{ color: "#22c55e" }}>{bio.areaSqKm.toLocaleString()} km²</strong></div>
+                  <div>Wave Attenuation: <strong>{bio.waveAttenuationPct}%</strong></div>
+                  <div>Wind Reduction: <strong>{bio.windReductionPct}%</strong></div>
+                  <div>Species: <em style={{ color: "#86efac" }}>{bio.species}</em></div>
+                  <div>Protects: <strong>{bio.protectionZone}</strong></div>
+                </div>
+              </div>
+            </Popup>
+          </Polygon>
+        ))}
+
+        {/* M4. NDRF Battalion Staging Depots */}
+        {showMitigationLayer && NDRF_STAGING_DEPOTS.map((depot) => (
+          <CircleMarker
+            key={depot.id}
+            center={[depot.lat, depot.lon]}
+            radius={12}
+            pathOptions={{ fillColor: "#a16207", color: "#fbbf24", weight: 3, fillOpacity: 0.92 }}
+          >
+            <Popup>
+              <div style={{ fontFamily: "-apple-system, system-ui, sans-serif", minWidth: "240px" }}>
+                <div style={{ fontWeight: 700, color: "#fbbf24", fontSize: "0.9rem", marginBottom: "6px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "4px" }}>
+                  🪖 {depot.battalion}
+                </div>
+                <div style={{ fontSize: "0.78rem", color: "#d7e5f5", lineHeight: "1.6" }}>
+                  <div>Base: <strong>{depot.locationName}</strong></div>
+                  <div>Personnel: <strong style={{ color: "#fbbf24" }}>{depot.personnelCount}</strong></div>
+                  <div>Rescue Boats: <strong>{depot.rescueBoats}</strong></div>
+                  <div>Triage Teams: <strong>{depot.triageTeams}</strong></div>
+                  <div>Satellite Phones: <strong>{depot.satellitePhones}</strong></div>
+                  <div style={{ marginTop: "4px", color: "#8fa4bf", fontSize: "0.72rem" }}>Cmd: {depot.commandLead}</div>
+                </div>
+              </div>
+            </Popup>
+          </CircleMarker>
+        ))}
+
+        {/* M5. Evacuation Corridors & Arteries */}
+        {showMitigationLayer && EVACUATION_CORRIDORS.map((corridor) => (
+          <Polyline
+            key={corridor.id}
+            positions={corridor.coordinates as [number, number][]}
+            pathOptions={{ color: "#f59e0b", weight: 4.5, dashArray: "14, 6", opacity: 0.9 }}
+          >
+            <Popup>
+              <div style={{ fontFamily: "-apple-system, system-ui, sans-serif", minWidth: "240px" }}>
+                <div style={{ fontWeight: 700, color: "#f59e0b", fontSize: "0.9rem", marginBottom: "6px" }}>
+                  🚨 {corridor.name}
+                </div>
+                <div style={{ fontSize: "0.78rem", color: "#d7e5f5", lineHeight: "1.6" }}>
+                  <div>From: <strong>{corridor.fromArea}</strong></div>
+                  <div>To: <strong>{corridor.toShelter}</strong></div>
+                  <div>Capacity: <strong style={{ color: "#f59e0b" }}>{corridor.capacityPerHour.toLocaleString()} persons/hr</strong></div>
+                  <div>Status: <span style={{ padding: "2px 6px", borderRadius: "4px", fontSize: "0.72rem", fontWeight: 700, background: corridor.status === "PRIORITY_EVACUATION" ? "#d4483b" : corridor.status === "CLEAR" ? "#35a66f" : "#ed8a28", color: "#fff" }}>{corridor.status.replace("_", " ")}</span></div>
+                </div>
+              </div>
+            </Popup>
+          </Polyline>
         ))}
 
         {/* 3. Continuous Forecast Trajectory Polyline */}
