@@ -144,50 +144,52 @@ function createCycloneCloudTexture(): THREE.CanvasTexture {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Outer radial gradient glow (soft translucent)
-  const radialGlow = ctx.createRadialGradient(cx, cy, 10, cx, cy, 240);
-  radialGlow.addColorStop(0, "rgba(255, 255, 255, 0.75)");
-  radialGlow.addColorStop(0.2, "rgba(255, 107, 91, 0.65)");
-  radialGlow.addColorStop(0.5, "rgba(245, 158, 11, 0.45)");
-  radialGlow.addColorStop(0.8, "rgba(56, 189, 248, 0.22)");
-  radialGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+  // Pure realistic atmospheric spiral clouds (natural cirrus white/translucent)
+  // 1. Subtle core cloud overcast
+  const coreOvercast = ctx.createRadialGradient(cx, cy, 14, cx, cy, 180);
+  coreOvercast.addColorStop(0, "rgba(255, 255, 255, 0.45)");
+  coreOvercast.addColorStop(0.3, "rgba(240, 248, 255, 0.35)");
+  coreOvercast.addColorStop(0.7, "rgba(200, 220, 245, 0.12)");
+  coreOvercast.addColorStop(1, "rgba(0, 0, 0, 0)");
 
-  ctx.fillStyle = radialGlow;
+  ctx.fillStyle = coreOvercast;
   ctx.beginPath();
-  ctx.arc(cx, cy, 240, 0, Math.PI * 2);
+  ctx.arc(cx, cy, 180, 0, Math.PI * 2);
   ctx.fill();
 
-  // Spiral Cloud Rainbands
-  ctx.lineWidth = 12;
-  ctx.lineCap = "round";
+  // 2. Realistic Logarithmic Spiral Cloud Arms (Feathered Cirrus Wisps)
+  for (let arm = 0; arm < 5; arm++) {
+    const baseAngle = (arm * Math.PI * 2) / 5;
+    for (let wisp = 0; wisp < 3; wisp++) {
+      ctx.strokeStyle = `rgba(255, 255, 255, ${0.45 - wisp * 0.1})`;
+      ctx.lineWidth = 14 - wisp * 3;
+      ctx.lineCap = "round";
+      ctx.beginPath();
 
-  for (let arm = 0; arm < 4; arm++) {
-    const baseAngle = (arm * Math.PI) / 2;
-    ctx.strokeStyle = arm % 2 === 0 ? "rgba(255, 255, 255, 0.65)" : "rgba(255, 150, 130, 0.55)";
-    ctx.beginPath();
-    for (let t = 0; t < 120; t++) {
-      const angle = baseAngle + t * 0.05;
-      const r = 25 + t * 1.8;
-      const x = cx + r * Math.cos(angle);
-      const y = cy + r * Math.sin(angle);
-      if (t === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+      for (let t = 0; t < 100; t++) {
+        const angle = baseAngle + t * 0.052 + wisp * 0.04;
+        const r = 18 + t * 1.7;
+        const x = cx + r * Math.cos(angle);
+        const y = cy + r * Math.sin(angle);
+        if (t === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
     }
-    ctx.stroke();
   }
 
-  // Clear Central Eye
+  // 3. Clear Tightly Defined Meteorological Eye (14px radius)
   ctx.globalCompositeOperation = "destination-out";
   ctx.beginPath();
-  ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+  ctx.arc(cx, cy, 12, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalCompositeOperation = "source-over";
 
-  // Red Eye Rim
-  ctx.strokeStyle = "#ef4444";
-  ctx.lineWidth = 2.5;
+  // 4. Subtle, razor-sharp Eyewall Boundary (not a giant red circle)
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+  ctx.lineWidth = 1.8;
   ctx.beginPath();
-  ctx.arc(cx, cy, 16, 0, Math.PI * 2);
+  ctx.arc(cx, cy, 13.5, 0, Math.PI * 2);
   ctx.stroke();
 
   return new THREE.CanvasTexture(canvas);
