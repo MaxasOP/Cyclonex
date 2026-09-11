@@ -179,15 +179,15 @@ function createCycloneCloudTexture(): THREE.CanvasTexture {
   // Clear Central Eye
   ctx.globalCompositeOperation = "destination-out";
   ctx.beginPath();
-  ctx.arc(cx, cy, 20, 0, Math.PI * 2);
+  ctx.arc(cx, cy, 14, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalCompositeOperation = "source-over";
 
   // Red Eye Rim
   ctx.strokeStyle = "#ef4444";
-  ctx.lineWidth = 3.5;
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
-  ctx.arc(cx, cy, 24, 0, Math.PI * 2);
+  ctx.arc(cx, cy, 16, 0, Math.PI * 2);
   ctx.stroke();
 
   return new THREE.CanvasTexture(canvas);
@@ -272,6 +272,258 @@ export function getLifecycleStages(
   const isHudhud =
     (locationName && locationName.toLowerCase().includes("hudhud")) ||
     (Math.abs(center.lat - 17.68) < 0.35 && Math.abs(center.lng - 83.21) < 0.35);
+
+  const isNisarga =
+    (locationName && locationName.toLowerCase().includes("nisarga")) ||
+    (Math.abs(center.lat - 18.35) < 0.8 && Math.abs(center.lng - 72.98) < 0.8) ||
+    (Math.abs(center.lat - 16.8) < 0.8 && Math.abs(center.lng - 72.4) < 0.8);
+
+  const isBiparjoy =
+    (locationName && locationName.toLowerCase().includes("biparjoy")) ||
+    (Math.abs(center.lat - 23.2) < 0.8 && Math.abs(center.lng - 68.6) < 0.8);
+
+  const isDana =
+    (locationName && locationName.toLowerCase().includes("dana")) ||
+    (Math.abs(center.lat - 20.85) < 0.6 && Math.abs(center.lng - 86.95) < 0.6);
+
+  if (isNisarga) {
+    return [
+      {
+        id: "nisarga-genesis",
+        label: "Stage 0: Arabian Sea Genesis (-72h)",
+        timeOffsetHours: -72,
+        dateStr: "May 31, 12:00 UTC",
+        lat: 11.5,
+        lng: 72.8,
+        category: "Low Pressure (Lakshadweep)",
+        windSpeedKph: 45,
+        pressureHpa: 1004,
+        sstC: 31.5,
+        color: "#38bdf8",
+        description: "Formed over exceptionally warm Arabian Sea waters (>31°C) near Lakshadweep archipelago.",
+        coneRadiusKm: 25,
+        statusType: "genesis",
+      },
+      {
+        id: "nisarga-deepen",
+        label: "Stage 1: Marine Intensification (-36h)",
+        timeOffsetHours: -36,
+        dateStr: "June 2, 06:00 UTC",
+        lat: 14.8,
+        lng: 71.8,
+        category: "Cyclonic Storm (Open Water)",
+        windSpeedKph: 85,
+        pressureHpa: 994,
+        sstC: 30.8,
+        color: "#f59e0b",
+        description: "Rapidly intensified tracking north-northeastward through the eastern Arabian Sea marine corridor.",
+        coneRadiusKm: 40,
+        statusType: "intensification",
+      },
+      {
+        id: "nisarga-peak",
+        label: "Stage 2: Severe Storm Peak (-12h)",
+        timeOffsetHours: -12,
+        dateStr: "June 3, 00:00 UTC",
+        lat: 16.8,
+        lng: 72.4,
+        category: "Severe Cyclonic Storm",
+        windSpeedKph: 110,
+        pressureHpa: 984,
+        sstC: 30.2,
+        color: "#ef4444",
+        description: "Severe Cyclonic Storm off Konkan coast with central pressure 984 hPa and prominent spiral rainbands.",
+        coneRadiusKm: 55,
+        statusType: "intensification",
+      },
+      {
+        id: "nisarga-landfall",
+        label: "Stage 3: Maharashtra Landfall (Target 0h)",
+        timeOffsetHours: 0,
+        dateStr: "June 3, 07:00 UTC",
+        lat: 18.35,
+        lng: 72.98,
+        category: "Severe Landfall (Alibag / Shriwardhan)",
+        windSpeedKph: 120,
+        pressureHpa: 984,
+        sstC: 29.6,
+        color: "#ef4444",
+        description: "Direct landfall near Shriwardhan / Alibag (Raigad, Maharashtra) south of Mumbai with 120 km/h gusts.",
+        coneRadiusKm: 70,
+        statusType: "landfall",
+      },
+      {
+        id: "nisarga-inland",
+        label: "Stage 4: Western Ghats Friction (+12h)",
+        timeOffsetHours: 12,
+        dateStr: "June 3, 18:00 UTC",
+        lat: 19.4,
+        lng: 74.3,
+        category: "Cyclonic Storm (Pune / Nashik)",
+        windSpeedKph: 75,
+        pressureHpa: 994,
+        sstC: 0.0,
+        color: "#f59e0b",
+        description: "Collision with Western Ghats mountain terrain rapidly shears storm circulation and triggers torrential rainfall.",
+        coneRadiusKm: 110,
+        statusType: "inland",
+      },
+      {
+        id: "nisarga-dissipate",
+        label: "Stage 5: Inland Dissipation (+24h)",
+        timeOffsetHours: 24,
+        dateStr: "June 4, 06:00 UTC",
+        lat: 21.2,
+        lng: 76.8,
+        category: "Well-Marked Low (Vidarbha / MP)",
+        windSpeedKph: 45,
+        pressureHpa: 1002,
+        sstC: 0.0,
+        color: "#38bdf8",
+        description: "Dissipated into remnant low pressure area over central India as kinetic energy is completely exhausted.",
+        coneRadiusKm: 165,
+        statusType: "dissipation",
+      },
+    ];
+  }
+
+  if (isBiparjoy) {
+    return [
+      {
+        id: "biparjoy-genesis",
+        label: "Stage 0: South Arabian Sea Genesis (-120h)",
+        timeOffsetHours: -120,
+        dateStr: "June 6, 00:00 UTC",
+        lat: 12.0,
+        lng: 66.0,
+        category: "Depression (Central Arabian Sea)",
+        windSpeedKph: 50,
+        pressureHpa: 1002,
+        sstC: 31.8,
+        color: "#38bdf8",
+        description: "Formed in extremely warm waters of south-central Arabian Sea.",
+        coneRadiusKm: 30,
+        statusType: "genesis",
+      },
+      {
+        id: "biparjoy-peak",
+        label: "Stage 1: Extremely Severe Ocean Peak (-48h)",
+        timeOffsetHours: -48,
+        dateStr: "June 11, 12:00 UTC",
+        lat: 18.2,
+        lng: 67.6,
+        category: "Extremely Severe Cyclonic Storm",
+        windSpeedKph: 165,
+        pressureHpa: 955,
+        sstC: 30.5,
+        color: "#ef4444",
+        description: "Reached peak intensity in open Arabian Sea with 165 km/h sustained winds and 14m storm waves.",
+        coneRadiusKm: 55,
+        statusType: "intensification",
+      },
+      {
+        id: "biparjoy-landfall",
+        label: "Stage 2: Jakhau Port Gujarat Landfall (0h)",
+        timeOffsetHours: 0,
+        dateStr: "June 15, 17:00 UTC",
+        lat: 23.2,
+        lng: 68.6,
+        category: "Very Severe Landfall (Gujarat Coast)",
+        windSpeedKph: 140,
+        pressureHpa: 965,
+        sstC: 29.2,
+        color: "#ef4444",
+        description: "Landfall near Jakhau Port (Kutch, Gujarat) causing extensive coastal inundation.",
+        coneRadiusKm: 75,
+        statusType: "landfall",
+      },
+      {
+        id: "biparjoy-inland",
+        label: "Stage 3: Rajasthan Dissipation (+24h)",
+        timeOffsetHours: 24,
+        dateStr: "June 17, 00:00 UTC",
+        lat: 25.5,
+        lng: 71.8,
+        category: "Depression (South Rajasthan)",
+        windSpeedKph: 50,
+        pressureHpa: 996,
+        sstC: 0.0,
+        color: "#38bdf8",
+        description: "Weakened into depression over southwest Rajasthan desert.",
+        coneRadiusKm: 150,
+        statusType: "dissipation",
+      },
+    ];
+  }
+
+  if (isDana) {
+    return [
+      {
+        id: "dana-genesis",
+        label: "Stage 0: East-Central Bay Genesis (-48h)",
+        timeOffsetHours: -48,
+        dateStr: "Oct 22, 12:00 UTC",
+        lat: 14.5,
+        lng: 89.2,
+        category: "Depression (Bay of Bengal)",
+        windSpeedKph: 55,
+        pressureHpa: 1002,
+        sstC: 30.6,
+        color: "#38bdf8",
+        description: "Developed over east-central Bay of Bengal from active monsoon trough.",
+        coneRadiusKm: 30,
+        statusType: "genesis",
+      },
+      {
+        id: "dana-intensify",
+        label: "Stage 1: Severe Storm Deepening (-24h)",
+        timeOffsetHours: -24,
+        dateStr: "Oct 23, 18:00 UTC",
+        lat: 18.2,
+        lng: 88.0,
+        category: "Severe Cyclonic Storm",
+        windSpeedKph: 110,
+        pressureHpa: 985,
+        sstC: 30.0,
+        color: "#f59e0b",
+        description: "Intensified while heading northwestward toward north Odisha coast.",
+        coneRadiusKm: 50,
+        statusType: "intensification",
+      },
+      {
+        id: "dana-landfall",
+        label: "Stage 2: Dhamra / Bhitarkanika Landfall (0h)",
+        timeOffsetHours: 0,
+        dateStr: "Oct 25, 00:00 UTC",
+        lat: 20.85,
+        lng: 86.95,
+        category: "Severe Landfall (Odisha Coast)",
+        windSpeedKph: 120,
+        pressureHpa: 980,
+        sstC: 29.4,
+        color: "#ef4444",
+        description: "Landfall between Dhamra Port and Bhitarkanika National Park, Odisha with 120 km/h wind gusts.",
+        coneRadiusKm: 70,
+        statusType: "landfall",
+      },
+      {
+        id: "dana-inland",
+        label: "Stage 3: Inland Dissipation (+24h)",
+        timeOffsetHours: 24,
+        dateStr: "Oct 26, 00:00 UTC",
+        lat: 21.8,
+        lng: 85.5,
+        category: "Depression (Inland Odisha)",
+        windSpeedKph: 50,
+        pressureHpa: 1000,
+        sstC: 0.0,
+        color: "#38bdf8",
+        description: "Weakened rapidly over north interior Odisha hills.",
+        coneRadiusKm: 140,
+        statusType: "dissipation",
+      },
+    ];
+  }
 
   if (isAmphan) {
     return [
@@ -563,30 +815,32 @@ export function getLifecycleStages(
   // Generic dynamic fallback for any custom coordinates
   const baseLat = center.lat;
   const baseLng = center.lng;
+  const isArabianSea = baseLng < 77;
+
   return [
     {
       id: "gen-stage-0",
-      label: "Stage 0: Oceanic Genesis",
+      label: "Stage 0: Oceanic Genesis (-96h)",
       timeOffsetHours: -96,
-      dateStr: "-96 Hours (Equatorial Waters)",
-      lat: Math.max(5, baseLat - 11.5),
-      lng: Math.max(78, baseLng - 1.5),
+      dateStr: "-96 Hours (Warm Water Genesis)",
+      lat: Math.max(5, baseLat - (isArabianSea ? 7.0 : 10.0)),
+      lng: isArabianSea ? Math.max(60, baseLng - 2.5) : Math.max(82, baseLng - 2.0),
       category: "Tropical Low / Genesis",
       windSpeedKph: 50,
       pressureHpa: 1004,
       sstC: 31.2,
       color: "#38bdf8",
-      description: "Tropical depression initiated by equatorial convergence and high sea surface temperatures (>30°C).",
+      description: `Tropical depression initiated over warm waters of ${isArabianSea ? "the Arabian Sea" : "the Bay of Bengal"} (SST > 30°C).`,
       coneRadiusKm: 25,
       statusType: "genesis",
     },
     {
       id: "gen-stage-1",
-      label: "Stage 1: Marine Intensification",
+      label: "Stage 1: Marine Intensification (-48h)",
       timeOffsetHours: -48,
       dateStr: "-48 Hours (Open Ocean)",
-      lat: Math.max(8, baseLat - 6.0),
-      lng: Math.max(80, baseLng - 0.8),
+      lat: Math.max(8, baseLat - (isArabianSea ? 3.5 : 5.0)),
+      lng: isArabianSea ? Math.max(62, baseLng - 1.2) : Math.max(83, baseLng - 1.0),
       category: "Severe Cyclonic Storm",
       windSpeedKph: 135,
       pressureHpa: 965,
@@ -598,7 +852,7 @@ export function getLifecycleStages(
     },
     {
       id: "gen-stage-2",
-      label: "Stage 2: Peak Landfall Threat",
+      label: "Stage 2: Peak Landfall Threat (0h)",
       timeOffsetHours: 0,
       dateStr: "Landfall Interception (Current)",
       lat: baseLat,
@@ -617,8 +871,8 @@ export function getLifecycleStages(
       label: "Stage 3: +12h Inland Dissipation",
       timeOffsetHours: 12,
       dateStr: "+12 Hours Inland",
-      lat: Math.min(30, baseLat + 2.4),
-      lng: Math.min(92, baseLng + 1.2),
+      lat: Math.min(32, baseLat + 2.4),
+      lng: Math.min(95, baseLng + (isArabianSea ? 1.5 : 1.2)),
       category: "Cyclonic Storm",
       windSpeedKph: 95,
       pressureHpa: 980,
@@ -633,8 +887,8 @@ export function getLifecycleStages(
       label: "Stage 4: +24h Dissipation",
       timeOffsetHours: 24,
       dateStr: "+24 Hours Post-Landfall",
-      lat: Math.min(32, baseLat + 4.5),
-      lng: Math.min(94, baseLng + 2.0),
+      lat: Math.min(34, baseLat + 4.5),
+      lng: Math.min(96, baseLng + (isArabianSea ? 3.0 : 2.0)),
       category: "Depression / Remnant Low",
       windSpeedKph: 50,
       pressureHpa: 998,
@@ -668,6 +922,7 @@ export default function Globe3DView({
     return landfallIdx >= 0 ? landfallIdx : 0;
   });
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState<1 | 2 | 4>(1);
   const [isAutoRotating, setIsAutoRotating] = useState<boolean>(false);
   const [textureLoaded, setTextureLoaded] = useState<boolean>(false);
   const [showConeOfUncertainty, setShowConeOfUncertainty] = useState<boolean>(true);
@@ -682,6 +937,7 @@ export default function Globe3DView({
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState<boolean>(false);
 
   // References to dynamic opacity materials in Three.js scene
+  const cycloneGroupRef = useRef<THREE.Group | null>(null);
   const badgeSpritesRef = useRef<THREE.Sprite[]>([]);
   const dynamicMatsRef = useRef<{
     r64Mat?: THREE.MeshBasicMaterial;
@@ -870,10 +1126,11 @@ export default function Globe3DView({
 
     // 7. 3D Cyclone Vortex Placed at Active Stage Lat/Lng
     const cycloneGroup = new THREE.Group();
+    cycloneGroupRef.current = cycloneGroup;
     scene.add(cycloneGroup);
 
-    // 3D Spiral Cloud Disc with gentle translucency
-    const cycloneDiscGeom = new THREE.PlaneGeometry(30, 30);
+    // 3D Spiral Cloud Disc with gentle translucency (compact scale)
+    const cycloneDiscGeom = new THREE.PlaneGeometry(6.5, 6.5);
     const cycloneDiscMat = new THREE.MeshBasicMaterial({
       map: createCycloneCloudTexture(),
       transparent: true,
@@ -883,11 +1140,11 @@ export default function Globe3DView({
     });
     dynamicMatsRef.current.cycloneDiscMat = cycloneDiscMat;
     const cycloneDisc = new THREE.Mesh(cycloneDiscGeom, cycloneDiscMat);
-    cycloneDisc.position.z = 1.2;
+    cycloneDisc.position.z = 0.5;
     cycloneGroup.add(cycloneDisc);
 
-    // 3D Concentric Warning Radius Rings (Isotachs: R64, R50, R34) with refined opacity
-    const r64Geom = new THREE.RingGeometry(8.5, 9.1, 48);
+    // 3D Concentric Warning Radius Rings (Isotachs: R64, R50, R34) - Compact & Calibrated
+    const r64Geom = new THREE.RingGeometry(1.6, 1.85, 48);
     const r64Mat = new THREE.MeshBasicMaterial({
       color: 0xef4444,
       side: THREE.DoubleSide,
@@ -896,10 +1153,10 @@ export default function Globe3DView({
     });
     dynamicMatsRef.current.r64Mat = r64Mat;
     const r64Mesh = new THREE.Mesh(r64Geom, r64Mat);
-    r64Mesh.position.z = 1.4;
+    r64Mesh.position.z = 0.65;
     cycloneGroup.add(r64Mesh);
 
-    const r50Geom = new THREE.RingGeometry(14.0, 14.7, 48);
+    const r50Geom = new THREE.RingGeometry(2.8, 3.05, 48);
     const r50Mat = new THREE.MeshBasicMaterial({
       color: 0xf59e0b,
       side: THREE.DoubleSide,
@@ -908,10 +1165,10 @@ export default function Globe3DView({
     });
     dynamicMatsRef.current.r50Mat = r50Mat;
     const r50Mesh = new THREE.Mesh(r50Geom, r50Mat);
-    r50Mesh.position.z = 1.35;
+    r50Mesh.position.z = 0.60;
     cycloneGroup.add(r50Mesh);
 
-    const r34Geom = new THREE.RingGeometry(20.0, 20.7, 48);
+    const r34Geom = new THREE.RingGeometry(4.2, 4.45, 48);
     const r34Mat = new THREE.MeshBasicMaterial({
       color: 0x38bdf8,
       side: THREE.DoubleSide,
@@ -920,11 +1177,11 @@ export default function Globe3DView({
     });
     dynamicMatsRef.current.r34Mat = r34Mat;
     const r34Mesh = new THREE.Mesh(r34Geom, r34Mat);
-    r34Mesh.position.z = 1.3;
+    r34Mesh.position.z = 0.55;
     cycloneGroup.add(r34Mesh);
 
-    // Vertical Eyewall Column (Tropospheric Vortex)
-    const eyeWallGeom = new THREE.CylinderGeometry(1.2, 3.2, 8, 24, 1, true);
+    // Vertical Eyewall Column (Tropospheric Vortex - Compact)
+    const eyeWallGeom = new THREE.CylinderGeometry(0.3, 0.7, 2.0, 24, 1, true);
     const eyeWallMat = new THREE.MeshBasicMaterial({
       color: 0xff3b30,
       wireframe: true,
@@ -933,7 +1190,7 @@ export default function Globe3DView({
     });
     const eyeWall = new THREE.Mesh(eyeWallGeom, eyeWallMat);
     eyeWall.rotation.x = Math.PI / 2;
-    eyeWall.position.z = 4.0;
+    eyeWall.position.z = 1.0;
     cycloneGroup.add(eyeWall);
 
     const updateCyclonePosition = (lat: number, lng: number, scaleMultiplier = 1.0) => {
@@ -943,10 +1200,10 @@ export default function Globe3DView({
       cycloneGroup.scale.setScalar(scaleMultiplier);
     };
 
-    updateCyclonePosition(activeStage.lat, activeStage.lng, activeStage.windSpeedKph / 185);
+    updateCyclonePosition(activeStage.lat, activeStage.lng, 0.55 + (activeStage.windSpeedKph / 250) * 0.25);
 
-    // 8. 3D Swirling Wind Speed Field (Particles spiraling into eyewall)
-    const windParticleCount = 420;
+    // 8. 3D Swirling Wind Speed Field (Particles spiraling into eyewall - Fine & Compact)
+    const windParticleCount = 380;
     const windPositions = new Float32Array(windParticleCount * 3);
     const windColors = new Float32Array(windParticleCount * 3);
     const particleThetas = new Float32Array(windParticleCount);
@@ -955,19 +1212,19 @@ export default function Globe3DView({
 
     for (let i = 0; i < windParticleCount; i++) {
       const theta = Math.random() * Math.PI * 2;
-      const r = 5.0 + Math.pow(Math.random(), 1.5) * 32.0;
+      const r = 0.9 + Math.pow(Math.random(), 1.4) * 5.2;
       particleThetas[i] = theta;
       particleRadii[i] = r;
-      particleSpeeds[i] = 0.025 + (1.0 / Math.max(2.0, r)) * 0.35;
+      particleSpeeds[i] = 0.025 + (1.0 / Math.max(1.0, r)) * 0.20;
 
       windPositions[i * 3] = r * Math.cos(theta);
       windPositions[i * 3 + 1] = r * Math.sin(theta);
-      windPositions[i * 3 + 2] = 1.5 + Math.random() * 2.5;
+      windPositions[i * 3 + 2] = 0.5 + Math.random() * 1.0;
 
       const c = new THREE.Color();
-      if (r < 11.0) {
+      if (r < 1.8) {
         c.set("#ef4444"); // Hurricane force (>64 kt)
-      } else if (r < 22.0) {
+      } else if (r < 3.2) {
         c.set("#f59e0b"); // Storm force (48-63 kt)
       } else {
         c.set("#38bdf8"); // Gale force (34-47 kt)
@@ -982,10 +1239,10 @@ export default function Globe3DView({
     windGeo.setAttribute("color", new THREE.BufferAttribute(windColors, 3));
 
     const windMat = new THREE.PointsMaterial({
-      size: 1.7,
+      size: 0.45,
       vertexColors: true,
       transparent: true,
-      opacity: 0.60,
+      opacity: 0.65,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
@@ -1019,7 +1276,7 @@ export default function Globe3DView({
       const isGenesis = st.statusType === "genesis";
       const isLandfall = st.statusType === "landfall";
 
-      const wpGeom = new THREE.SphereGeometry(isLandfall ? 1.6 : isGenesis ? 1.3 : 0.9, 16, 16);
+      const wpGeom = new THREE.SphereGeometry(isLandfall ? 0.9 : isGenesis ? 0.75 : 0.55, 16, 16);
       const wpMat = new THREE.MeshBasicMaterial({ color: st.color });
       const wpMesh = new THREE.Mesh(wpGeom, wpMat);
       wpMesh.position.copy(pos);
@@ -1256,10 +1513,10 @@ export default function Globe3DView({
         const pArr = windGeo.attributes.position.array as Float32Array;
         for (let i = 0; i < windParticleCount; i++) {
           particleThetas[i] += particleSpeeds[i];
-          particleRadii[i] -= 0.045;
+          particleRadii[i] -= 0.018;
 
-          if (particleRadii[i] < 4.0) {
-            particleRadii[i] = 32.0 + Math.random() * 6.0;
+          if (particleRadii[i] < 0.7) {
+            particleRadii[i] = 5.2 + Math.random() * 1.2;
             particleThetas[i] = Math.random() * Math.PI * 2;
           }
 
@@ -1302,30 +1559,69 @@ export default function Globe3DView({
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
+      cycloneGroupRef.current = null;
     };
   }, [stages]);
 
+  // Smoothly move the 3D Cyclone Vortex across the planetary sphere surface whenever stage changes or plays
   useEffect(() => {
-    if (!stages[currentStageIdx]) return;
+    if (!stages[currentStageIdx] || !cycloneGroupRef.current) return;
     const stage = stages[currentStageIdx];
-    if (isPlaying) {
-      focusOnCoordinates(stage.lat, stage.lng, 195);
-    }
-  }, [currentStageIdx, isPlaying, stages]);
+    const globeRadius = 80;
+    const targetPos = latLngToVector3(stage.lat, stage.lng, globeRadius);
+    const targetQuat = new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 0, 1),
+      targetPos.clone().normalize()
+    );
+    const targetScale = 0.55 + (stage.windSpeedKph / 250) * 0.25;
+
+    const grp = cycloneGroupRef.current;
+    const startPos = grp.position.clone();
+    const startQuat = grp.quaternion.clone();
+    const startScale = grp.scale.x;
+
+    const startTime = performance.now();
+    const duration = isPlaying ? Math.round(1500 / playbackSpeed) : 750;
+
+    let animId: number;
+    const animateGlide = () => {
+      const elapsed = performance.now() - startTime;
+      const p = Math.min(1, elapsed / duration);
+      const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+
+      grp.position.lerpVectors(startPos, targetPos, ease);
+      grp.quaternion.slerpQuaternions(startQuat, targetQuat, ease);
+      const s = THREE.MathUtils.lerp(startScale, targetScale, ease);
+      grp.scale.setScalar(s);
+
+      if (p < 1) {
+        animId = requestAnimationFrame(animateGlide);
+      }
+    };
+    animateGlide();
+
+    // Camera smoothly glides to track active storm eye
+    focusOnCoordinates(stage.lat, stage.lng, isPlaying ? 200 : 190);
+
+    return () => {
+      cancelAnimationFrame(animId);
+    };
+  }, [currentStageIdx, stages, playbackSpeed, isPlaying]);
 
   useEffect(() => {
     if (!isPlaying) return;
+    const intervalMs = Math.round(2800 / playbackSpeed);
     const interval = setInterval(() => {
       setCurrentStageIdx((prev) => {
         if (prev >= stages.length - 1) {
           setIsPlaying(false);
-          return prev;
+          return 0; // loop back to genesis when finished
         }
         return prev + 1;
       });
-    }, 2800);
+    }, intervalMs);
     return () => clearInterval(interval);
-  }, [isPlaying, stages.length]);
+  }, [isPlaying, stages.length, playbackSpeed]);
 
   return (
     <div
@@ -1398,31 +1694,61 @@ export default function Globe3DView({
           <>
             {/* Historical Presets Quick Switch */}
             {onSelectPreset && (
-              <div style={{ display: "flex", gap: "5px", alignItems: "center", flexWrap: "wrap" }}>
-                <span style={{ fontSize: "0.68rem", color: "#94a3b8" }}>Historical:</span>
+              <div style={{ display: "flex", gap: "4px", alignItems: "center", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "0.68rem", color: "#94a3b8" }}>Presets:</span>
                 <button
                   type="button"
                   className="dock-btn"
                   style={{ fontSize: "0.68rem", padding: "2px 7px" }}
-                  onClick={() => onSelectPreset("landfall_amphan")}
+                  onClick={() => onSelectPreset("nisarga")}
+                  title="Cyclone Nisarga Landfall - Maharashtra Coast (Arabian Sea 2020)"
                 >
-                  Amphan (Digha)
+                  🌊 Nisarga (MH)
                 </button>
                 <button
                   type="button"
                   className="dock-btn"
                   style={{ fontSize: "0.68rem", padding: "2px 7px" }}
-                  onClick={() => onSelectPreset("landfall_fani")}
+                  onClick={() => onSelectPreset("biparjoy")}
+                  title="Cyclone Biparjoy Landfall - Gujarat Coast (Arabian Sea 2023)"
                 >
-                  Fani (Puri)
+                  🌊 Biparjoy (GJ)
                 </button>
                 <button
                   type="button"
                   className="dock-btn"
                   style={{ fontSize: "0.68rem", padding: "2px 7px" }}
-                  onClick={() => onSelectPreset("landfall_hudhud")}
+                  onClick={() => onSelectPreset("dana")}
+                  title="Cyclone Dana Landfall - Odisha Coast (Bay of Bengal 2024)"
                 >
-                  Hudhud (Vizag)
+                  🌀 Dana (OD)
+                </button>
+                <button
+                  type="button"
+                  className="dock-btn"
+                  style={{ fontSize: "0.68rem", padding: "2px 7px" }}
+                  onClick={() => onSelectPreset("amphan")}
+                  title="Cyclone Amphan Landfall - Digha / WB (Bay of Bengal 2020)"
+                >
+                  🌀 Amphan (WB)
+                </button>
+                <button
+                  type="button"
+                  className="dock-btn"
+                  style={{ fontSize: "0.68rem", padding: "2px 7px" }}
+                  onClick={() => onSelectPreset("fani")}
+                  title="Cyclone Fani Landfall - Puri / Odisha (Bay of Bengal 2019)"
+                >
+                  🌀 Fani (OD)
+                </button>
+                <button
+                  type="button"
+                  className="dock-btn"
+                  style={{ fontSize: "0.68rem", padding: "2px 7px" }}
+                  onClick={() => onSelectPreset("hudhud")}
+                  title="Cyclone Hudhud Landfall - Visakhapatnam / AP (Bay of Bengal 2014)"
+                >
+                  🌀 Hudhud (AP)
                 </button>
               </div>
             )}
@@ -1841,27 +2167,168 @@ export default function Globe3DView({
         )}
       </div>
 
-      {/* Floating Instructions Bottom */}
+      {/* BOTTOM CENTER: Main Trajectory Movement & Playback Deck */}
       <div
         style={{
           position: "absolute",
-          bottom: "16px",
+          bottom: "20px",
           left: "50%",
           transform: "translateX(-50%)",
-          background: "rgba(6, 12, 22, 0.70)",
-          backdropFilter: "blur(10px)",
-          borderRadius: "20px",
-          padding: "5px 16px",
-          fontSize: "0.72rem",
-          color: "#94a3b8",
-          pointerEvents: "none",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
-          boxShadow: "0 4px 16px rgba(0, 0, 0, 0.3)",
-          whiteSpace: "nowrap",
-          zIndex: 100,
+          background: "rgba(6, 12, 22, 0.88)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          border: "1px solid rgba(56, 189, 248, 0.35)",
+          borderRadius: "16px",
+          padding: "10px 18px",
+          display: "flex",
+          alignItems: "center",
+          gap: "14px",
+          boxShadow: "0 16px 40px rgba(0, 0, 0, 0.7)",
+          zIndex: 1100,
+          maxWidth: "92vw",
+          flexWrap: "wrap",
+          justifyContent: "center",
         }}
       >
-        Left-Click + Drag: Rotate 360° &middot; Right-Click: Pan &middot; Scroll: Zoom In/Out
+        {/* Play/Pause Button */}
+        <button
+          type="button"
+          className="dock-btn"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            fontSize: "0.82rem",
+            padding: "6px 14px",
+            background: isPlaying ? "rgba(239, 68, 68, 0.25)" : "rgba(16, 185, 129, 0.25)",
+            borderColor: isPlaying ? "#ef4444" : "#10b981",
+            color: isPlaying ? "#ef4444" : "#10b981",
+            fontWeight: 800,
+            borderRadius: "10px",
+            boxShadow: isPlaying ? "0 0 12px rgba(239,68,68,0.4)" : "0 0 12px rgba(16,185,129,0.4)",
+          }}
+          onClick={() => setIsPlaying(!isPlaying)}
+          title={isPlaying ? "Pause Cyclone Simulation Movement" : "Play Full Movement from Water/Genesis to Landfall & Dissipation"}
+        >
+          <span style={{ fontSize: "1rem" }}>{isPlaying ? "⏸" : "▶"}</span>
+          <span>{isPlaying ? "PAUSE" : "PLAY MOVEMENT"}</span>
+        </button>
+
+        {/* Step Prev & Next */}
+        <div style={{ display: "flex", gap: "4px" }}>
+          <button
+            type="button"
+            className="dock-btn"
+            style={{ fontSize: "0.74rem", padding: "5px 8px" }}
+            onClick={() => {
+              setIsPlaying(false);
+              setCurrentStageIdx((prev) => Math.max(0, prev - 1));
+            }}
+            title="Previous Stage"
+          >
+            ⏮
+          </button>
+          <button
+            type="button"
+            className="dock-btn"
+            style={{ fontSize: "0.74rem", padding: "5px 8px" }}
+            onClick={() => {
+              setIsPlaying(false);
+              setCurrentStageIdx((prev) => Math.min(stages.length - 1, prev + 1));
+            }}
+            title="Next Stage"
+          >
+            ⏭
+          </button>
+        </div>
+
+        {/* Timeline Stages Chips */}
+        <div style={{ display: "flex", gap: "5px", alignItems: "center", flexWrap: "wrap" }}>
+          {stages.map((st, idx) => {
+            const isActive = currentStageIdx === idx;
+            return (
+              <button
+                key={st.id}
+                type="button"
+                className="dock-btn"
+                style={{
+                  fontSize: "0.70rem",
+                  padding: "4px 8px",
+                  background: isActive ? `${st.color}33` : "rgba(15, 23, 42, 0.6)",
+                  borderColor: isActive ? st.color : "rgba(255, 255, 255, 0.12)",
+                  color: isActive ? "#ffffff" : "#94a3b8",
+                  fontWeight: isActive ? 800 : 500,
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+                onClick={() => {
+                  setCurrentStageIdx(idx);
+                  setIsPlaying(false);
+                }}
+                title={st.description}
+              >
+                <span
+                  style={{
+                    width: "7px",
+                    height: "7px",
+                    borderRadius: "50%",
+                    background: st.color,
+                    display: "inline-block",
+                  }}
+                />
+                <span>
+                  {st.statusType === "genesis"
+                    ? "Genesis"
+                    : st.statusType === "intensification"
+                    ? "Intensify"
+                    : st.statusType === "landfall"
+                    ? "Landfall"
+                    : st.statusType === "inland"
+                    ? "Inland"
+                    : "Dissipate"}
+                </span>
+                <span style={{ fontSize: "0.62rem", opacity: 0.8 }}>
+                  ({st.timeOffsetHours > 0 ? `+${st.timeOffsetHours}h` : `${st.timeOffsetHours}h`})
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Playback Speed Controls */}
+        <div style={{ display: "flex", gap: "3px", alignItems: "center", borderLeft: "1px solid rgba(255,255,255,0.15)", paddingLeft: "10px" }}>
+          <span style={{ fontSize: "0.66rem", color: "#94a3b8" }}>Speed:</span>
+          {([1, 2, 4] as const).map((spd) => (
+            <button
+              key={spd}
+              type="button"
+              className="dock-btn"
+              style={{
+                fontSize: "0.66rem",
+                padding: "2px 6px",
+                background: playbackSpeed === spd ? "var(--accent-cyan)" : "transparent",
+                color: playbackSpeed === spd ? "#050b14" : "#94a3b8",
+                fontWeight: playbackSpeed === spd ? 800 : 600,
+              }}
+              onClick={() => setPlaybackSpeed(spd)}
+            >
+              {spd}x
+            </button>
+          ))}
+        </div>
+
+        {/* Focus Target Button */}
+        <button
+          type="button"
+          className="dock-btn"
+          style={{ fontSize: "0.72rem", padding: "5px 10px", borderColor: "#38bdf8", color: "#38bdf8" }}
+          onClick={focusCurrentStage}
+          title="Recenter Camera on Active Eye Position"
+        >
+          🎯 Recenter Eye
+        </button>
       </div>
     </div>
   );

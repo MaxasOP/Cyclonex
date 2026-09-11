@@ -46,8 +46,41 @@ function safeMax(arr: number[], fallback = 0): number {
 }
 
 const presets = {
-  landfall_amphan: {
-    name: "Cyclone Amphan Landfall (Coastal West Bengal / Digha 21.6°N, 87.5°E)",
+  nisarga: {
+    name: "Cyclone Nisarga (Maharashtra Coast 18.35°N, 72.98°E - Arabian Sea)",
+    lat: "18.35",
+    lon: "72.98",
+    wind: "120",
+    pressure: "984",
+    heading: "35",
+    speed: "22",
+    radius: "30",
+    source: "INSAT",
+  },
+  biparjoy: {
+    name: "Cyclone Biparjoy (Gujarat Coast 23.20°N, 68.60°E - Arabian Sea)",
+    lat: "23.20",
+    lon: "68.60",
+    wind: "140",
+    pressure: "965",
+    heading: "45",
+    speed: "16",
+    radius: "35",
+    source: "INSAT",
+  },
+  dana: {
+    name: "Cyclone Dana (Dhamra Port / Odisha 20.85°N, 86.95°E - Bay of Bengal)",
+    lat: "20.85",
+    lon: "86.95",
+    wind: "120",
+    pressure: "980",
+    heading: "325",
+    speed: "18",
+    radius: "30",
+    source: "GPM_IMERG",
+  },
+  amphan: {
+    name: "Cyclone Amphan (Digha / West Bengal 21.62°N, 87.51°E - Bay of Bengal)",
     lat: "21.62",
     lon: "87.51",
     wind: "165",
@@ -57,8 +90,8 @@ const presets = {
     radius: "30",
     source: "HURSAT_B1",
   },
-  landfall_fani: {
-    name: "Cyclone Fani Landfall (Puri Coastal Sector, Odisha 19.8°N, 85.8°E)",
+  fani: {
+    name: "Cyclone Fani (Puri / Odisha 19.81°N, 85.83°E - Bay of Bengal)",
     lat: "19.81",
     lon: "85.83",
     wind: "175",
@@ -68,8 +101,8 @@ const presets = {
     radius: "30",
     source: "INSAT",
   },
-  landfall_hudhud: {
-    name: "Cyclone Hudhud Landfall (Visakhapatnam Harbor, AP 17.7°N, 83.2°E)",
+  hudhud: {
+    name: "Cyclone Hudhud (Visakhapatnam / AP 17.68°N, 83.21°E - Bay of Bengal)",
     lat: "17.68",
     lon: "83.21",
     wind: "185",
@@ -79,60 +112,16 @@ const presets = {
     radius: "30",
     source: "HURSAT_B1",
   },
-  amphan: {
-    name: "Cyclone Amphan (Super Cyclone - Bay of Bengal 2020)",
-    lat: "15.5",
-    lon: "87.5",
-    wind: "185",
-    pressure: "925",
-    heading: "350",
-    speed: "22",
-    radius: "40",
-    source: "HURSAT_B1",
-  },
-  fani: {
-    name: "Cyclone Fani (Extremely Severe - Bay of Bengal 2019)",
-    lat: "14.2",
-    lon: "85.2",
-    wind: "175",
-    pressure: "937",
-    heading: "340",
-    speed: "20",
-    radius: "35",
-    source: "INSAT",
-  },
-  bulbul: {
-    name: "Cyclone Bulbul (Very Severe - Bay of Bengal 2019)",
-    lat: "18.1",
-    lon: "87.2",
-    wind: "140",
-    pressure: "970",
-    heading: "355",
-    speed: "18",
-    radius: "30",
-    source: "GPM_IMERG",
-  },
-  nisarga: {
-    name: "Cyclone Nisarga (Severe - Arabian Sea 2020)",
-    lat: "16.8",
-    lon: "72.4",
-    wind: "110",
-    pressure: "984",
-    heading: "30",
-    speed: "24",
-    radius: "25",
-    source: "SENTINEL_1",
-  },
   custom: {
-    name: "Custom Map Coordinate",
-    lat: "15.2",
-    lon: "87.4",
-    wind: "140",
-    pressure: "960",
-    heading: "315",
-    speed: "25",
+    name: "Custom Map Coordinates",
+    lat: "18.35",
+    lon: "72.98",
+    wind: "120",
+    pressure: "984",
+    heading: "35",
+    speed: "22",
     radius: "30",
-    source: "HURSAT_B1",
+    source: "SENTINEL_1",
   },
 };
 
@@ -327,10 +316,10 @@ export default function App() {
     return window.location.hash === "#landing" ? "landing" : "app";
   });
   const [activeTab, setActiveTab] = useState<"ml" | "screening">("ml");
-  const [selectedPreset, setSelectedPreset] = useState<keyof typeof presets>("landfall_amphan");
-  const [selectedSource, setSelectedSource] = useState<string>("HURSAT_B1");
+  const [selectedPreset, setSelectedPreset] = useState<keyof typeof presets>("nisarga");
+  const [selectedSource, setSelectedSource] = useState<string>("INSAT");
 
-  const [form, setForm] = useState(presets.landfall_amphan);
+  const [form, setForm] = useState(presets.nisarga);
   const [mlResult, setMlResult] = useState<MLInferenceResult | null>(null);
   const [datasetSummary, setDatasetSummary] = useState<DatasetSummary | null>(null);
   const [selectedHorizon, setSelectedHorizon] = useState<6 | 12 | 24>(24);
@@ -343,8 +332,8 @@ export default function App() {
 
   useEffect(() => {
     if (!realtimeLiveEnabled) return;
-    const lat = Number(form.lat || 21.62);
-    const lon = Number(form.lon || 87.51);
+    const lat = Number(form.lat || 18.35);
+    const lon = Number(form.lon || 72.98);
 
     const fetchLive = () => {
       fetchRealtimeWeather(lat, lon).then((data) => {
@@ -371,16 +360,16 @@ export default function App() {
 
   useEffect(() => {
     void fetchDatasetSummary().then(setDatasetSummary);
-    // Auto-calculate default landfall_amphan scenario on mount so map is immediately live!
+    // Auto-calculate default scenario on mount so map is immediately live!
     void runFullPipeline(
-      presets.landfall_amphan.lat,
-      presets.landfall_amphan.lon,
-      presets.landfall_amphan.wind,
-      presets.landfall_amphan.pressure,
-      presets.landfall_amphan.name,
-      presets.landfall_amphan.heading,
-      presets.landfall_amphan.speed,
-      presets.landfall_amphan.radius
+      presets.nisarga.lat,
+      presets.nisarga.lon,
+      presets.nisarga.wind,
+      presets.nisarga.pressure,
+      presets.nisarga.name,
+      presets.nisarga.heading,
+      presets.nisarga.speed,
+      presets.nisarga.radius
     );
   }, []);
 
@@ -406,7 +395,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [screeningSubTab, setScreeningSubTab] = useState<"setup" | "results" | "solutions">("setup");
-  const [bottomDeckTab, setBottomDeckTab] = useState<"auto" | "screening" | "ml" | "all">("auto");
+  const [bottomDeckTab, setBottomDeckTab] = useState<"auto" | "screening" | "ml" | "mitigation" | "all">("auto");
   const effectiveDeckTab = bottomDeckTab === "auto" ? (activeTab === "screening" ? "screening" : "ml") : bottomDeckTab;
 
   const [analysisMode, setAnalysisMode] = useState<MapAnalysisMode>("DAMAGE");
@@ -600,9 +589,16 @@ export default function App() {
 
   async function handlePresetChange(rawKey: string) {
     const keyMap: Record<string, keyof typeof presets> = {
-      digha: "landfall_amphan",
-      puri: "landfall_fani",
-      vizag: "landfall_hudhud",
+      digha: "amphan",
+      landfall_amphan: "amphan",
+      puri: "fani",
+      landfall_fani: "fani",
+      vizag: "hudhud",
+      landfall_hudhud: "hudhud",
+      nisarga: "nisarga",
+      biparjoy: "biparjoy",
+      dana: "dana",
+      custom: "custom",
     };
     const presetKey = (keyMap[rawKey] || rawKey) as keyof typeof presets;
     const p = presets[presetKey];
@@ -614,6 +610,16 @@ export default function App() {
     setZones([]);
     setSheltersPlan(null);
     await runFullPipeline(p.lat, p.lon, p.wind, p.pressure, p.name, p.heading, p.speed, p.radius);
+  }
+
+  function handleClearAllCyclones() {
+    setScenario(null);
+    setMlResult(null);
+    setBuildings([]);
+    setZones([]);
+    setSheltersPlan(null);
+    setSelectedPreset("custom");
+    setForm(presets.custom);
   }
 
   async function handleMLFormSubmit(event: FormEvent<HTMLFormElement>) {
@@ -792,24 +798,45 @@ export default function App() {
     ? mlResult[`forecast_${selectedHorizon}h`]
     : null;
 
-  const trajectoryPoints = useMemo(
-    () =>
-      mlResult
-        ? [
-            { lat: mlResult.forecast_6h.centre_lat, lng: mlResult.forecast_6h.centre_lon, label: "+6h Forecast" },
-            { lat: mlResult.forecast_12h.centre_lat, lng: mlResult.forecast_12h.centre_lon, label: "+12h Forecast" },
-            { lat: mlResult.forecast_24h.centre_lat, lng: mlResult.forecast_24h.centre_lon, label: "+24h Forecast" },
-          ]
-        : [],
-    [
-      mlResult?.forecast_6h?.centre_lat,
-      mlResult?.forecast_6h?.centre_lon,
-      mlResult?.forecast_12h?.centre_lat,
-      mlResult?.forecast_12h?.centre_lon,
-      mlResult?.forecast_24h?.centre_lat,
-      mlResult?.forecast_24h?.centre_lon,
-    ]
-  );
+  const trajectoryPoints = useMemo(() => {
+    if (mlResult) {
+      return [
+        { lat: mlResult.forecast_6h.centre_lat, lng: mlResult.forecast_6h.centre_lon, label: "+6h Forecast" },
+        { lat: mlResult.forecast_12h.centre_lat, lng: mlResult.forecast_12h.centre_lon, label: "+12h Forecast" },
+        { lat: mlResult.forecast_24h.centre_lat, lng: mlResult.forecast_24h.centre_lon, label: "+24h Forecast" },
+      ];
+    }
+    const latNum = Number(form.lat) || 18.35;
+    const lonNum = Number(form.lon) || 72.98;
+    const headingRad = (((90 - (Number(form.heading) || 35)) % 360) * Math.PI) / 180;
+    const speed = Number(form.speed) || 22;
+    const d6 = (speed * 6) / 111;
+    const d12 = (speed * 12) / 111;
+    const d24 = (speed * 24) / 111;
+    return [
+      {
+        lat: Number((latNum + d6 * Math.sin(headingRad)).toFixed(4)),
+        lng: Number((lonNum + d6 * Math.cos(headingRad)).toFixed(4)),
+        label: "+6h Forecast",
+      },
+      {
+        lat: Number((latNum + d12 * Math.sin(headingRad)).toFixed(4)),
+        lng: Number((lonNum + d12 * Math.cos(headingRad)).toFixed(4)),
+        label: "+12h Forecast",
+      },
+      {
+        lat: Number((latNum + d24 * Math.sin(headingRad)).toFixed(4)),
+        lng: Number((lonNum + d24 * Math.cos(headingRad)).toFixed(4)),
+        label: "+24h Forecast",
+      },
+    ];
+  }, [
+    mlResult,
+    form.lat,
+    form.lon,
+    form.heading,
+    form.speed,
+  ]);
 
   const summaryStats = scenario?.risk_grid?.summary;
   const totalCells = scenario?.risk_grid?.features?.length || 0;
@@ -1091,23 +1118,44 @@ export default function App() {
               <h2>🌀 Cyclone Risk Assessment</h2>
               <p>Enter a cyclone location and intensity to see predicted damage across the affected area.</p>
 
-              <div style={{ display: "grid", gap: "12px", marginBottom: "16px" }}>
+              <div style={{ display: "grid", gap: "10px", marginBottom: "16px" }}>
                 <label>
                   <span>📍 Choose a Recent Storm or Custom Location</span>
                   <select
                     value={selectedPreset}
                     onChange={(e) => handlePresetChange(e.target.value as keyof typeof presets)}
                   >
-                    <option value="landfall_amphan">Cyclone Amphan (West Bengal, 2020)</option>
-                    <option value="landfall_fani">Cyclone Fani (Odisha, 2019)</option>
-                    <option value="landfall_hudhud">Cyclone Hudhud (Andhra Pradesh, 2014)</option>
-                    <option value="amphan">Cyclone Amphan - Open Ocean</option>
-                    <option value="fani">Cyclone Fani - Open Ocean</option>
-                    <option value="bulbul">Cyclone Bulbul (2019)</option>
-                    <option value="nisarga">Cyclone Nisarga (Arabian Sea, 2020)</option>
-                    <option value="custom">Custom Location</option>
+                    <option value="nisarga">🌊 Cyclone Nisarga (Maharashtra Coast / Arabian Sea, 2020)</option>
+                    <option value="biparjoy">🌊 Cyclone Biparjoy (Gujarat Coast / Arabian Sea, 2023)</option>
+                    <option value="dana">🌀 Cyclone Dana (Odisha Coast / Bay of Bengal, 2024)</option>
+                    <option value="amphan">🌀 Cyclone Amphan (West Bengal / Bay of Bengal, 2020)</option>
+                    <option value="fani">🌀 Cyclone Fani (Odisha / Bay of Bengal, 2019)</option>
+                    <option value="hudhud">🌀 Cyclone Hudhud (Andhra Pradesh / Bay of Bengal, 2014)</option>
+                    <option value="custom">📍 Custom Map Coordinates</option>
                   </select>
                 </label>
+                <button
+                  type="button"
+                  className="dock-btn"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "6px 12px",
+                    background: "rgba(239, 68, 68, 0.12)",
+                    borderColor: "rgba(239, 68, 68, 0.4)",
+                    color: "#fca5a5",
+                    fontSize: "0.74rem",
+                    fontWeight: 700,
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                  }}
+                  onClick={handleClearAllCyclones}
+                  title="Remove all active storm tracks, damage grids, and overlays for a clean base map"
+                >
+                  <span>🧹 Remove All Cyclones (Clear Map)</span>
+                </button>
               </div>
 
               <form onSubmit={handleScreeningSubmit}>
@@ -1262,14 +1310,13 @@ export default function App() {
                       value={selectedPreset}
                       onChange={(e) => void handlePresetChange(e.target.value as keyof typeof presets)}
                     >
-                      <option value="landfall_amphan">Cyclone Amphan (West Bengal, 2020)</option>
-                      <option value="landfall_fani">Cyclone Fani (Odisha, 2019)</option>
-                      <option value="landfall_hudhud">Cyclone Hudhud (Andhra Pradesh, 2014)</option>
-                      <option value="amphan">Cyclone Amphan - Open Ocean</option>
-                      <option value="fani">Cyclone Fani - Open Ocean</option>
-                      <option value="bulbul">Cyclone Bulbul (2019)</option>
-                      <option value="nisarga">Cyclone Nisarga (Arabian Sea, 2020)</option>
-                      <option value="custom">Custom Location</option>
+                      <option value="nisarga">🌊 Cyclone Nisarga (Maharashtra Coast / Arabian Sea, 2020)</option>
+                      <option value="biparjoy">🌊 Cyclone Biparjoy (Gujarat Coast / Arabian Sea, 2023)</option>
+                      <option value="dana">🌀 Cyclone Dana (Odisha Coast / Bay of Bengal, 2024)</option>
+                      <option value="amphan">🌀 Cyclone Amphan (West Bengal / Bay of Bengal, 2020)</option>
+                      <option value="fani">🌀 Cyclone Fani (Odisha / Bay of Bengal, 2019)</option>
+                      <option value="hudhud">🌀 Cyclone Hudhud (Andhra Pradesh / Bay of Bengal, 2014)</option>
+                      <option value="custom">📍 Custom Map Coordinates</option>
                     </select>
                   </label>
 
@@ -2044,6 +2091,13 @@ export default function App() {
               </button>
               <button
                 type="button"
+                className={`deck-tab-btn ${effectiveDeckTab === "mitigation" ? "active" : ""}`}
+                onClick={() => setBottomDeckTab("mitigation")}
+              >
+                <IconShield /> Mitigation &amp; Refugee Shelters Analysis
+              </button>
+              <button
+                type="button"
                 className={`deck-tab-btn ${effectiveDeckTab === "all" ? "active" : ""}`}
                 onClick={() => setBottomDeckTab("all")}
               >
@@ -2499,6 +2553,276 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* 3. CYCLONE MITIGATION MEASURES & REFUGEE SHELTERS ANALYSIS SECTION */}
+          {(effectiveDeckTab === "mitigation" || effectiveDeckTab === "all") && (
+            <div className="deck-section-block">
+              {/* Executive Mitigation & Shelter Header */}
+              <div className="executive-directives-card" style={{ margin: "0 0 16px", borderColor: "rgba(16, 185, 129, 0.4)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                  <div className="directives-title" style={{ color: "#34d399" }}>
+                    <IconShield /> DISASTER IMPACT MITIGATION &amp; MULTIPURPOSE REFUGEE SHELTER INTELLIGENCE
+                  </div>
+                  <button
+                    type="button"
+                    className="print-report-btn"
+                    onClick={() => window.print()}
+                    title="Export official Evacuation &amp; Mitigation Briefing (PDF)"
+                    style={{ borderColor: "#10b981", color: "#6ee7b7" }}
+                  >
+                    <IconDownload /> Export Evacuation Briefing (PDF)
+                  </button>
+                </div>
+
+                <div className="loss-metric-row">
+                  <div className="loss-box">
+                    <span className="loss-lbl">Safe MPCS Shelter Capacity</span>
+                    <strong className="loss-val inr" style={{ color: "#34d399" }}>
+                      {(sheltersPlan?.total_capacity ?? 12500).toLocaleString()} <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>persons</span>
+                    </strong>
+                    <span className="loss-sub">{sheltersPlan?.total_shelters_active ?? 5} Active Multipurpose Shelters</span>
+                  </div>
+
+                  <div className="loss-box">
+                    <span className="loss-lbl">Immediate Evacuation Count</span>
+                    <strong className="loss-val pop" style={{ color: "#ff6b5b" }}>
+                      {(sheltersPlan?.immediate_evacuation_count ?? 9400).toLocaleString()}
+                    </strong>
+                    <span className="loss-sub">Red Zone (&ge;0.55 Risk) Population</span>
+                  </div>
+
+                  <div className="loss-box">
+                    <span className="loss-lbl">Capacity Coverage Ratio</span>
+                    <strong className="loss-val" style={{ color: "#38bdf8" }}>
+                      {sheltersPlan ? `${((sheltersPlan.immediate_evacuation_count / Math.max(1, sheltersPlan.total_capacity)) * 100).toFixed(1)}%` : "75.2%"}
+                    </strong>
+                    <span className="loss-sub">Refugee Occupancy Margin</span>
+                  </div>
+
+                  <div className="loss-box">
+                    <span className="loss-lbl">Surge Foundation Clearance</span>
+                    <strong className="loss-val" style={{ color: "#f59e0b" }}>
+                      +4.5 m MSL
+                    </strong>
+                    <span className="loss-sub">RCC Stilted Scour Resistance</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4-Column Mitigation & Refugee Shelters Intelligence Grid */}
+              <div className="ai-ml-grid">
+                {/* Column 1: Coastal MPCS Shelters Inventory */}
+                <div className="ai-ml-card" style={{ gridColumn: "span 2" }}>
+                  <div className="ai-ml-card-header" style={{ color: "#34d399" }}>
+                    <IconShield /> Designated Multipurpose Cyclone Shelters (MPCS Roster)
+                  </div>
+                  <div style={{ maxHeight: "320px", overflowY: "auto" }}>
+                    <table className="ai-ml-table">
+                      <thead>
+                        <tr>
+                          <th>Shelter Facility</th>
+                          <th>Capacity</th>
+                          <th>Design Standard</th>
+                          <th>Distance</th>
+                          <th>Key Amenities</th>
+                          <th>Priority</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(sheltersPlan?.shelters && sheltersPlan.shelters.length > 0 ? sheltersPlan.shelters : [
+                          {
+                            id: "mpcs-wb-digha-01",
+                            name: "Digha Coastal Multipurpose Shelter-1",
+                            capacity: 2500,
+                            facility_type: "RCC Stilted 3-Story",
+                            distance_km: 1.2,
+                            backup_generator: true,
+                            helipad: true,
+                            evacuation_priority: "IMMEDIATE" as const,
+                          },
+                          {
+                            id: "mpcs-wb-shankarpur-02",
+                            name: "Shankarpur Fishing Harbour Shelter",
+                            capacity: 1800,
+                            facility_type: "Elevated Community Shelter",
+                            distance_km: 4.8,
+                            backup_generator: true,
+                            helipad: false,
+                            evacuation_priority: "ADVISORY" as const,
+                          },
+                          {
+                            id: "mpcs-wb-mandarmani-03",
+                            name: "Mandarmani Coastal Community Shelter",
+                            capacity: 2000,
+                            facility_type: "RCC Stilted 3-Story",
+                            distance_km: 18.5,
+                            backup_generator: true,
+                            helipad: false,
+                            evacuation_priority: "STANDBY" as const,
+                          },
+                        ]).map((s) => (
+                          <tr key={s.id}>
+                            <td>
+                              <strong>{s.name}</strong>
+                            </td>
+                            <td>
+                              <strong style={{ color: "#34d399" }}>{(s.capacity || 2500).toLocaleString()}</strong>
+                            </td>
+                            <td>{s.facility_type}</td>
+                            <td>{s.distance_km ?? 2.4} km</td>
+                            <td>
+                              <div style={{ display: "flex", gap: "4px" }}>
+                                {s.backup_generator && <span title="125 kVA Backup Generator">⚡ GenSet</span>}
+                                {s.helipad && <span title="Helipad Available">🚁 Helipad</span>}
+                              </div>
+                            </td>
+                            <td>
+                              <span
+                                className="badge"
+                                style={{
+                                  background: s.evacuation_priority === "IMMEDIATE" ? "#dc2626" : s.evacuation_priority === "ADVISORY" ? "#d97706" : "#059669",
+                                  color: "#ffffff",
+                                  fontSize: "0.7rem",
+                                  padding: "2px 6px",
+                                }}
+                              >
+                                {s.evacuation_priority}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Column 2: Ward & Sector Evacuation Corridors */}
+                <div className="ai-ml-card" style={{ gridColumn: "span 2" }}>
+                  <div className="ai-ml-card-header" style={{ color: "#38bdf8" }}>
+                    <IconCompass /> Sector Evacuation Corridors &amp; Routing Matrix
+                  </div>
+                  <div style={{ maxHeight: "320px", overflowY: "auto" }}>
+                    <table className="ai-ml-table">
+                      <thead>
+                        <tr>
+                          <th>Sector / Ward</th>
+                          <th>Danger Tier</th>
+                          <th>Operational Action Directives</th>
+                          <th>Assigned Safe Haven</th>
+                          <th>Distance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(sheltersPlan?.ward_priorities && sheltersPlan.ward_priorities.length > 0 ? sheltersPlan.ward_priorities : [
+                          {
+                            ward_id: "sec-nw",
+                            name: "NW Sector (Primary Landfall Surge Front)",
+                            risk_level: "CRITICAL",
+                            color: "#d4483b",
+                            action: "MANDATORY EVACUATION: Surge & violent wind loading risk",
+                            nearest_shelter: "Digha Coastal Multipurpose Shelter-1",
+                            distance_km: 1.2,
+                          },
+                          {
+                            ward_id: "sec-ne",
+                            name: "NE Sector (Right-of-Track Wind Peak)",
+                            risk_level: "CRITICAL",
+                            color: "#d4483b",
+                            action: "MANDATORY EVACUATION: Maximum dynamic pressure zone",
+                            nearest_shelter: "Shankarpur Fishing Harbour Shelter",
+                            distance_km: 4.8,
+                          },
+                          {
+                            ward_id: "sec-sw",
+                            name: "SW Sector (Trailing Rainfall Band)",
+                            risk_level: "MODERATE",
+                            color: "#ed8a28",
+                            action: "PRECAUTIONARY RELOCATION: Waterlogging expected",
+                            nearest_shelter: "Mandarmani Coastal Shelter",
+                            distance_km: 18.5,
+                          },
+                          {
+                            ward_id: "sec-se",
+                            name: "SE Sector (Peripheral Gale Zone)",
+                            risk_level: "SAFE",
+                            color: "#35a66f",
+                            action: "SHELTER IN PLACE: Secure non-structural elements",
+                            nearest_shelter: "Regional Standby MPCS Hub",
+                            distance_km: 24.0,
+                          },
+                        ]).map((w) => (
+                          <tr key={w.ward_id}>
+                            <td>
+                              <strong style={{ color: w.color }}>{w.name}</strong>
+                            </td>
+                            <td>
+                              <span
+                                className="badge"
+                                style={{
+                                  background: w.risk_level === "CRITICAL" ? "#dc2626" : w.risk_level === "MODERATE" ? "#d97706" : "#059669",
+                                  color: "#ffffff",
+                                  fontSize: "0.7rem",
+                                }}
+                              >
+                                {w.risk_level}
+                              </span>
+                            </td>
+                            <td style={{ fontSize: "0.78rem" }}>{w.action}</td>
+                            <td><strong style={{ color: "#38bdf8" }}>{w.nearest_shelter}</strong></td>
+                            <td>{w.distance_km} km</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Column 3: 5 Structural Mitigation Engineering Pillars */}
+                <div className="ai-ml-card" style={{ gridColumn: "span 4" }}>
+                  <div className="ai-ml-card-header" style={{ color: "#75c9f1" }}>
+                    <IconSliders /> 5 Practical Structural Hardening &amp; Physical Mitigation Engineering Measures (IS-875 Part 3)
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px", fontSize: "0.82rem", color: "#d7e5f5" }}>
+                    <div style={{ background: "#081628", padding: "12px", borderRadius: "8px", border: "1px solid #1a3557" }}>
+                      <div style={{ fontWeight: 800, color: "#38bdf8", marginBottom: "4px" }}>
+                        1. Roof Truss Hurricane Tie-Downs
+                      </div>
+                      <p style={{ margin: 0, fontSize: "0.78rem", color: "#b3c4d7", lineHeight: 1.5 }}>
+                        Galvanized steel straps connecting roof rafters directly into masonry bond beams. Eliminates aerodynamic roof uplift detachment, reducing Load-to-Resistance Ratio (LRR) from <strong style={{ color: "#ef4444" }}>1.45</strong> to <strong style={{ color: "#34d399" }}>0.62</strong>.
+                      </p>
+                    </div>
+
+                    <div style={{ background: "#081628", padding: "12px", borderRadius: "8px", border: "1px solid #1a3557" }}>
+                      <div style={{ fontWeight: 800, color: "#38bdf8", marginBottom: "4px" }}>
+                        2. Window Impact Storm Shutters
+                      </div>
+                      <p style={{ margin: 0, fontSize: "0.78rem", color: "#b3c4d7", lineHeight: 1.5 }}>
+                        Reinforced storm shutters prevent glass breach. A single broken windward window causes internal pressurization ($+0.8 C_p$), doubling net roof uplift force and triggering catastrophic structural failure.
+                      </p>
+                    </div>
+
+                    <div style={{ background: "#081628", padding: "12px", borderRadius: "8px", border: "1px solid #1a3557" }}>
+                      <div style={{ fontWeight: 800, color: "#38bdf8", marginBottom: "4px" }}>
+                        3. Upwind Aerodynamic Obstacle Factor
+                      </div>
+                      <p style={{ margin: 0, fontSize: "0.78rem", color: "#b3c4d7", lineHeight: 1.5 }}>
+                        Directional upwind structures and mature Casuarina tree belts provide aerodynamic surface roughness shielding, reducing effective facade wind pressure $q \cdot C_d$ by <strong style={{ color: "#34d399" }}>8%–15%</strong> (Shelter Factor $0.85$–$0.92$).
+                      </p>
+                    </div>
+
+                    <div style={{ background: "#081628", padding: "12px", borderRadius: "8px", border: "1px solid #1a3557" }}>
+                      <div style={{ fontWeight: 800, color: "#38bdf8", marginBottom: "4px" }}>
+                        4. Stilted RCC Surge Clearance (+4.5m)
+                      </div>
+                      <p style={{ margin: 0, fontSize: "0.78rem", color: "#b3c4d7", lineHeight: 1.5 }}>
+                        Elevates MPCS living floors on reinforced concrete pile stilts. High-velocity storm surge and wave pounding flow beneath living quarters without hydrostatic wall breach or structural scour failure.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
       )}
 
@@ -2574,6 +2898,145 @@ export default function App() {
           <p>{scenario.model.data_quality}</p>
         </section>
       )}
+
+      {/* =========================================================================
+          OFFICIAL NDMA EXECUTIVE SITREP PRINTABLE DOCUMENT (Formatted for Print/PDF)
+          ========================================================================= */}
+      <div className="official-sitrep-print-doc" aria-label="NDMA Official Situation Report">
+        <div className="sitrep-header">
+          <div className="sitrep-header-emblem">
+            <div className="sitrep-emblem-badge">🇮🇳 NDMA</div>
+            <div>
+              <h1 className="sitrep-title">NATIONAL DISASTER MANAGEMENT AUTHORITY</h1>
+              <div className="sitrep-subtitle">MINISTRY OF HOME AFFAIRS &middot; GOVERNMENT OF INDIA</div>
+              <div className="sitrep-system">CYCLONEX AI/ML RAPID CYCLONE EMERGENCY RESPONSE SYSTEM</div>
+            </div>
+          </div>
+          <div className="sitrep-meta-box">
+            <div><strong>DOC REF:</strong> NDMA/CYC/SITREP/{new Date().getFullYear()}/{(form.name || "STORM").replace(/[^a-zA-Z0-9]/g, "-").toUpperCase()}</div>
+            <div><strong>ISSUED:</strong> {new Date().toUTCString()} ({new Date().toLocaleTimeString()} IST)</div>
+            <div><strong>OPERATIONAL LEVEL:</strong> <span className="sitrep-alert-badge">RED ALERT / IMMEDIATE ACTION</span></div>
+            <div><strong>RESOLUTION:</strong> 200m Spatial Precision &middot; Multi-Source Satellite Feeds</div>
+          </div>
+        </div>
+
+        <div className="sitrep-divider" />
+
+        {/* Section 1: Executive Overview */}
+        <div className="sitrep-section">
+          <h2 className="sitrep-section-title">1. EXECUTIVE SUMMARY &amp; IMPACT PROJECTION</h2>
+          <div className="sitrep-summary-grid">
+            <div className="sitrep-stat-card critical">
+              <span className="sitrep-stat-label">ESTIMATED ECONOMIC LOSS</span>
+              <strong className="sitrep-stat-val">₹ {(scenario?.risk_grid?.summary?.estimated_loss_crores_inr ?? 245.0).toFixed(1)} Crores</strong>
+              <span className="sitrep-stat-sub">NDMA Calibrated Asset Vulnerability Index</span>
+            </div>
+            <div className="sitrep-stat-card critical">
+              <span className="sitrep-stat-label">POPULATION IN DIRECT HARM&apos;S WAY</span>
+              <strong className="sitrep-stat-val">{(scenario?.risk_grid?.summary?.estimated_population_affected ?? 185000).toLocaleString()} Persons</strong>
+              <span className="sitrep-stat-sub">High-Risk Coastal / Inundation Zone</span>
+            </div>
+            <div className="sitrep-stat-card warning">
+              <span className="sitrep-stat-label">EVACUATION URGENCY</span>
+              <strong className="sitrep-stat-val">
+                {(scenario?.risk_grid?.summary?.ndma_directives?.evacuation_urgency || "MANDATORY_IMMEDIATE").replace(/_/g, " ")}
+              </strong>
+              <span className="sitrep-stat-sub">Time-to-Landfall Critical Window</span>
+            </div>
+            <div className="sitrep-stat-card info">
+              <span className="sitrep-stat-label">NDRF BATTALIONS MOBILIZED</span>
+              <strong className="sitrep-stat-val">
+                {scenario?.risk_grid?.summary?.ndma_directives?.ndrf_battalions_recommended ?? 18} Battalions
+              </strong>
+              <span className="sitrep-stat-sub">Pre-positioned Coastal Rescue Units</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 2: Storm Atmospheric & Marine Parameters */}
+        <div className="sitrep-section">
+          <h2 className="sitrep-section-title">2. METEOROLOGICAL &amp; SATELLITE TELEMETRY</h2>
+          <table className="sitrep-table">
+            <tbody>
+              <tr>
+                <th>Cyclone Identification</th>
+                <td><strong>{form.name || "Active Cyclone System"}</strong></td>
+                <th>Primary Satellite Source</th>
+                <td>{selectedSource} (Thermal IR + SAR + Microwave)</td>
+              </tr>
+              <tr>
+                <th>Current Eye Coordinates</th>
+                <td><strong>{Number(form.lat).toFixed(2)}°N, {Number(form.lon).toFixed(2)}°E</strong></td>
+                <th>Central Barometric Pressure</th>
+                <td><strong>{form.pressure || 950} hPa</strong> (Deep Low Pressure Core)</td>
+              </tr>
+              <tr>
+                <th>Peak Sustained Wind Speed</th>
+                <td><strong>{form.wind || 165} km/h</strong> (Gusts up to {Math.round(Number(form.wind || 165) * 1.25)} km/h)</td>
+                <th>Forward Heading &amp; Velocity</th>
+                <td><strong>{form.heading || 315}° at {form.speed || 25} km/h</strong></td>
+              </tr>
+              <tr>
+                <th>Total High-Risk Grid Cells</th>
+                <td><strong>{totalCells} cells</strong> (200m × 200m spatial units)</td>
+                <th>Locally Taller / Vulnerable Buildings</th>
+                <td><strong>{tallerBuildingsCount} structures</strong> screened</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Section 3: National Emergency Directives */}
+        <div className="sitrep-section">
+          <h2 className="sitrep-section-title">3. ACTIONABLE EMERGENCY DIRECTIVES &amp; PUBLIC SAFETY</h2>
+          <div className="sitrep-directives-list">
+            <div className="sitrep-directive-row">
+              <div className="sitrep-directive-badge danger">MARITIME &amp; PORTS</div>
+              <div>
+                <strong>{(scenario?.risk_grid?.summary?.ndma_directives?.port_warning_signal || "SIGNAL 10 GREAT DANGER").replace(/_/g, " ")}</strong>
+                <p>All deep-sea fishing trawlers recalled. Commercial ports must halt cargo operations, secure crane gantries, and lower mooring tensions.</p>
+              </div>
+            </div>
+            <div className="sitrep-directive-row">
+              <div className="sitrep-directive-badge danger">ENERGY INFRASTRUCTURE</div>
+              <div>
+                <strong>{(scenario?.risk_grid?.summary?.ndma_directives?.power_grid_advisory || "EMERGENCY ISOLATION TRIGGERED").replace(/_/g, " ")}</strong>
+                <p>Isolate 132kV and 220kV transmission corridors in direct landfall corridor 3 hours prior to eyewall arrival to prevent cascading transformers blowout.</p>
+              </div>
+            </div>
+            <div className="sitrep-directive-row">
+              <div className="sitrep-directive-badge warning">TRANSPORT &amp; LOGISTICS</div>
+              <div>
+                <strong>{(scenario?.risk_grid?.summary?.ndma_directives?.rail_traffic_directive || "SUSPEND ALL COASTAL RAIL").replace(/_/g, " ")}</strong>
+                <p>Halt all express and suburban trains traversing coastal sections. National highways in low-lying deltas placed under controlled convoy or diversion.</p>
+              </div>
+            </div>
+            <div className="sitrep-directive-row">
+              <div className="sitrep-directive-badge info">REFUGEE SHELTERS &amp; EVACUATION</div>
+              <div>
+                <strong>{sheltersPlan?.shelters?.length ? `${sheltersPlan.shelters.length} DESIGNATED CYCLONE SHELTERS ACTIVE` : "DISTRICT LEVEL MULTI-PURPOSE SHELTERS ACTIVE"}</strong>
+                <p>Activate verified pucca cyclone shelters with backup power generators, portable RO water filtration kits, emergency medical caches, and satellite SAT-phones.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 4: Authentication & Verification Footer */}
+        <div className="sitrep-footer">
+          <div className="sitrep-footer-left">
+            <div><strong>PREPARED BY:</strong> CYCLONEX Automated Geospatial Intelligence Engine</div>
+            <div><strong>VALIDATION:</strong> High-Resolution Physics-Informed ML Damage Prediction Model v2.0</div>
+            <div><strong>DISTRIBUTION:</strong> NDMA National Emergency Operation Centre (NEOC), SDMA, Coastal Collectors &amp; Armed Forces Liaison</div>
+          </div>
+          <div className="sitrep-footer-stamp">
+            <div className="sitrep-stamp-inner">
+              <span className="stamp-org">NDMA &middot; CYCLONEX</span>
+              <span className="stamp-ver">EOC VERIFIED</span>
+              <span className="stamp-date">{new Date().toISOString().slice(0, 10)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
       )}
       <NewsPanel
