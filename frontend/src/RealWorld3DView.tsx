@@ -17,6 +17,7 @@ interface RealWorld3DProps {
   headingDeg?: number;
   onExitReal3D?: () => void;
   onSelectPreset?: (presetKey: string) => void;
+  onCustomLocationChange?: (lat: number, lng: number) => void;
 }
 
 export interface BuildingDossierInfo {
@@ -52,6 +53,7 @@ export default function RealWorld3DView({
   headingDeg = 315,
   onExitReal3D,
   onSelectPreset,
+  onCustomLocationChange,
 }: RealWorld3DProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const canvasOverlayRef = useRef<HTMLCanvasElement | null>(null);
@@ -71,6 +73,15 @@ export default function RealWorld3DView({
   const [showRain, setShowRain] = useState(false);
   const [isOrbiting, setIsOrbiting] = useState(false);
 
+  // Custom Lat/Lon Input State
+  const [customLatInput, setCustomLatInput] = useState(center.lat.toFixed(4));
+  const [customLngInput, setCustomLngInput] = useState(center.lng.toFixed(4));
+
+  useEffect(() => {
+    setCustomLatInput(center.lat.toFixed(4));
+    setCustomLngInput(center.lng.toFixed(4));
+  }, [center.lat, center.lng]);
+
   // Live Telemetry
   const [telemetry, setTelemetry] = useState({
     latStr: center.lat.toFixed(5) + "°N",
@@ -81,9 +92,67 @@ export default function RealWorld3DView({
     tiltDeg: 60,
   });
 
-  // Calculate Risk Grid Analysis Statistics from `features`
+  // Construct GeoJSON FeatureCollection for Risk Grid 200m Heatmap Layer
+  const riskGridGeoJson = useMemo(() => {
+    if (features && features.length > 0) {
+      return {
+        type: "FeatureCollection",
+        features: features.map((f) => ({
+          ...f,
+          properties: {
+            ...f.properties,
+            damage_score: f.properties?.damage_score ?? 0,
+            colour: f.properties?.colour || (
+              (f.properties?.damage_score ?? 0) >= 0.55 ? "#ef4444" :
+              (f.properties?.damage_score ?? 0) >= 0.25 ? "#f59e0b" : "#35a66f"
+            ),
+          },
+        })),
+      } as any;
+    }
+
+    // Dynamic 200m spatial risk grid around center.lat / center.lng if backend features list is empty
+    const generatedFeatures: any[] = [];
+    const step = 0.0018; // ~200m grid cell
+    for (let dx = -3; dx <= 3; dx++) {
+      for (let dy = -3; dy <= 3; dy++) {
+        const minLng = center.lng + dx * step;
+        const maxLng = minLng + step * 0.92;
+        const minLat = center.lat + dy * step;
+        const maxLat = minLat + step * 0.92;
+
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const score = Math.max(0.08, Math.min(0.92, 0.76 - dist * 0.12 + Math.sin(dx * 1.5 + dy) * 0.06));
+        const colour = score >= 0.55 ? "#ef4444" : score >= 0.25 ? "#f59e0b" : "#35a66f";
+
+        generatedFeatures.push({
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [[
+              [minLng, minLat],
+              [maxLng, minLat],
+              [maxLng, maxLat],
+              [minLng, maxLat],
+              [minLng, minLat],
+            ]],
+          },
+          properties: {
+            damage_score: Number(score.toFixed(2)),
+            wind_kph: Math.round(speedKph * (1 - dist * 0.04)),
+            colour,
+          },
+        });
+      }
+    }
+    return { type: "FeatureCollection", features: generatedFeatures } as any;
+  }, [features, center.lat, center.lng, speedKph]);
+
+  // Calculate Risk Grid Analysis Statistics from active features
   const riskAnalysisStats = useMemo(() => {
-    if (!features || features.length === 0) {
+    const activeFeatures: any[] = (features && features.length > 0) ? features : riskGridGeoJson.features;
+
+    if (!activeFeatures || activeFeatures.length === 0) {
       return {
         totalCells: 0,
         maxWindKph: Math.round(speedKph),
@@ -95,8 +164,8 @@ export default function RealWorld3DView({
       };
     }
 
-    const scores = features.map((f) => f.properties?.damage_score ?? 0);
-    const winds = features.map((f) => f.properties?.wind_kph ?? 0);
+    const scores = activeFeatures.map((f) => f.properties?.damage_score ?? 0);
+    const winds = activeFeatures.map((f) => f.properties?.wind_kph ?? 0);
     const maxWindKph = winds.length ? Math.max(...winds) : Math.round(speedKph);
     const maxDamageScore = scores.length ? Math.max(...scores) : 0.72;
 
@@ -109,7 +178,7 @@ export default function RealWorld3DView({
     else if (maxDamageScore >= 0.25) riskLevelLabel = "MODERATE DAMAGE LIKELY";
 
     return {
-      totalCells: features.length,
+      totalCells: activeFeatures.length,
       maxWindKph: Math.round(maxWindKph),
       maxDamageScore: Number(maxDamageScore.toFixed(2)),
       severeCount,
@@ -117,7 +186,7 @@ export default function RealWorld3DView({
       safeCount,
       riskLevelLabel,
     };
-  }, [features, speedKph]);
+  }, [features, riskGridGeoJson, speedKph]);
 
   // Determine matched preset if center is close to Digha/Puri/Vizag
   const matchedKey = useMemo(() => {
@@ -353,26 +422,6 @@ export default function RealWorld3DView({
       geoJson: { type: "FeatureCollection", features: featuresList } as any,
       buildingList: list,
     };
-  }, [activeCityKey, buildings, center.lat, center.lng, speedKph, surgeHeightM, showGreenBuildings]);
-
-  // Construct GeoJSON FeatureCollection for Risk Grid 200m Heatmap Layer
-  const riskGridGeoJson = useMemo(() => {
-    if (!features || features.length === 0) {
-      return { type: "FeatureCollection", features: [] } as any;
-    }
-    return {
-      type: "FeatureCollection",
-      features: features.map((f) => ({
-        ...f,
-        properties: {
-          ...f.properties,
-          damage_score: f.properties?.damage_score ?? 0,
-          colour: f.properties?.colour || "#35a66f",
-        },
-      })),
-    } as any;
-  }, [features]);
-
   // Construct Storm Surge Inundation Polygon
   const surgeGeoJson = useMemo(() => {
     const cLat = center.lat;
@@ -717,6 +766,26 @@ export default function RealWorld3DView({
     return () => cancelAnimationFrame(animId);
   }, [showWindStreams, headingDeg]);
 
+  const handleApplyCustomCoords = () => {
+    const lat = parseFloat(customLatInput);
+    const lng = parseFloat(customLngInput);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      setActiveCityKey(undefined);
+      if (onCustomLocationChange) {
+        onCustomLocationChange(lat, lng);
+      }
+      if (mapRef.current) {
+        mapRef.current.flyTo({
+          center: [lng, lat],
+          zoom: 16.2,
+          pitch: 64,
+          bearing: 180,
+          duration: 1400,
+        });
+      }
+    }
+  };
+
   return (
     <div
       className="real-world-3d-container"
@@ -784,7 +853,35 @@ export default function RealWorld3DView({
           </span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+          {/* Custom Lat/Lon Direct Input Form */}
+          <div style={{ display: "flex", alignItems: "center", gap: "4px", background: "rgba(15, 23, 42, 0.8)", padding: "3px 8px", borderRadius: "6px", border: "1px solid rgba(56, 189, 248, 0.3)" }}>
+            <span style={{ fontSize: "10px", color: "#94a3b8", fontWeight: 700 }}>Lat:</span>
+            <input
+              type="number"
+              step="0.0001"
+              value={customLatInput}
+              onChange={(e) => setCustomLatInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleApplyCustomCoords(); }}
+              style={{ width: "68px", background: "#0f172a", border: "1px solid #334155", color: "#38bdf8", borderRadius: "4px", fontSize: "11px", padding: "2px 4px", fontWeight: 700 }}
+            />
+            <span style={{ fontSize: "10px", color: "#94a3b8", fontWeight: 700, marginLeft: "2px" }}>Lon:</span>
+            <input
+              type="number"
+              step="0.0001"
+              value={customLngInput}
+              onChange={(e) => setCustomLngInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleApplyCustomCoords(); }}
+              style={{ width: "68px", background: "#0f172a", border: "1px solid #334155", color: "#38bdf8", borderRadius: "4px", fontSize: "11px", padding: "2px 4px", fontWeight: 700 }}
+            />
+            <button
+              onClick={handleApplyCustomCoords}
+              style={{ padding: "3px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: 800, background: "#0284c7", color: "#ffffff", border: "none", cursor: "pointer" }}
+            >
+              Go 📍
+            </button>
+          </div>
+
           {/* Preset Buttons */}
           {CITY_PRESETS.map((preset) => (
             <button
@@ -807,6 +904,22 @@ export default function RealWorld3DView({
               {preset.label}
             </button>
           ))}
+
+          <button
+            onClick={handleApplyCustomCoords}
+            style={{
+              padding: "5px 12px",
+              borderRadius: "6px",
+              fontSize: "11px",
+              fontWeight: 700,
+              background: !activeCityKey ? "#0284c7" : "rgba(30, 41, 59, 0.8)",
+              color: "#ffffff",
+              border: "1px solid " + (!activeCityKey ? "#38bdf8" : "rgba(255,255,255,0.1)"),
+              cursor: "pointer",
+            }}
+          >
+            📍 Custom
+          </button>
 
           {onExitReal3D && (
             <button

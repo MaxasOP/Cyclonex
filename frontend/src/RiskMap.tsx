@@ -171,6 +171,7 @@ type RiskMapProps = {
   onSelectCell?: (cell: FullCellAnalysis | null) => void;
   locationName?: string;
   onSelectPreset?: (presetKey: string) => void;
+  onCustomLocationChange?: (lat: number, lng: number) => void;
 };
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
@@ -472,6 +473,7 @@ export default function RiskMap({
   onSelectCell,
   locationName,
   onSelectPreset,
+  onCustomLocationChange,
 }: RiskMapProps) {
   const [activeBasemap, setActiveBasemap] = useState<BasemapType>("google_dark");
   const [gridOpacity, setGridOpacity] = useState<number>(0.74);
@@ -651,6 +653,7 @@ export default function RiskMap({
             headingDeg={headingDeg}
             onExitReal3D={() => setViewDimension("2d")}
             onSelectPreset={onSelectPreset}
+            onCustomLocationChange={onCustomLocationChange}
           />
         </Suspense>
       )}

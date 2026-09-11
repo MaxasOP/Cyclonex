@@ -1844,6 +1844,10 @@ export default function App() {
             scenarioId={scenario?.id}
             locationName={form.name || scenario?.input?.name}
             onSelectPreset={(key) => void handlePresetChange(key as keyof typeof presets)}
+            onCustomLocationChange={(lat, lon) => {
+              setForm((prev) => ({ ...prev, lat: String(lat), lon: String(lon) }));
+              void runFullPipeline(String(lat), String(lon), form.wind, form.pressure, "Custom Location", form.heading, form.speed, form.radius);
+            }}
           />
         </section>
       </section>
