@@ -20,28 +20,32 @@ import type { BuildingFeature, RiskFeature, FullCellAnalysis, ZoneFeature, Evacu
 export type MapAnalysisMode = "DAMAGE" | "HIT" | "WIND" | "EXPOSURE" | "BUILDINGS" | "OBSTACLES" | "ZONES" | "EVACUATION";
 
 const cycloneVortexSvg = `
-<div class="cyclone-eye-3d-tower">
-  <div class="cyclone-pulse-ring-3d"></div>
-  <div class="cyclone-vortex-3d-layer troposphere-upper"></div>
-  <div class="cyclone-vortex-3d-layer troposphere-mid"></div>
-  <div class="cyclone-vortex-3d-layer troposphere-surface">
-    <svg class="cyclone-vortex-svg" viewBox="0 0 100 100" width="48" height="48">
-      <circle cx="50" cy="50" r="14" fill="#d4483b" stroke="#ffffff" stroke-width="2.5" />
-      <path d="M 50 20 C 65 20, 80 35, 80 50 C 80 40, 65 32, 50 32 Z" fill="#ff6b5b" opacity="0.85" />
-      <path d="M 80 50 C 80 65, 65 80, 50 80 C 60 80, 68 65, 68 50 Z" fill="#ff6b5b" opacity="0.85" />
-      <path d="M 50 80 C 35 80, 20 65, 20 50 C 20 60, 35 68, 50 68 Z" fill="#ff6b5b" opacity="0.85" />
-      <path d="M 20 50 C 20 35, 35 20, 50 20 C 40 20, 32 35, 32 50 Z" fill="#ff6b5b" opacity="0.85" />
-      <circle cx="50" cy="50" r="5" fill="#ffffff" />
-    </svg>
-  </div>
+<div class="cyclone-tactical-marker" title="Target Tropical Cyclone - Click to inspect dossier">
+  <div class="radar-ping-ring"></div>
+  <svg class="vortex-svg-animated" viewBox="0 0 100 100" width="56" height="56">
+    <circle cx="50" cy="50" r="46" fill="rgba(2, 6, 23, 0.4)" stroke="rgba(0, 243, 255, 0.2)" stroke-width="1" stroke-dasharray="2 4" />
+    <!-- Spiral arm 1 -->
+    <path d="M 50 12 C 70 12 88 28 88 50 C 88 62 80 72 70 78 C 60 84 46 80 40 70 C 34 60 38 46 48 42 C 56 38 66 44 66 52" fill="none" stroke="rgba(255, 255, 255, 0.85)" stroke-width="2.6" stroke-linecap="round" />
+    <!-- Spiral arm 2 -->
+    <path d="M 50 88 C 30 88 12 72 12 50 C 12 38 20 28 30 22 C 40 16 54 20 60 30 C 66 40 62 54 52 58 C 44 62 34 56 34 48" fill="none" stroke="rgba(0, 243, 255, 0.9)" stroke-width="2.6" stroke-linecap="round" />
+    <!-- Eyewall circle ring -->
+    <circle cx="50" cy="50" r="14" fill="rgba(2, 6, 23, 0.85)" stroke="#ff4436" stroke-width="2" stroke-dasharray="3 2" />
+    <!-- Hairline tactical crosshairs -->
+    <line x1="50" y1="41" x2="50" y2="45" stroke="#ffffff" stroke-width="1.5" />
+    <line x1="50" y1="55" x2="50" y2="59" stroke="#ffffff" stroke-width="1.5" />
+    <line x1="41" y1="50" x2="45" y2="50" stroke="#ffffff" stroke-width="1.5" />
+    <line x1="55" y1="50" x2="59" y2="50" stroke="#ffffff" stroke-width="1.5" />
+    <!-- Eye core -->
+    <circle cx="50" cy="50" r="3.5" fill="#ff4436" stroke="#ffffff" stroke-width="1" />
+  </svg>
 </div>
 `;
 
 const cycloneDivIcon = L.divIcon({
   className: "cyclone-vortex-leaflet-icon",
   html: cycloneVortexSvg,
-  iconSize: [54, 54],
-  iconAnchor: [27, 27],
+  iconSize: [56, 56],
+  iconAnchor: [28, 28],
 });
 
 function IconCube3D() {
@@ -172,6 +176,8 @@ type RiskMapProps = {
   locationName?: string;
   onSelectPreset?: (presetKey: string) => void;
   onCustomLocationChange?: (lat: number, lng: number) => void;
+  showPhysicsGrid?: boolean;
+  onCycloneClick?: () => void;
 };
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
@@ -474,6 +480,8 @@ export default function RiskMap({
   locationName,
   onSelectPreset,
   onCustomLocationChange,
+  showPhysicsGrid = false,
+  onCycloneClick,
 }: RiskMapProps) {
   const [activeBasemap, setActiveBasemap] = useState<BasemapType>("google_dark");
   const [gridOpacity, setGridOpacity] = useState<number>(0.74);
@@ -743,7 +751,7 @@ export default function RiskMap({
         )}
 
         {/* 1. 200 m Spatial Damage & Hazard Grid (Underneath tracks/markers) */}
-        {features.length > 0 && (
+        {showPhysicsGrid && features.length > 0 && (
           <GeoJSON
             key={`risk-${scenarioId || "live"}-${features[0]?.id || "f0"}-${analysisMode}`}
             data={{ type: "FeatureCollection", features } as never}
@@ -1104,6 +1112,11 @@ export default function RiskMap({
         <Marker
           position={[activeEyePoint.lat, activeEyePoint.lng]}
           icon={cycloneDivIcon}
+          eventHandlers={{
+            click: () => {
+              if (onCycloneClick) onCycloneClick();
+            },
+          }}
         >
           <Popup>
             <div style={{ fontFamily: "-apple-system, system-ui, sans-serif", minWidth: "220px" }}>

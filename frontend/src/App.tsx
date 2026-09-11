@@ -25,6 +25,40 @@ import {
 import RiskMap, { type MapAnalysisMode } from "./RiskMap";
 import NewsPanel from "./NewsPanel";
 import AICyclonePanel from "./AICyclonePanel";
+import SatelliteLab from "./components/SatelliteLab";
+import AIAnalysisLab from "./components/AIAnalysisLab";
+import ForecastWorkspace from "./components/ForecastWorkspace";
+import RiskImpactWorkspace from "./components/RiskImpactWorkspace";
+import AlertsOperationsWorkspace from "./components/AlertsOperationsWorkspace";
+import HistoricalAnalyticsWorkspace from "./components/HistoricalAnalyticsWorkspace";
+import DataSourcesWorkspace from "./components/DataSourcesWorkspace";
+import ContextualCyclonePanel from "./components/ContextualCyclonePanel";
+import GlobalLayersMenu, { type LayerState } from "./components/GlobalLayersMenu";
+import CommandPalette from "./components/CommandPalette";
+import {
+  Activity,
+  Globe,
+  Wind,
+  Satellite,
+  Brain,
+  TrendingUp,
+  Layers,
+  BarChart3,
+  Bell,
+  Sliders,
+} from "lucide-react";
+
+export type ActiveSection =
+  | "command"
+  | "earth"
+  | "cyclone"
+  | "satellite"
+  | "ai"
+  | "forecast"
+  | "risk"
+  | "analytics"
+  | "alerts"
+  | "settings";
 
 // Safe min/max for large arrays to avoid "Maximum call stack size exceeded"
 function safeMin(arr: number[], fallback = 0): number {
@@ -269,8 +303,15 @@ export default function App() {
     return window.location.hash === "#landing" ? "landing" : "app";
   });
   
-  // Single Clean Primary Navigation
-  const [activeNavTab, setActiveNavTab] = useState<"risk_map" | "forecast" | "sitrep" | "analytics">("risk_map");
+  // 10 Geospatial Command Workspaces
+  const [activeSection, setActiveSection] = useState<ActiveSection>("command");
+  const [isCyclonePanelOpen, setIsCyclonePanelOpen] = useState(false);
+  const [layers, setLayers] = useState<LayerState>({
+    baseMap: "dark",
+    atmosphere: { cloud: true, wind: true, pressure: true, rainfall: false },
+    impact: { risk: true, population: false, infrastructure: true },
+    advanced: { physicsGrid: false, aiSegmentation: false },
+  });
   
   const [selectedPreset, setSelectedPreset] = useState<keyof typeof presets>("nisarga");
   const [selectedSource, setSelectedSource] = useState<string>("INSAT");
@@ -357,26 +398,63 @@ export default function App() {
     return coastalLocations.filter((loc) => loc.name.toLowerCase().includes(q));
   }, [searchLocationQuery, coastalLocations]);
 
-  // Keyboard Shortcuts: 1 (2D), 2 (Real 3D), 3 (Globe), Esc (Close drawers)
+  const NAV_RAIL_ITEMS: Array<{
+    id: ActiveSection;
+    label: string;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+    title: string;
+  }> = [
+    { id: "command", label: "Cmd", icon: Activity, title: "Command Center: Operational Overview & Real-Time Telemetry" },
+    { id: "earth", label: "Earth", icon: Globe, title: "Live Earth: Global 3D Planetary Atmospheric View" },
+    { id: "cyclone", label: "Vortex", icon: Wind, title: "Cyclone Intelligence: Holland Wind Structure & Vector Dynamics" },
+    { id: "satellite", label: "Sat", icon: Satellite, title: "Satellite Lab: Multi-Spectral & Microwave Sensor Suite" },
+    { id: "ai", label: "AI Lab", icon: Brain, title: "AI Analysis: 4-Channel Neural Inference & Dvorak Segmentation" },
+    { id: "forecast", label: "Track", icon: TrendingUp, title: "Storm Forecast: Multi-Horizon Scrubber & Uncertainty Cone" },
+    { id: "risk", label: "Impact", icon: Layers, title: "Risk & Impact: 200m Spatial Screening & 3D Building Damage" },
+    { id: "analytics", label: "History", icon: BarChart3, title: "Historical Analytics: 10 NIO Benchmark Storms & Validation" },
+    { id: "alerts", label: "Alerts", icon: Bell, title: "Alerts & Operations: NDMA Directives, Port Signals & Grid Protocols" },
+    { id: "settings", label: "Sensors", icon: Sliders, title: "Data Sources: Real-Time Satellite Telemetry & Latency Feeds" },
+  ];
+
+  function handleSelectSection(section: ActiveSection) {
+    setActiveSection(section);
+    if (section === "earth") {
+      setViewDimension("globe");
+    } else if (section === "command" || section === "cyclone") {
+      if (viewDimension === "globe") setViewDimension("2d");
+    } else if (section === "forecast") {
+      setAnalysisMode("WIND");
+      if (viewDimension === "globe") setViewDimension("2d");
+    } else if (section === "risk") {
+      setAnalysisMode("DAMAGE");
+    }
+  }
+
+  // Keyboard Shortcuts: 1-9 (Workspaces), Esc (Close drawers)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
-      if (e.key === "1") setViewDimension("2d");
-      if (e.key === "2") setViewDimension("real3d");
-      if (e.key === "3") setViewDimension("globe");
+      if (e.key === "1") handleSelectSection("command");
+      if (e.key === "2") handleSelectSection("earth");
+      if (e.key === "3") handleSelectSection("cyclone");
+      if (e.key === "4") handleSelectSection("satellite");
+      if (e.key === "5") handleSelectSection("ai");
+      if (e.key === "6") handleSelectSection("forecast");
+      if (e.key === "7") handleSelectSection("risk");
+      if (e.key === "8") handleSelectSection("analytics");
+      if (e.key === "9") handleSelectSection("alerts");
+      if (e.key === "0") handleSelectSection("settings");
       if (e.key === "Escape") {
         setSelectedCell(null);
+        setIsCyclonePanelOpen(false);
         setIsSearchOpen(false);
-        if (activeNavTab === "sitrep" || activeNavTab === "analytics") {
-          setActiveNavTab("risk_map");
-        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeNavTab]);
+  }, [viewDimension]);
 
   // AI Cyclone Analysis State
   const [showAiLayer, setShowAiLayer] = useState(true);
@@ -648,58 +726,44 @@ export default function App() {
           </div>
           <div className="brand-titles">
             <span className="platform-name">CYCLONEX</span>
-            <span className="gov-tag">NATIONAL DISASTER OPERATIONS PLATFORM</span>
+            <span className="gov-tag">GEOSPATIAL INTELLIGENCE PLATFORM</span>
           </div>
         </div>
 
-        {/* Unified Primary Navigation */}
-        <nav className="primary-nav-bar" aria-label="Primary Platform Navigation">
-          <button
-            type="button"
-            className={`primary-nav-item ${activeNavTab === "risk_map" ? "active" : ""}`}
-            onClick={() => {
-              setActiveNavTab("risk_map");
-              setAnalysisMode("DAMAGE");
-            }}
-          >
-            <IconGrid />
-            <span>Risk Map</span>
-          </button>
-          <button
-            type="button"
-            className={`primary-nav-item ${activeNavTab === "forecast" ? "active" : ""}`}
-            onClick={() => {
-              setActiveNavTab("forecast");
-              setAnalysisMode("WIND");
-            }}
-          >
-            <IconRadar />
-            <span>Storm Forecast</span>
-          </button>
-          <button
-            type="button"
-            className={`primary-nav-item ${activeNavTab === "sitrep" ? "active" : ""}`}
-            onClick={() => setActiveNavTab("sitrep")}
-          >
-            <IconShield />
-            <span>SITREP</span>
-          </button>
-          <button
-            type="button"
-            className={`primary-nav-item ${activeNavTab === "analytics" ? "active" : ""}`}
-            onClick={() => setActiveNavTab("analytics")}
-          >
-            <IconActivity />
-            <span>Analytics</span>
-          </button>
-        </nav>
+        {/* Global Command Palette */}
+        <CommandPalette
+          onSelectPreset={(key) => void handlePresetChange(key)}
+          onSelectCoordinates={(lat, lon, name) => {
+            setForm((prev) => ({
+              ...prev,
+              lat: lat.toFixed(4),
+              lon: lon.toFixed(4),
+              name: `Sector: ${name}`,
+            }));
+            void runFullPipeline(
+              lat.toFixed(4),
+              lon.toFixed(4),
+              form.wind,
+              form.pressure,
+              `Sector: ${name}`,
+              form.heading,
+              form.speed,
+              form.radius
+            );
+          }}
+        />
 
         {/* Operational Telemetry & Quick Actions */}
         <div className="header-meta-strip">
           <div className="time-clock-display" title="Live Indian Standard Time">
             {currentTimeIST}
           </div>
-          <span className="sensor-status-badge" title="Active Satellite Sensor Feeds: INSAT-3D, GPM, Sentinel-1">
+          <span
+            className="sensor-status-badge"
+            title="Active Satellite Sensor Feeds: INSAT-3D, GPM, Sentinel-1"
+            onClick={() => handleSelectSection("settings")}
+            style={{ cursor: "pointer" }}
+          >
             <span className="status-pulse-dot" />
             INSAT-3D / GPM ACTIVE
           </span>
@@ -738,469 +802,286 @@ export default function App() {
           speedKph={Number(form.speed || 22)}
         />
       ) : (
-        <main className="command-workspace-shell">
-          {/* =================================================================
-              2. OPERATIONAL LEFT SIDEBAR (280PX, COLLAPSIBLE, CSS GRID FORM)
-              ================================================================= */}
-          <aside className={`operational-sidebar ${sidebarOpen ? "" : "collapsed"}`}>
-            <div className="sidebar-header">
-              <div className="sidebar-heading">
-                <IconCompass />
-                <span>Operational Controls</span>
-              </div>
-              <button
-                type="button"
-                className="btn-sidebar-toggle"
-                onClick={handleToggleSidebar}
-                title="Collapse sidebar"
-              >
-                ◀
-              </button>
-            </div>
-
-            <div className="sidebar-content-scroll">
-              {/* Active Storm Card */}
-              <div className="active-storm-card">
-                <div className="active-storm-header">
-                  <span className="active-storm-name">
-                    {presets[selectedPreset]?.name.split("(")[0].trim() || form.name}
-                  </span>
-                  <span className="storm-severity-badge severe">
-                    {Number(form.wind) >= 165 ? "EXTREMELY SEVERE" : Number(form.wind) >= 120 ? "VERY SEVERE" : "CYCLONIC STORM"}
-                  </span>
-                </div>
-                
-                {/* Presets Selector Dropdown */}
-                <select
-                  className="storm-select"
-                  value={selectedPreset}
-                  onChange={(e) => void handlePresetChange(e.target.value)}
-                  title="Select a historic or benchmark cyclone scenario"
+        <div className="app-body-container">
+          {/* 60px Left Vertical Navigation Rail */}
+          <nav className="vertical-nav-rail" aria-label="Geospatial Intelligence Workspaces">
+            {NAV_RAIL_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`rail-item ${isActive ? "active" : ""}`}
+                  onClick={() => handleSelectSection(item.id)}
+                  title={item.title}
                 >
-                  <option value="nisarga">Cyclone Nisarga (Maharashtra, 2020)</option>
-                  <option value="biparjoy">Cyclone Biparjoy (Gujarat, 2023)</option>
-                  <option value="dana">Cyclone Dana (Odisha Coast, 2024)</option>
-                  <option value="amphan">Cyclone Amphan (West Bengal, 2020)</option>
-                  <option value="fani">Cyclone Fani (Odisha / Bay of Bengal, 2019)</option>
-                  <option value="hudhud">Cyclone Hudhud (Visakhapatnam, 2014)</option>
-                  <option value="custom">Custom Map Coordinates</option>
-                </select>
-              </div>
+                  <Icon size={17} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
 
-              {/* Key Telemetry Quad */}
-              <div className="telemetry-quad">
-                <div className="telemetry-cell">
-                  <span className="telemetry-label">Peak Wind</span>
-                  <span className="telemetry-value accent">{form.wind || "120"} km/h</span>
-                </div>
-                <div className="telemetry-cell">
-                  <span className="telemetry-label">Pressure</span>
-                  <span className="telemetry-value">{form.pressure || "984"} hPa</span>
-                </div>
-                <div className="telemetry-cell">
-                  <span className="telemetry-label">Movement</span>
-                  <span className="telemetry-value">{form.heading || "35"}°</span>
-                </div>
-                <div className="telemetry-cell">
-                  <span className="telemetry-label">Velocity</span>
-                  <span className="telemetry-value">{form.speed || "22"} km/h</span>
-                </div>
-              </div>
-
-              {/* Storm Parameters Dedicated CSS Grid Panel */}
-              <div className="storm-parameters-panel">
-                <div className="panel-subheading">
-                  <span>Storm Parameters</span>
-                  <span style={{ color: "#38bdf8", fontSize: "9px" }}>200m Physics Grid</span>
-                </div>
-
-                <form onSubmit={handleStormFormSubmit}>
-                  <div className="storm-form-grid">
-                    <div className="form-field">
-                      <label className="form-field-label">Latitude</label>
-                      <div className="input-with-unit">
-                        <input
-                          type="number"
-                          step="0.0001"
-                          value={form.lat}
-                          onChange={(e) => setForm({ ...form, lat: e.target.value })}
-                          placeholder="18.35"
-                        />
-                        <span className="input-unit-badge">°N</span>
-                      </div>
-                    </div>
-
-                    <div className="form-field">
-                      <label className="form-field-label">Longitude</label>
-                      <div className="input-with-unit">
-                        <input
-                          type="number"
-                          step="0.0001"
-                          value={form.lon}
-                          onChange={(e) => setForm({ ...form, lon: e.target.value })}
-                          placeholder="72.98"
-                        />
-                        <span className="input-unit-badge">°E</span>
-                      </div>
-                    </div>
-
-                    <div className="form-field">
-                      <label className="form-field-label">Wind Speed</label>
-                      <div className="input-with-unit">
-                        <input
-                          type="number"
-                          value={form.wind}
-                          onChange={(e) => setForm({ ...form, wind: e.target.value })}
-                          placeholder="120"
-                        />
-                        <span className="input-unit-badge">km/h</span>
-                      </div>
-                    </div>
-
-                    <div className="form-field">
-                      <label className="form-field-label">Pressure</label>
-                      <div className="input-with-unit">
-                        <input
-                          type="number"
-                          value={form.pressure}
-                          onChange={(e) => setForm({ ...form, pressure: e.target.value })}
-                          placeholder="984"
-                        />
-                        <span className="input-unit-badge">hPa</span>
-                      </div>
-                    </div>
-
-                    <div className="form-field">
-                      <label className="form-field-label">Movement</label>
-                      <div className="input-with-unit">
-                        <input
-                          type="number"
-                          min="0"
-                          max="360"
-                          value={form.heading || "35"}
-                          onChange={(e) => setForm({ ...form, heading: e.target.value })}
-                          placeholder="35"
-                        />
-                        <span className="input-unit-badge">°</span>
-                      </div>
-                    </div>
-
-                    <div className="form-field">
-                      <label className="form-field-label">Movement Speed</label>
-                      <div className="input-with-unit">
-                        <input
-                          type="number"
-                          min="0"
-                          max="120"
-                          value={form.speed || "22"}
-                          onChange={(e) => setForm({ ...form, speed: e.target.value })}
-                          placeholder="22"
-                        />
-                        <span className="input-unit-badge">km/h</span>
-                      </div>
-                    </div>
-
-                    <div className="form-field span-2">
-                      <label className="form-field-label">Storm Radius</label>
-                      <div className="input-with-unit">
-                        <input
-                          type="number"
-                          min="1"
-                          max="500"
-                          value={form.radius || "30"}
-                          onChange={(e) => setForm({ ...form, radius: e.target.value })}
-                          placeholder="30"
-                        />
-                        <span className="input-unit-badge">km</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="form-action-row">
-                    <button type="submit" className="btn-command primary" disabled={loading}>
-                      {loading ? "Calculating..." : "📊 Generate Risk Map"}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-command danger-ghost"
-                      onClick={handleClearAllCyclones}
-                      title="Clear active storm data"
-                    >
-                      🧹 Clear
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              {/* Multi-Horizon Track Forecast */}
-              {mlResult && (
-                <div className="storm-parameters-panel">
-                  <div className="panel-subheading">
-                    <span>Forecast Horizon</span>
-                    <span style={{ color: "#38bdf8", fontSize: "9px" }}>AI/ML Track</span>
-                  </div>
-                  <div className="horizon-selector-row">
-                    {([6, 12, 24] as const).map((h) => (
-                      <button
-                        key={h}
-                        type="button"
-                        className={`horizon-pill ${selectedHorizon === h ? "active" : ""}`}
-                        onClick={() => setSelectedHorizon(h)}
-                      >
-                        +{h}h Track
-                      </button>
+          {/* Main Primary Canvas Workspace */}
+          <div className="workspace-main-canvas">
+            {/* Map-First Views: Command Center, Earth, Cyclone Intelligence, Forecast, Risk & Impact */}
+            {(activeSection === "command" ||
+              activeSection === "earth" ||
+              activeSection === "cyclone" ||
+              activeSection === "forecast" ||
+              activeSection === "risk") && (
+              <>
+                {/* Floating Storm HUD (Top Left of Map) */}
+                <div className="command-storm-hud">
+                  <select
+                    className="hud-preset-select"
+                    value={selectedPreset}
+                    onChange={(e) => void handlePresetChange(e.target.value)}
+                    title="Select Active Tropical Cyclone Target"
+                  >
+                    {Object.entries(presets).map(([k, p]) => (
+                      <option key={k} value={k}>
+                        {p.name.split("(")[0].trim()}
+                      </option>
                     ))}
+                  </select>
+
+                  <div className="hud-metric-chip">
+                    <span className="chip-lbl">VMAX</span>
+                    <span className="chip-val cyan">{form.wind} km/h</span>
                   </div>
-                  {currentForecast && (
-                    <div style={{ marginTop: "8px", fontSize: "11px", color: "#cbd5e1", lineHeight: "1.5" }}>
-                      <div>Centre: <strong>{currentForecast.centre_lat.toFixed(2)}°N, {currentForecast.centre_lon.toFixed(2)}°E</strong></div>
-                      <div>Max Wind: <strong>{currentForecast.max_sustained_wind_kph} km/h</strong></div>
-                      <div style={{ color: "#8295ab", fontSize: "10px" }}>Uncertainty: ±{currentForecast.track_uncertainty_km} km</div>
-                    </div>
-                  )}
-                </div>
-              )}
 
-              {/* Layer Controls */}
-              <div className="sidebar-layers-panel">
-                <div className="panel-subheading">
-                  <span>Geospatial Layers</span>
-                </div>
-                <label className="layer-toggle-item">
-                  <span>Land-Use Zones</span>
-                  <input
-                    type="checkbox"
-                    checked={showZones}
-                    onChange={(e) => setShowZones(e.target.checked)}
-                  />
-                </label>
-                <label className="layer-toggle-item">
-                  <span>MPCS Cyclone Shelters</span>
-                  <input
-                    type="checkbox"
-                    checked={showShelters}
-                    onChange={(e) => setShowShelters(e.target.checked)}
-                  />
-                </label>
-                <label className="layer-toggle-item">
-                  <span>AI Neural Forecast Layer</span>
-                  <input
-                    type="checkbox"
-                    checked={showAiLayer}
-                    onChange={(e) => setShowAiLayer(e.target.checked)}
-                  />
-                </label>
-              </div>
+                  <div className="hud-metric-chip">
+                    <span className="chip-lbl">PMIN</span>
+                    <span className="chip-val amber">{form.pressure} hPa</span>
+                  </div>
 
-              {/* Coastal Sector Quick Jump */}
-              <div className="storm-parameters-panel">
-                <div className="panel-subheading">
-                  <span>Coastal Sector Jump</span>
-                </div>
-                <div className="district-search-wrapper">
-                  <span className="district-search-icon">🔍</span>
-                  <input
-                    type="text"
-                    className="district-search-input"
-                    placeholder="Search coastal district..."
-                    value={searchLocationQuery}
-                    onChange={(e) => {
-                      setSearchLocationQuery(e.target.value);
-                      setIsSearchOpen(true);
-                    }}
-                    onFocus={() => setIsSearchOpen(true)}
-                  />
-                  {isSearchOpen && filteredLocations.length > 0 && (
-                    <div className="district-dropdown-results">
-                      {filteredLocations.map((loc) => (
-                        <div
-                          key={loc.name}
-                          className="district-dropdown-row"
-                          onClick={() => {
-                            setForm((prev) => ({ ...prev, lat: loc.lat, lon: loc.lon }));
-                            setSearchLocationQuery(loc.name);
-                            setIsSearchOpen(false);
-                            void handlePresetChange(loc.presetKey as keyof typeof presets);
-                          }}
-                        >
-                          <span>{loc.name}</span>
-                          <span style={{ fontSize: "9.5px", color: "#8295ab", fontFamily: "monospace" }}>
-                            {loc.lat}°N, {loc.lon}°E
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+                  <div className="hud-metric-chip">
+                    <span className="chip-lbl">POSITION</span>
+                    <span className="chip-val">
+                      {Number(form.lat).toFixed(2)}°N, {Number(form.lon).toFixed(2)}°E
+                    </span>
+                  </div>
 
-              {/* AI Cyclone Panel if enabled */}
-              {showAiLayer && (
-                <AICyclonePanel
-                  analysis={aiAnalysis}
-                  loading={aiLoading}
-                  onAnalyze={() => void handleRunAiAnalysis()}
+                  <button
+                    type="button"
+                    className="hud-dossier-btn"
+                    onClick={() => setIsCyclonePanelOpen(!isCyclonePanelOpen)}
+                    title="Open Comprehensive Storm Dossier & AI Analysis"
+                  >
+                    <Wind size={12} />
+                    <span>DOSSIER</span>
+                  </button>
+                </div>
+
+                {/* Floating Global Layers Menu (Top Right) */}
+                <GlobalLayersMenu layers={layers} onChangeLayers={setLayers} />
+
+                {/* Tactical / 3D Geospatial Engine */}
+                <RiskMap
+                  scenarioId={scenario?.id}
+                  center={mapCenter}
+                  features={scenario?.risk_grid?.features ?? []}
+                  buildings={buildings}
+                  zones={zones}
+                  sheltersPlan={sheltersPlan}
+                  trajectory={trajectoryPoints}
+                  headingDeg={Number(form.heading || 35)}
+                  speedKph={Number(form.speed || 22)}
+                  analysisMode={analysisMode}
+                  showZones={showZones}
+                  showShelters={showShelters}
+                  viewDimension={viewDimension}
+                  onViewDimensionChange={setViewDimension}
+                  onSelectCell={setSelectedCell}
+                  locationName={form.name || scenario?.input?.name}
+                  onSelectPreset={(key) => void handlePresetChange(key)}
+                  showPhysicsGrid={layers.advanced.physicsGrid}
+                  onCycloneClick={() => setIsCyclonePanelOpen(true)}
+                  onCustomLocationChange={(lat, lon) => {
+                    setForm((prev) => ({ ...prev, lat: String(lat), lon: String(lon) }));
+                    void runFullPipeline(String(lat), String(lon), form.wind, form.pressure, "Custom Sector", form.heading, form.speed, form.radius);
+                  }}
                 />
-              )}
 
-              {error && <div style={{ color: "#ef4444", fontSize: "11px", padding: "6px" }}>{error}</div>}
-            </div>
-          </aside>
+                {/* Docked Forecast Scrubber & Model Comparison (when in 'forecast' workspace) */}
+                {activeSection === "forecast" && (
+                  <ForecastWorkspace
+                    mlResult={mlResult}
+                    stormName={form.name}
+                    lat={Number(form.lat)}
+                    lon={Number(form.lon)}
+                    windKph={Number(form.wind)}
+                    pressureHpa={Number(form.pressure)}
+                    onSelectHorizon={(h) => setSelectedHorizon(h)}
+                  />
+                )}
 
-          {/* =================================================================
-              3. CENTRAL DOMINANT MAP WORKSPACE
-              ================================================================= */}
-          <section className="map-workspace-shell">
-            {/* Floating Expand Sidebar Button when sidebar collapsed */}
-            {!sidebarOpen && (
-              <button
-                type="button"
-                className="btn-expand-sidebar-floating"
-                onClick={handleToggleSidebar}
-                title="Expand operational sidebar"
-              >
-                ▶
-              </button>
+                {/* Docked Risk & Impact Hazard Bar (when in 'risk' workspace) */}
+                {activeSection === "risk" && (
+                  <RiskImpactWorkspace
+                    scenario={scenario}
+                    buildings={buildings}
+                    sheltersPlan={sheltersPlan}
+                    locationName={form.name}
+                    onSelectCityView={() => setViewDimension(viewDimension === "real3d" ? "2d" : "real3d")}
+                  />
+                )}
+
+                {/* Bottom Operational Intelligence Telemetry Strip */}
+                {activeSection === "command" && (
+                  <div className="operational-intelligence-strip">
+                    <div className="intel-metrics-group">
+                      <div className="intel-stat-block">
+                        <span className="intel-label">RISK:</span>
+                        <span className="intel-value severe">
+                          {summaryStats?.max_risk_score && summaryStats.max_risk_score >= 0.55 ? "SEVERE" : "EXTREME"}
+                        </span>
+                      </div>
+                      <div className="intel-stat-block">
+                        <span className="intel-label">AFFECTED LOCATIONS:</span>
+                        <span className="intel-value">
+                          {totalCells > 0 ? totalCells.toLocaleString() : "1,976"}
+                        </span>
+                      </div>
+                      <div className="intel-stat-block">
+                        <span className="intel-label">POPULATION:</span>
+                        <span className="intel-value cyan">
+                          {(scenario?.risk_grid?.summary?.estimated_population_affected ?? 330930).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="intel-stat-block">
+                        <span className="intel-label">ECONOMIC LOSS:</span>
+                        <span className="intel-value amber">
+                          ₹{(scenario?.risk_grid?.summary?.estimated_loss_crores_inr ?? 1131.8).toFixed(1)} Cr
+                        </span>
+                      </div>
+                      <div className="intel-stat-block">
+                        <span className="intel-label">EVACUATION:</span>
+                        <span className="intel-value severe">
+                          {(scenario?.risk_grid?.summary?.ndma_directives?.evacuation_urgency || "MANDATORY IMMEDIATE").replace(/_/g, " ")}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="intel-actions-group">
+                      <button
+                        type="button"
+                        className="btn-intel-action"
+                        onClick={() => handleSelectSection("alerts")}
+                        title="Open Alerts & Operations Command"
+                      >
+                        <Bell size={13} />
+                        <span>NDMA Alerts</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-intel-action"
+                        onClick={() => handleSelectSection("analytics")}
+                        title="Open Historical Model Analytics"
+                      >
+                        <BarChart3 size={13} />
+                        <span>Validation Matrix</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
-            {/* Floating Map Command Ribbon */}
-            <div className="map-command-ribbon" aria-label="Map Analysis Modes">
-              <div className="ribbon-engine-switcher">
-                <button
-                  type="button"
-                  className={`engine-pill ${viewDimension === "2d" ? "active" : ""}`}
-                  onClick={() => setViewDimension("2d")}
-                  title="2D Tactical GIS Map"
-                >
-                  🗺️ 2D Grid
-                </button>
-                <button
-                  type="button"
-                  className={`engine-pill ${viewDimension === "real3d" ? "active" : ""}`}
-                  onClick={() => setViewDimension("real3d")}
-                  title="3D City Digital Twin"
-                >
-                  🏢 3D City
-                </button>
-                <button
-                  type="button"
-                  className={`engine-pill ${viewDimension === "globe" ? "active" : ""}`}
-                  onClick={() => setViewDimension("globe")}
-                  title="3D Earth Globe View"
-                >
-                  🌐 3D Globe
-                </button>
+            {/* 4. Satellite Lab Workspace */}
+            {activeSection === "satellite" && (
+              <div className="workspace-view-container">
+                <SatelliteLab
+                  stormName={form.name}
+                  lat={Number(form.lat)}
+                  lon={Number(form.lon)}
+                  windKph={Number(form.wind)}
+                  pressureHpa={Number(form.pressure)}
+                  onSelectStorm={(key) => void handlePresetChange(key)}
+                />
               </div>
+            )}
 
-              <div className="ribbon-divider" />
-
-              <div className="ribbon-mode-pills">
-                {(["DAMAGE", "HIT", "WIND", "EXPOSURE", "BUILDINGS", "OBSTACLES", "ZONES", "EVACUATION"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    className={`ribbon-pill ${analysisMode === mode ? "active" : ""}`}
-                    onClick={() => {
-                      setAnalysisMode(mode);
-                      if (mode === "BUILDINGS") setViewDimension("real3d");
-                    }}
-                  >
-                    {mode}
-                  </button>
-                ))}
+            {/* 5. AI Analysis Lab Workspace */}
+            {activeSection === "ai" && (
+              <div className="workspace-view-container">
+                <AIAnalysisLab
+                  analysis={aiAnalysis}
+                  loading={aiLoading}
+                  onRunAnalysis={() => void handleRunAiAnalysis()}
+                  stormName={form.name}
+                  lat={Number(form.lat)}
+                  lon={Number(form.lon)}
+                  windKph={Number(form.wind)}
+                  pressureHpa={Number(form.pressure)}
+                />
               </div>
-            </div>
+            )}
 
-            {/* Dominant Map Canvas Container */}
-            <div className="map-canvas-container">
-              <RiskMap
-                center={mapCenter}
-                features={scenario?.risk_grid.features ?? []}
-                buildings={buildings}
-                zones={zones}
-                sheltersPlan={sheltersPlan}
-                trajectory={trajectoryPoints}
-                headingDeg={Number(form.heading || 35)}
-                speedKph={Number(form.speed || 22)}
-                analysisMode={analysisMode}
-                showZones={showZones}
-                showShelters={showShelters}
-                viewDimension={viewDimension}
-                onViewDimensionChange={setViewDimension}
-                onSelectCell={(cell) => {
-                  setSelectedCell(cell);
-                }}
-                scenarioId={scenario?.id}
-                locationName={form.name || scenario?.input?.name}
-                onSelectPreset={(key) => void handlePresetChange(key as keyof typeof presets)}
-                onCustomLocationChange={(lat, lon) => {
-                  setForm((prev) => ({ ...prev, lat: String(lat), lon: String(lon) }));
-                  void runFullPipeline(String(lat), String(lon), form.wind, form.pressure, "Custom Location", form.heading, form.speed, form.radius);
-                }}
-              />
-            </div>
-
-            {/* Bottom Operational Intelligence Strip */}
-            <div className="operational-intelligence-strip">
-              <div className="intel-metrics-group">
-                <div className="intel-stat-block">
-                  <span className="intel-label">RISK:</span>
-                  <span className="intel-value severe">
-                    {summaryStats?.max_risk_score && summaryStats.max_risk_score >= 0.55 ? "SEVERE" : "EXTREME"}
-                  </span>
-                </div>
-                <div className="intel-stat-block">
-                  <span className="intel-label">AFFECTED LOCATIONS:</span>
-                  <span className="intel-value">
-                    {totalCells > 0 ? totalCells.toLocaleString() : "1,976"}
-                  </span>
-                </div>
-                <div className="intel-stat-block">
-                  <span className="intel-label">POPULATION:</span>
-                  <span className="intel-value cyan">
-                    {(scenario?.risk_grid?.summary?.estimated_population_affected ?? 330930).toLocaleString()}
-                  </span>
-                </div>
-                <div className="intel-stat-block">
-                  <span className="intel-label">ECONOMIC LOSS:</span>
-                  <span className="intel-value amber">
-                    ₹{(scenario?.risk_grid?.summary?.estimated_loss_crores_inr ?? 1131.8).toFixed(1)} Cr
-                  </span>
-                </div>
-                <div className="intel-stat-block">
-                  <span className="intel-label">EVACUATION:</span>
-                  <span className="intel-value severe">
-                    {(scenario?.risk_grid?.summary?.ndma_directives?.evacuation_urgency || "MANDATORY IMMEDIATE").replace(/_/g, " ")}
-                  </span>
-                </div>
+            {/* 8. Historical Analytics Workspace */}
+            {activeSection === "analytics" && (
+              <div className="workspace-view-container">
+                <HistoricalAnalyticsWorkspace
+                  datasetSummary={datasetSummary}
+                  onLoadPreset={(key) => void handlePresetChange(key)}
+                />
               </div>
+            )}
 
-              <div className="intel-actions-group">
-                <button
-                  type="button"
-                  className="btn-intel-action"
-                  onClick={() => setActiveNavTab("sitrep")}
-                  title="Open NDMA Situation Report panel"
-                >
-                  <IconShield />
-                  <span>View SITREP</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn-intel-action"
-                  onClick={() => setActiveNavTab("analytics")}
-                  title="Open Model Analytics"
-                >
-                  <IconActivity />
-                  <span>Analytics</span>
-                </button>
+            {/* 9. Alerts & Operations Workspace */}
+            {activeSection === "alerts" && (
+              <div className="workspace-view-container">
+                <AlertsOperationsWorkspace
+                  activeCycloneName={form.name}
+                  currentWindKph={Number(form.wind)}
+                  currentPressureHpa={Number(form.pressure)}
+                  onViewOnMap={(_lat, _lon, presetKey) => {
+                    if (presetKey) void handlePresetChange(presetKey);
+                    handleSelectSection("command");
+                  }}
+                  onExportSitrep={() => window.print()}
+                />
               </div>
-            </div>
-          </section>
+            )}
 
-          {/* =================================================================
-              4. RIGHT DETAIL DRAWER (CELL & BUILDING DOSSIER)
-              ================================================================= */}
+            {/* 10. Data Sources / Telemetry Workspace */}
+            {activeSection === "settings" && (
+              <div className="workspace-view-container">
+                <DataSourcesWorkspace />
+              </div>
+            )}
+          </div>
+
+          {/* Contextual Cyclone Dossier Drawer (Right Side) */}
+          <ContextualCyclonePanel
+            isOpen={isCyclonePanelOpen}
+            onClose={() => setIsCyclonePanelOpen(false)}
+            stormName={form.name}
+            category={
+              Number(form.wind) >= 165
+                ? "Super Cyclonic Storm"
+                : Number(form.wind) >= 120
+                ? "Very Severe Cyclonic Storm"
+                : Number(form.wind) >= 90
+                ? "Severe Cyclonic Storm"
+                : "Cyclonic Storm"
+            }
+            windKph={Number(form.wind)}
+            pressureHpa={Number(form.pressure)}
+            headingDeg={Number(form.heading)}
+            speedKph={Number(form.speed)}
+            lat={Number(form.lat)}
+            lon={Number(form.lon)}
+            aiConfidence={mlResult?.identification?.confidence ? Number((mlResult.identification.confidence * 100).toFixed(1)) : 94.7}
+            onNavigateSection={(sec) => {
+              handleSelectSection(sec);
+              setIsCyclonePanelOpen(false);
+            }}
+          />
+
+          {/* Inspected 200m Cell Dossier Drawer */}
           {selectedCell && (
             <aside className="cell-detail-drawer" aria-label="Inspected Cell Dossier">
               <div className="cell-drawer-header">
@@ -1301,222 +1182,6 @@ export default function App() {
             </aside>
           )}
 
-          {/* =================================================================
-              5. DEDICATED SITREP PANEL MODAL / OVERLAY
-              ================================================================= */}
-          {activeNavTab === "sitrep" && (
-            <div className="operational-panel-modal-backdrop" onClick={() => setActiveNavTab("risk_map")}>
-              <div className="operational-panel-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="panel-modal-header">
-                  <div className="panel-modal-title">
-                    <IconShield />
-                    <span>NDMA SITUATION REPORT (SITREP) · 200M RESOLUTION</span>
-                  </div>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <button
-                      type="button"
-                      className="btn-header-action primary"
-                      onClick={() => window.print()}
-                    >
-                      <IconDownload />
-                      <span>Export SITREP (PDF)</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-close-drawer"
-                      onClick={() => setActiveNavTab("risk_map")}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-
-                <div className="panel-modal-body">
-                  {/* Calibrated Loss & Impact Metrics */}
-                  <div className="loss-metric-row">
-                    <div className="loss-box">
-                      <span className="loss-lbl">Estimated Economic Loss</span>
-                      <strong className="loss-val inr">
-                        ₹ {(scenario?.risk_grid?.summary?.estimated_loss_crores_inr ?? 1131.8).toFixed(1)} Cr
-                      </strong>
-                      <span className="loss-sub">Calibrated NDMA standard valuation</span>
-                    </div>
-                    <div className="loss-box">
-                      <span className="loss-lbl">Population in Harm&apos;s Way</span>
-                      <strong className="loss-val pop">
-                        {(scenario?.risk_grid?.summary?.estimated_population_affected ?? 330930).toLocaleString()}
-                      </strong>
-                      <span className="loss-sub">High-risk coastal evacuation zone</span>
-                    </div>
-                    <div className="loss-box">
-                      <span className="loss-lbl">Evacuation Urgency</span>
-                      <strong className="loss-val" style={{ color: "#ef4444" }}>
-                        {(scenario?.risk_grid?.summary?.ndma_directives?.evacuation_urgency || "MANDATORY IMMEDIATE").replace(/_/g, " ")}
-                      </strong>
-                      <span className="loss-sub">Landfall zero-hour posture</span>
-                    </div>
-                    <div className="loss-box">
-                      <span className="loss-lbl">NDRF Mobilization</span>
-                      <strong className="loss-val" style={{ color: "#10b981" }}>
-                        {scenario?.risk_grid?.summary?.ndma_directives?.ndrf_battalions_recommended ?? 18} Battalions
-                      </strong>
-                      <span className="loss-sub">Pre-positioned coastal hubs</span>
-                    </div>
-                  </div>
-
-                  {/* Actionable Directives */}
-                  <div className="directives-grid">
-                    <div className="directive-item">
-                      <span className="directive-tag">Maritime &amp; Port Signal</span>
-                      <strong style={{ color: "#ef4444" }}>
-                        {(scenario?.risk_grid?.summary?.ndma_directives?.port_warning_signal || "SIGNAL 10 GREAT DANGER").replace(/_/g, " ")}
-                      </strong>
-                      <p style={{ margin: "4px 0 0", fontSize: "11px", color: "#8295ab" }}>
-                        Halt port operations, recall trawlers, secure crane gantries.
-                      </p>
-                    </div>
-
-                    <div className="directive-item">
-                      <span className="directive-tag">Power Grid Isolation</span>
-                      <strong style={{ color: "#38bdf8" }}>
-                        {(scenario?.risk_grid?.summary?.ndma_directives?.power_grid_advisory || "EMERGENCY ISOLATION TRIGGERED").replace(/_/g, " ")}
-                      </strong>
-                      <p style={{ margin: "4px 0 0", fontSize: "11px", color: "#8295ab" }}>
-                        Isolate 33/11 kV substations 2 hours before 100 km/h perimeter arrival.
-                      </p>
-                    </div>
-
-                    <div className="directive-item" style={{ gridColumn: "span 2" }}>
-                      <span className="directive-tag">Rail &amp; Highway Transport Directive</span>
-                      <strong style={{ color: "#f59e0b" }}>
-                        {(scenario?.risk_grid?.summary?.ndma_directives?.rail_traffic_directive || "SUSPEND ALL COASTAL RAIL").replace(/_/g, " ")}
-                      </strong>
-                      <p style={{ margin: "4px 0 0", fontSize: "11px", color: "#8295ab" }}>
-                        Suspend express trains traversing coastal corridors; convoy control on national highways.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* MPCS Shelter Allocation */}
-                  {sheltersPlan && (
-                    <div style={{ background: "rgba(6, 14, 27, 0.7)", border: "1px solid var(--border-subtle)", borderRadius: "6px", padding: "12px" }}>
-                      <div style={{ fontSize: "11px", fontWeight: 800, color: "#10b981", textTransform: "uppercase", marginBottom: "8px" }}>
-                        Active Cyclone Shelters (MPCS) Logistics
-                      </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "10px" }}>
-                        <div>Active Shelters: <strong>{sheltersPlan.total_shelters_active}</strong></div>
-                        <div>Capacity: <strong>{sheltersPlan.total_capacity.toLocaleString()}</strong></div>
-                        <div>Immediate Evacuees: <strong>{sheltersPlan.immediate_evacuation_count.toLocaleString()}</strong></div>
-                        <div>Pop. at Risk: <strong>{sheltersPlan.estimated_population_at_risk.toLocaleString()}</strong></div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* =================================================================
-              6. DEDICATED ANALYTICS PANEL MODAL / OVERLAY
-              ================================================================= */}
-          {activeNavTab === "analytics" && (
-            <div className="operational-panel-modal-backdrop" onClick={() => setActiveNavTab("risk_map")}>
-              <div className="operational-panel-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="panel-modal-header">
-                  <div className="panel-modal-title">
-                    <IconActivity />
-                    <span>AI/ML SATELLITE PREDICTION &amp; MODEL PROVENANCE</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn-close-drawer"
-                    onClick={() => setActiveNavTab("risk_map")}
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="panel-modal-body">
-                  {/* Accuracy Legend */}
-                  <div className="accuracy-legend-bar">
-                    <span style={{ fontWeight: 800, color: "#8295ab", textTransform: "uppercase", fontSize: "10px" }}>
-                      Forecast Accuracy Grade:
-                    </span>
-                    <span className="accuracy-legend-item">
-                      <i className="accuracy-legend-dot" style={{ background: "#10b981" }} />
-                      <strong style={{ color: "#10b981" }}>Grade A</strong> High (&ge;90%)
-                    </span>
-                    <span className="accuracy-legend-item">
-                      <i className="accuracy-legend-dot" style={{ background: "#38bdf8" }} />
-                      <strong style={{ color: "#38bdf8" }}>Grade B</strong> Good (80–89%)
-                    </span>
-                    <span className="accuracy-legend-item">
-                      <i className="accuracy-legend-dot" style={{ background: "#f59e0b" }} />
-                      <strong style={{ color: "#f59e0b" }}>Grade C</strong> Moderate (70–79%)
-                    </span>
-                    <span className="accuracy-legend-item">
-                      <i className="accuracy-legend-dot" style={{ background: "#ef4444" }} />
-                      <strong style={{ color: "#ef4444" }}>Grade D</strong> Elevated Uncertainty (&lt;70%)
-                    </span>
-                  </div>
-
-                  {/* Multi-Horizon Trajectory Table */}
-                  {mlResult && (
-                    <table className="ai-ml-table">
-                      <thead>
-                        <tr>
-                          <th>Horizon</th>
-                          <th>Predicted Position</th>
-                          <th>Projected Wind</th>
-                          <th>Central Pressure</th>
-                          <th>Track Uncertainty</th>
-                          <th>Accuracy Grade</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {([6, 12, 24] as const).map((h) => {
-                          const f = mlResult[`forecast_${h}h`];
-                          const acc = getAccuracyInfo(h === 6 ? 94 : h === 12 ? 88 : 82);
-                          return (
-                            <tr key={h}>
-                              <td><strong>+{h} Hours</strong></td>
-                              <td>{f.centre_lat.toFixed(2)}°N, {f.centre_lon.toFixed(2)}°E</td>
-                              <td>{f.max_sustained_wind_kph} km/h</td>
-                              <td>{f.central_pressure_hpa} hPa</td>
-                              <td>±{f.track_uncertainty_km} km</td>
-                              <td>
-                                <span className="accuracy-badge" style={{ color: acc.color, background: acc.bg }}>
-                                  {acc.grade}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  )}
-
-                  {/* System Diagnostic Telemetry */}
-                  {devPanelStats && (
-                    <div style={{ background: "rgba(6, 14, 27, 0.7)", border: "1px solid var(--border-subtle)", borderRadius: "6px", padding: "12px" }}>
-                      <div style={{ fontSize: "11px", fontWeight: 800, color: "#38bdf8", textTransform: "uppercase", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
-                        <IconTerminal /> System Diagnostic Telemetry
-                      </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", fontSize: "11.5px" }}>
-                        <div>Total Grid Cells: <strong>{devPanelStats.totalCells.toLocaleString()}</strong></div>
-                        <div>Severe Risk Cells: <strong style={{ color: "#ef4444" }}>{devPanelStats.redCells}</strong></div>
-                        <div>Moderate Risk Cells: <strong style={{ color: "#f59e0b" }}>{devPanelStats.orangeCells}</strong></div>
-                        <div>Safe / Marine Cells: <strong style={{ color: "#10b981" }}>{devPanelStats.greenCells + devPanelStats.blueCells}</strong></div>
-                        <div>Buildings Screened: <strong>{devPanelStats.buildingCells}</strong></div>
-                        <div>Model Status: <strong style={{ color: "#38bdf8" }}>{devPanelStats.mlModelStatus}</strong></div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Official NDMA SITREP Printable Viewport */}
           <div className="official-sitrep-print-doc" aria-label="NDMA Official Situation Report">
             <div className="sitrep-header">
@@ -1586,7 +1251,7 @@ export default function App() {
               </table>
             </div>
           </div>
-        </main>
+        </div>
       )}
 
       {/* News & Bulletins Drawer */}
