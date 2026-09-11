@@ -879,7 +879,7 @@ export default function RealWorld3DView({
             <span>{riskAnalysisStats.moderateCount} cells</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px" }}>
-            <span style={{ color: "#22c55e", fontWeight: 700 }}>Safe / Low (<0.25):</span>
+            <span style={{ color: "#22c55e", fontWeight: 700 }}>Safe / Low (&lt;0.25):</span>
             <span>{riskAnalysisStats.safeCount} cells</span>
           </div>
         </div>
