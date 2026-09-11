@@ -312,11 +312,11 @@ html, body, #root {
    OPERATIONAL LEFT SIDEBAR (280PX, COLLAPSIBLE, CSS GRID FORM)
    ========================================================================== */
 .operational-sidebar {
-  width: 280px;
-  min-width: 280px;
-  max-width: 280px;
+  width: 260px;
+  min-width: 260px;
+  max-width: 260px;
   height: 100%;
-  background-color: var(--bg-sidebar);
+  background-color: #07101b;
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
@@ -334,8 +334,8 @@ html, body, #root {
 }
 
 .sidebar-header {
-  padding: 10px 12px;
-  background: rgba(6, 14, 27, 0.8);
+  padding: 8px 10px;
+  background: rgba(4, 10, 20, 0.9);
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
@@ -378,21 +378,22 @@ html, body, #root {
 .sidebar-content-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 12px;
+  padding: 6px 10px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
 }
 
-/* Active Storm Card */
+/* Active Storm Section (flat, no card nesting) */
 .active-storm-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  padding: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 8px 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  border-bottom: 1px solid var(--border-hairline);
 }
 
 .active-storm-header {
@@ -440,17 +441,19 @@ html, body, #root {
 .telemetry-quad {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 4px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-hairline);
 }
 
 .telemetry-cell {
-  background: rgba(6, 14, 27, 0.7);
-  border: 1px solid var(--border-hairline);
-  border-radius: 4px;
-  padding: 6px 8px;
+  background: rgba(6, 14, 27, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  padding: 5px 7px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .telemetry-label {
@@ -472,12 +475,13 @@ html, body, #root {
   color: var(--accent-cyan);
 }
 
-/* Storm Parameters Dedicated CSS Grid Form */
+/* Storm Parameters Section (flat, divider-separated) */
 .storm-parameters-panel {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  padding: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-hairline);
 }
 
 .panel-subheading {
@@ -662,15 +666,16 @@ html, body, #root {
   color: var(--accent-cyan);
 }
 
-/* Layer Visibility Controls */
+/* Layer Visibility Controls (flat section) */
 .sidebar-layers-panel {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  padding: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 8px 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+  border-bottom: 1px solid var(--border-hairline);
 }
 
 .layer-toggle-item {
@@ -774,50 +779,50 @@ html, body, #root {
   background: #030712;
 }
 
-/* Floating Expand Sidebar Button (when sidebar is collapsed) */
+/* Floating Expand Sidebar Button (minimal, icon-only) */
 .btn-expand-sidebar-floating {
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: 8px;
+  left: 8px;
   z-index: 999;
-  background: rgba(11, 20, 36, 0.92);
-  border: 1px solid var(--border-medium);
-  border-radius: 4px;
-  color: var(--text-secondary);
-  font-size: 11px;
+  background: rgba(7, 16, 27, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  color: var(--text-muted);
+  font-size: 12px;
   font-weight: 700;
-  padding: 6px 10px;
+  padding: 4px 6px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 5px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  gap: 0;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.15s ease, background 0.15s ease;
 }
 
 .btn-expand-sidebar-floating:hover {
-  background: var(--bg-surface-elevated);
-  color: #ffffff;
-  border-color: var(--border-accent);
+  background: rgba(16, 33, 56, 0.9);
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+  opacity: 1;
 }
 
-/* Floating Map Command Ribbon */
+/* Floating Map Command Ribbon (ultra-compact, reduced visual weight) */
 .map-command-ribbon {
   position: absolute;
-  top: 10px;
+  top: 6px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 900;
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(10, 20, 36, 0.94);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-medium);
-  border-radius: 6px;
-  padding: 4px 10px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  max-width: calc(100% - 24px);
+  gap: 5px;
+  background: rgba(7, 16, 27, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  padding: 2px 6px;
+  max-width: calc(100% - 20px);
   overflow-x: auto;
 }
 
@@ -830,10 +835,10 @@ html, body, #root {
 .engine-pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 10.5px;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
   font-weight: 700;
   border: none;
   background: transparent;
@@ -868,13 +873,13 @@ html, body, #root {
 }
 
 .ribbon-pill {
-  padding: 3px 7px;
-  border-radius: 4px;
-  font-size: 10px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 9.5px;
   font-weight: 700;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-dim);
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
@@ -939,19 +944,19 @@ html, body, #root {
 }
 
 /* ==========================================================================
-   BOTTOM OPERATIONAL INTELLIGENCE STRIP (COMPACT 40PX, HIGH VISIBILITY)
+   BOTTOM SYSTEM STATUS BAR (COMPACT 30PX, INTEGRATED)
    ========================================================================== */
 .operational-intelligence-strip {
-  height: 42px;
-  min-height: 42px;
-  max-height: 42px;
-  background: #08111e;
-  border-top: 1px solid var(--border-medium);
+  height: 30px;
+  min-height: 30px;
+  max-height: 30px;
+  background: var(--bg-header);
+  border-top: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 14px;
-  gap: 16px;
+  padding: 0 10px;
+  gap: 6px;
   z-index: 500;
   flex-shrink: 0;
   overflow: hidden;
@@ -960,7 +965,7 @@ html, body, #root {
 .intel-metrics-group {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 10px;
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -973,18 +978,18 @@ html, body, #root {
 }
 
 .intel-label {
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 700;
-  color: var(--text-muted);
+  color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 
 .intel-value {
   font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 800;
-  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
 }
 
 .intel-value.severe {
@@ -1013,41 +1018,42 @@ html, body, #root {
 .btn-intel-action {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  height: 26px;
-  padding: 0 10px;
-  border-radius: 4px;
-  font-size: 11px;
+  gap: 4px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 3px;
+  font-size: 10px;
   font-weight: 700;
-  background: rgba(2, 132, 199, 0.15);
-  border: 1px solid var(--border-accent);
-  color: #7dd3fc;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
 }
 
 .btn-intel-action:hover {
-  background: var(--accent-blue);
-  color: #ffffff;
+  background: rgba(2, 132, 199, 0.15);
+  color: var(--accent-cyan);
+  border-color: var(--border-accent);
 }
 
 /* ==========================================================================
    RIGHT DETAIL DRAWER (CELL & BUILDING DOSSIER, SLIDE-IN)
    ========================================================================== */
 .cell-detail-drawer {
-  width: 320px;
-  min-width: 320px;
-  max-width: 320px;
+  width: 300px;
+  min-width: 300px;
+  max-width: 300px;
   height: 100%;
-  background: var(--bg-sidebar);
-  border-left: 1px solid var(--border-medium);
+  background: #07101b;
+  border-left: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   z-index: 400;
   overflow: hidden;
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.4);
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.3);
 }
 
 .cell-drawer-header {
@@ -1087,20 +1093,21 @@ html, body, #root {
 .cell-drawer-content {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
 }
 
 .cell-dossier-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  padding: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 8px 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
+  border-bottom: 1px solid var(--border-hairline);
 }
 
 .cell-dossier-heading {
@@ -1495,14 +1502,14 @@ html, body, #root {
    ========================================================================== */
 @media (max-width: 1366px) {
   .operational-sidebar {
-    width: 260px;
-    min-width: 260px;
+    width: 245px;
+    min-width: 245px;
   }
   .intel-metrics-group {
-    gap: 12px;
+    gap: 8px;
   }
   .intel-value {
-    font-size: 12px;
+    font-size: 10.5px;
   }
 }
 
@@ -1511,8 +1518,8 @@ html, body, #root {
     display: none;
   }
   .operational-sidebar {
-    width: 250px;
-    min-width: 250px;
+    width: 235px;
+    min-width: 235px;
   }
   .primary-nav-item {
     padding: 4px 9px;
@@ -1540,13 +1547,13 @@ html, body, #root {
 
 /* Leaflet Zoom & Controls */
 .leaflet-control-zoom {
-  border: 1px solid var(--border-subtle) !important;
-  background: rgba(10, 20, 36, 0.9) !important;
-  border-radius: 4px !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  background: rgba(7, 16, 27, 0.7) !important;
+  border-radius: 3px !important;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5) !important;
-  margin-top: 54px !important;
-  margin-left: 10px !important;
+  box-shadow: none !important;
+  margin-top: 40px !important;
+  margin-left: 8px !important;
 }
 
 .leaflet-control-zoom a {
@@ -1593,22 +1600,19 @@ html, body, #root {
   border: 1px solid var(--border-medium) !important;
 }
 
-/* Map Command Dock (Top Right) */
+/* Map Command Dock (Top Right, minimal) */
 .map-view-dock {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 6px;
+  right: 8px;
   z-index: 900;
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(10, 20, 36, 0.94);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid var(--border-medium);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  gap: 4px;
+  background: rgba(7, 16, 27, 0.65);
+  padding: 2px 5px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .dock-group {
@@ -1619,17 +1623,17 @@ html, body, #root {
 
 .dock-btn {
   border: 1px solid transparent;
-  padding: 3px 7px;
-  border-radius: 4px;
-  font-size: 10.5px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 10px;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--text-dim);
   background: transparent;
   cursor: pointer;
   transition: all 0.15s ease;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   white-space: nowrap;
 }
 
@@ -1672,23 +1676,20 @@ html, body, #root {
   cursor: pointer;
 }
 
-/* Floating Trajectory Timeline Scrubber (Bottom Center, just above intelligence strip) */
+/* Floating Trajectory Timeline Scrubber (Bottom Center, just above status bar) */
 .map-timeline-player {
   position: absolute;
-  bottom: 50px;
+  bottom: 38px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 900;
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(10, 20, 36, 0.94);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  padding: 4px 10px;
-  border-radius: 20px;
-  border: 1px solid var(--border-medium);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  gap: 4px;
+  background: rgba(7, 16, 27, 0.72);
+  padding: 2px 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .timeline-play-btn {

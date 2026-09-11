@@ -1059,7 +1059,7 @@ export default function App() {
                 onClick={handleToggleSidebar}
                 title="Expand operational sidebar"
               >
-                ▶ Controls
+                ▶
               </button>
             )}
 
