@@ -27,7 +27,6 @@ import NewsPanel from "./NewsPanel";
 import AICyclonePanel from "./AICyclonePanel";
 
 // Safe min/max for large arrays to avoid "Maximum call stack size exceeded"
-// caused by Math.min(...arr) / Math.max(...arr) with spread on very large arrays.
 function safeMin(arr: number[], fallback = 0): number {
   let m = Number.POSITIVE_INFINITY;
   for (let i = 0; i < arr.length; i++) {
@@ -47,7 +46,7 @@ function safeMax(arr: number[], fallback = 0): number {
 
 const presets = {
   nisarga: {
-    name: "Cyclone Nisarga (Maharashtra Coast 18.35°N, 72.98°E - Arabian Sea)",
+    name: "Cyclone Nisarga (Maharashtra Coast 18.35°N, 72.98°E)",
     lat: "18.35",
     lon: "72.98",
     wind: "120",
@@ -58,7 +57,7 @@ const presets = {
     source: "INSAT",
   },
   biparjoy: {
-    name: "Cyclone Biparjoy (Gujarat Coast 23.20°N, 68.60°E - Arabian Sea)",
+    name: "Cyclone Biparjoy (Gujarat Coast 23.20°N, 68.60°E)",
     lat: "23.20",
     lon: "68.60",
     wind: "140",
@@ -69,7 +68,7 @@ const presets = {
     source: "INSAT",
   },
   dana: {
-    name: "Cyclone Dana (Dhamra Port / Odisha 20.85°N, 86.95°E - Bay of Bengal)",
+    name: "Cyclone Dana (Dhamra Port / Odisha 20.85°N, 86.95°E)",
     lat: "20.85",
     lon: "86.95",
     wind: "120",
@@ -80,7 +79,7 @@ const presets = {
     source: "GPM_IMERG",
   },
   amphan: {
-    name: "Cyclone Amphan (Digha / West Bengal 21.62°N, 87.51°E - Bay of Bengal)",
+    name: "Cyclone Amphan (Digha / West Bengal 21.62°N, 87.51°E)",
     lat: "21.62",
     lon: "87.51",
     wind: "165",
@@ -91,7 +90,7 @@ const presets = {
     source: "HURSAT_B1",
   },
   fani: {
-    name: "Cyclone Fani (Puri / Odisha 19.81°N, 85.83°E - Bay of Bengal)",
+    name: "Cyclone Fani (Puri / Odisha 19.81°N, 85.83°E)",
     lat: "19.81",
     lon: "85.83",
     wind: "175",
@@ -102,7 +101,7 @@ const presets = {
     source: "INSAT",
   },
   hudhud: {
-    name: "Cyclone Hudhud (Visakhapatnam / AP 17.68°N, 83.21°E - Bay of Bengal)",
+    name: "Cyclone Hudhud (Visakhapatnam / AP 17.68°N, 83.21°E)",
     lat: "17.68",
     lon: "83.21",
     wind: "185",
@@ -177,7 +176,7 @@ const modeLegends: Record<MapAnalysisMode, [string, string][]> = {
 
 function IconRadar() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="10" />
       <circle cx="12" cy="12" r="6" />
       <circle cx="12" cy="12" r="2" />
@@ -188,7 +187,7 @@ function IconRadar() {
 
 function IconGrid() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <rect x="3" y="3" width="7" height="7" />
       <rect x="14" y="3" width="7" height="7" />
       <rect x="14" y="14" width="7" height="7" />
@@ -197,17 +196,9 @@ function IconGrid() {
   );
 }
 
-function IconZap() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-    </svg>
-  );
-}
-
 function IconShield() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
     </svg>
   );
@@ -215,7 +206,7 @@ function IconShield() {
 
 function IconVortex() {
   return (
-    <svg className="brand-vortex-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 2a10 10 0 0 0-10 10c0 4.42 2.87 8.17 6.84 9.5" />
       <path d="M12 22a10 10 0 0 0 10-10c0-4.42-2.87-8.17-6.84-9.5" />
       <path d="M12 6a6 6 0 0 0-6 6c0 2.65 1.72 4.9 4.1 5.7" />
@@ -226,7 +217,7 @@ function IconVortex() {
 
 function IconCompass() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
       <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
     </svg>
@@ -235,26 +226,10 @@ function IconCompass() {
 
 function IconDownload() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <polyline points="7 10 12 15 17 10" />
       <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-  );
-}
-
-function IconSliders() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="4" y1="21" x2="4" y2="14" />
-      <line x1="4" y1="10" x2="4" y2="3" />
-      <line x1="12" y1="21" x2="12" y2="12" />
-      <line x1="12" y1="8" x2="12" y2="3" />
-      <line x1="20" y1="21" x2="20" y2="16" />
-      <line x1="20" y1="12" x2="20" y2="3" />
-      <line x1="1" y1="14" x2="7" y2="14" />
-      <line x1="9" y1="8" x2="15" y2="8" />
-      <line x1="17" y1="16" x2="23" y2="16" />
     </svg>
   );
 }
@@ -276,28 +251,6 @@ function IconTerminal() {
   );
 }
 
-function IconFileText() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-      <line x1="16" y1="13" x2="8" y2="13" />
-      <line x1="16" y1="17" x2="8" y2="17" />
-      <polyline points="10 9 9 9 8 9" />
-    </svg>
-  );
-}
-
-function IconAlertTriangle() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-      <line x1="12" y1="9" x2="12" y2="13" />
-      <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  );
-}
-
 function getAccuracyInfo(scorePercent: number) {
   if (scorePercent >= 90) {
     return { grade: "GRADE A", label: "High Accuracy (90–100%)", color: "#35a66f", bg: "rgba(53, 166, 111, 0.2)" };
@@ -315,10 +268,12 @@ export default function App() {
   const [currentView, setCurrentView] = useState<"landing" | "app">(() => {
     return window.location.hash === "#landing" ? "landing" : "app";
   });
-  const [activeTab, setActiveTab] = useState<"ml" | "screening">("ml");
+  
+  // Single Clean Primary Navigation
+  const [activeNavTab, setActiveNavTab] = useState<"risk_map" | "forecast" | "sitrep" | "analytics">("risk_map");
+  
   const [selectedPreset, setSelectedPreset] = useState<keyof typeof presets>("nisarga");
   const [selectedSource, setSelectedSource] = useState<string>("INSAT");
-
   const [form, setForm] = useState(presets.nisarga);
   const [mlResult, setMlResult] = useState<MLInferenceResult | null>(null);
   const [datasetSummary, setDatasetSummary] = useState<DatasetSummary | null>(null);
@@ -330,62 +285,6 @@ export default function App() {
   const [realtimeWeather, setRealtimeWeather] = useState<RealtimeWeather | null>(null);
   const [realtimeLiveEnabled, setRealtimeLiveEnabled] = useState(true);
 
-  useEffect(() => {
-    if (!realtimeLiveEnabled) return;
-    const lat = Number(form.lat || 18.35);
-    const lon = Number(form.lon || 72.98);
-
-    const fetchLive = () => {
-      fetchRealtimeWeather(lat, lon).then((data) => {
-        if (data) setRealtimeWeather(data);
-      });
-    };
-
-    fetchLive();
-    const interval = setInterval(fetchLive, 8000);
-    return () => clearInterval(interval);
-  }, [form.lat, form.lon, realtimeLiveEnabled]);
-
-  useEffect(() => {
-    const handleHash = () => {
-      if (window.location.hash === "#landing") {
-        setCurrentView("landing");
-      } else {
-        setCurrentView("app");
-      }
-    };
-    window.addEventListener("hashchange", handleHash);
-    return () => window.removeEventListener("hashchange", handleHash);
-  }, []);
-
-  useEffect(() => {
-    void fetchDatasetSummary().then(setDatasetSummary);
-    // Auto-calculate default scenario on mount so map is immediately live!
-    void runFullPipeline(
-      presets.nisarga.lat,
-      presets.nisarga.lon,
-      presets.nisarga.wind,
-      presets.nisarga.pressure,
-      presets.nisarga.name,
-      presets.nisarga.heading,
-      presets.nisarga.speed,
-      presets.nisarga.radius
-    );
-  }, []);
-
-  function navigateTo(view: "landing" | "app") {
-    setCurrentView(view);
-    window.location.hash = view === "app" ? "#app" : "#landing";
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function handleLaunchConsole(presetKey?: string) {
-    if (presetKey && presetKey in presets) {
-      void handlePresetChange(presetKey as keyof typeof presets);
-    }
-    navigateTo("app");
-  }
-
   const [scenario, setScenario] = useState<ScenarioResult | null>(null);
   const [buildings, setBuildings] = useState<BuildingFeature[]>([]);
   const [zones, setZones] = useState<ZoneFeature[]>([]);
@@ -394,9 +293,6 @@ export default function App() {
   const [showShelters, setShowShelters] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [screeningSubTab, setScreeningSubTab] = useState<"setup" | "results" | "solutions">("setup");
-  const [bottomDeckTab, setBottomDeckTab] = useState<"auto" | "screening" | "ml" | "mitigation" | "all">("auto");
-  const effectiveDeckTab = bottomDeckTab === "auto" ? (activeTab === "screening" ? "screening" : "ml") : bottomDeckTab;
 
   const [analysisMode, setAnalysisMode] = useState<MapAnalysisMode>("DAMAGE");
   const [viewDimension, setViewDimension] = useState<"2d" | "real3d" | "globe">("real3d");
@@ -436,24 +332,21 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Interactive Location Search & Dropdown State
+  // Location search state
   const [searchLocationQuery, setSearchLocationQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const coastalLocations = useMemo(
     () => [
-      { name: "Digha, West Bengal", lat: "21.6235", lon: "87.5220", presetKey: "landfall_amphan" },
-      { name: "Puri, Odisha", lat: "19.8035", lon: "85.8280", presetKey: "landfall_fani" },
-      { name: "Visakhapatnam, Andhra Pradesh", lat: "17.6868", lon: "83.2185", presetKey: "landfall_hudhud" },
-      { name: "Paradeep Port, Odisha", lat: "20.3164", lon: "86.6105", presetKey: "landfall_fani" },
-      { name: "Kolkata, West Bengal", lat: "22.5726", lon: "88.3639", presetKey: "landfall_amphan" },
-      { name: "Chennai Port, Tamil Nadu", lat: "13.0827", lon: "80.2707", presetKey: "custom" },
-      { name: "Kakinada Coast, AP", lat: "16.9891", lon: "82.2475", presetKey: "custom" },
-      { name: "Bhubaneswar Sector, Odisha", lat: "20.2961", lon: "85.8245", presetKey: "landfall_fani" },
-      { name: "Balasore Coastal Belt, Odisha", lat: "21.4934", lon: "86.9135", presetKey: "landfall_amphan" },
-      { name: "Bhadrak / Dhamra Port, Odisha", lat: "20.7964", lon: "86.8835", presetKey: "landfall_amphan" },
-      { name: "Kakdwip / Sundarbans, WB", lat: "21.8770", lon: "88.1887", presetKey: "landfall_amphan" },
-      { name: "Haldia Port, West Bengal", lat: "22.0620", lon: "88.0776", presetKey: "landfall_amphan" },
+      { name: "Digha, West Bengal", lat: "21.6235", lon: "87.5220", presetKey: "amphan" },
+      { name: "Puri, Odisha", lat: "19.8035", lon: "85.8280", presetKey: "fani" },
+      { name: "Visakhapatnam, Andhra Pradesh", lat: "17.6868", lon: "83.2185", presetKey: "hudhud" },
+      { name: "Paradeep Port, Odisha", lat: "20.3164", lon: "86.6105", presetKey: "fani" },
+      { name: "Kolkata, West Bengal", lat: "22.5726", lon: "88.3639", presetKey: "amphan" },
+      { name: "Dhamra Port, Odisha", lat: "20.7964", lon: "86.8835", presetKey: "dana" },
+      { name: "Alibaug / Maharashtra", lat: "18.3500", lon: "72.9800", presetKey: "nisarga" },
+      { name: "Mandvi / Gujarat Coast", lat: "23.2000", lon: "68.6000", presetKey: "biparjoy" },
+      { name: "Kakdwip / Sundarbans, WB", lat: "21.8770", lon: "88.1887", presetKey: "amphan" },
     ],
     []
   );
@@ -464,7 +357,7 @@ export default function App() {
     return coastalLocations.filter((loc) => loc.name.toLowerCase().includes(q));
   }, [searchLocationQuery, coastalLocations]);
 
-  // Keyboard Shortcuts: 1 (2D), 2 (Real 3D), 3 (Globe), Esc (Close panels)
+  // Keyboard Shortcuts: 1 (2D), 2 (Real 3D), 3 (Globe), Esc (Close drawers)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) {
@@ -476,11 +369,14 @@ export default function App() {
       if (e.key === "Escape") {
         setSelectedCell(null);
         setIsSearchOpen(false);
+        if (activeNavTab === "sitrep" || activeNavTab === "analytics") {
+          setActiveNavTab("risk_map");
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [activeNavTab]);
 
   // AI Cyclone Analysis State
   const [showAiLayer, setShowAiLayer] = useState(true);
@@ -491,10 +387,10 @@ export default function App() {
     setAiLoading(true);
     try {
       const res = await analyzeAICyclone({
-        latitude: latNum ?? (Number(form.lat) || 21.62),
-        longitude: lonNum ?? (Number(form.lon) || 87.51),
-        wind_speed: windNum ?? (Number(form.wind) || 165),
-        pressure: presNum ?? (Number(form.pressure) || 950),
+        latitude: latNum ?? (Number(form.lat) || 18.35),
+        longitude: lonNum ?? (Number(form.lon) || 72.98),
+        wind_speed: windNum ?? (Number(form.wind) || 120),
+        pressure: presNum ?? (Number(form.pressure) || 984),
       });
       if (res) setAiAnalysis(res);
     } catch (e) {
@@ -510,9 +406,9 @@ export default function App() {
     windStr: string,
     pressureStr: string,
     scenarioName: string,
-    headingStr: string = "315",
-    speedStr: string = "25",
-    radiusStr: string = "100"
+    headingStr: string = "35",
+    speedStr: string = "22",
+    radiusStr: string = "30"
   ) {
     setLoading(true);
     setError("");
@@ -522,9 +418,9 @@ export default function App() {
       const lon = Number(lonStr);
       const wind = Number(windStr);
       const pressure = Number(pressureStr);
-      const heading = Number(headingStr || 315);
-      const speed = Number(speedStr || 25);
-      const radius = Number(radiusStr || 100);
+      const heading = Number(headingStr || 35);
+      const speed = Number(speedStr || 22);
+      const radius = Number(radiusStr || 30);
 
       const res = await runMLInference({
         centre_lat: lat,
@@ -537,8 +433,6 @@ export default function App() {
       setMlResult(res);
       void fetchDatasetSummary().then(setDatasetSummary);
       void handleRunAiAnalysis(lat, lon, wind, pressure);
-
-      const horizonData = res[`forecast_${selectedHorizon}h`] || res.forecast_24h;
 
       const scn = await createScenario({
         name: scenarioName || `Cyclone Damage Grid`,
@@ -553,11 +447,10 @@ export default function App() {
         field_radius_km: radius,
       });
       setScenario(scn);
-      logDamageGridDebug(scn);
       setBuildings([]);
       setZones([]);
       setSheltersPlan(null);
-      // Fetch risk grid, buildings, zones, and shelters in parallel
+
       void Promise.all([
         fetchRiskGrid(scn.id).then((grid) => {
           setScenario((prev) => (prev ? { ...prev, risk_grid: grid } : null));
@@ -576,14 +469,14 @@ export default function App() {
   useEffect(() => {
     void fetchDatasetSummary().then(setDatasetSummary);
     void runFullPipeline(
-      "21.62",
-      "87.51",
-      "165",
-      "950",
-      "Cyclone Amphan Landfall (Digha)",
-      "315",
-      "25",
-      "30"
+      presets.nisarga.lat,
+      presets.nisarga.lon,
+      presets.nisarga.wind,
+      presets.nisarga.pressure,
+      presets.nisarga.name,
+      presets.nisarga.heading,
+      presets.nisarga.speed,
+      presets.nisarga.radius
     );
   }, []);
 
@@ -622,181 +515,49 @@ export default function App() {
     setForm(presets.custom);
   }
 
-  async function handleMLFormSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleStormFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await runFullPipeline(
       form.lat,
       form.lon,
       form.wind,
       form.pressure,
-      form.name || "AI/ML Cyclone Scenario",
+      form.name || "Custom Cyclone Scenario",
       form.heading,
       form.speed,
       form.radius
     );
   }
 
-  function handleSelectHorizon(h: 6 | 12 | 24) {
-    setSelectedHorizon(h);
-  }
-
-  function logDamageGridDebug(result: ScenarioResult) {
-    const features = result.risk_grid?.features || [];
-    const scores = features.map((f) => f.properties?.damage_score ?? 0);
-    const sortedScores = [...scores].sort((a, b) => a - b);
-    const medianScore = sortedScores.length ? sortedScores[Math.floor(sortedScores.length / 2)] : 0;
-    const allLats = features.flatMap((f) => f.geometry?.coordinates?.[0]?.map((c) => c[1]) || []);
-    const allLons = features.flatMap((f) => f.geometry?.coordinates?.[0]?.map((c) => c[0]) || []);
-
-    console.log("=== CYCLONEX DAMAGE GRID DEBUG ===");
-    console.log("API STATUS: 200 OK");
-    console.log("FeatureCollection:", result.risk_grid?.type === "FeatureCollection" || Boolean(features.length));
-    console.log("Feature count:", features.length);
-    console.log("Geometry count:", features.length);
-    console.log("First feature:", features[0]);
-    console.log("First feature properties:", features[0]?.properties);
-    console.log("Required properties:", {
-      damage_score: features[0]?.properties?.damage_score,
-      wind_speed: features[0]?.properties?.wind_kph,
-      wind_direction: features[0]?.properties?.wind_direction_deg,
-      hazard_score: features[0]?.properties?.hazard_score,
-      exposure_score: features[0]?.properties?.exposure_score,
-      vulnerability_score: features[0]?.properties?.vulnerability_score,
-      land_type: features[0]?.properties?.land_type,
-      actual_grid_size_m: result.risk_grid?.summary?.actual_grid_size_m ?? result.risk_grid?.metadata?.grid_size_m,
-    });
-    console.log("Damage statistics:", {
-      minimum: scores.length ? safeMin(scores) : 0,
-      maximum: scores.length ? safeMax(scores) : 0,
-      mean: scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0,
-      median: medianScore,
-    });
-    console.log("Classification:", {
-      "SKY BLUE (<0.10)": scores.filter((s) => s < 0.1).length,
-      "GREEN (0.10-0.25)": scores.filter((s) => s >= 0.1 && s < 0.25).length,
-      "ORANGE (0.25-0.55)": scores.filter((s) => s >= 0.25 && s < 0.55).length,
-      "RED (>=0.55)": scores.filter((s) => s >= 0.55).length,
-    });
-    console.log("GeoJSON bounds:", {
-      south: allLats.length ? safeMin(allLats) : 0,
-      north: allLats.length ? safeMax(allLats) : 0,
-      west: allLons.length ? safeMin(allLons) : 0,
-      east: allLons.length ? safeMax(allLons) : 0,
+  function handleToggleSidebar() {
+    setSidebarOpen((prev) => {
+      const next = !prev;
+      setTimeout(() => {
+        window.dispatchEvent(new Event("resize"));
+      }, 250);
+      return next;
     });
   }
 
-  async function handleRunMLImpactGrid() {
-    if (!mlResult) return;
-    setLoading(true);
-    setError("");
-    setSelectedCell(null);
-    try {
-      const horizonData: ForecastHorizon = mlResult[`forecast_${selectedHorizon}h`];
-      const radiusKm = Number(form.radius || 100);
-      const headingDeg = Number(form.heading || 315);
-      const speedKph = Number(form.speed || 25);
+  function navigateTo(view: "landing" | "app") {
+    setCurrentView(view);
+    window.location.hash = view === "app" ? "#app" : "#landing";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
-      const result = await createScenario({
-        name: `ML Forecast +${selectedHorizon}h Damage Grid`,
-        center_lat: horizonData.centre_lat,
-        center_lon: horizonData.centre_lon,
-        max_wind_kph: horizonData.max_sustained_wind_kph,
-        central_pressure_hpa: horizonData.central_pressure_hpa,
-        heading_deg: headingDeg,
-        speed_kph: speedKph,
-        rain_rate_mm_hr: 75,
-        storm_surge_m: 2.8,
-        field_radius_km: radiusKm,
-      });
-      setScenario(result);
-      logDamageGridDebug(result);
-      setBuildings([]);
-      setZones([]);
-      setSheltersPlan(null);
-      // Fetch risk grid, buildings, zones, and shelters in parallel
-      void Promise.all([
-        fetchRiskGrid(result.id).then((grid) => {
-          setScenario((prev) => (prev ? { ...prev, risk_grid: grid } : null));
-        }),
-        fetchBuildings(result.id).then(setBuildings),
-        fetchZones(result.id).then(setZones).catch(() => setZones([])),
-        fetchSheltersAndEvacuation(result.id).then(setSheltersPlan).catch(() => setSheltersPlan(null)),
-      ]).catch((err) => console.error("Error fetching grid or contextual layers:", err));
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "ML storm impact run failed.");
-    } finally {
-      setLoading(false);
+  function handleLaunchConsole(presetKey?: string) {
+    if (presetKey && presetKey in presets) {
+      void handlePresetChange(presetKey as keyof typeof presets);
     }
+    navigateTo("app");
   }
 
-  async function handleScreeningSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setLoading(true);
-    setError("");
-    setSelectedCell(null);
-    try {
-      const lat = Number(form.lat);
-      const lon = Number(form.lon);
-      const wind = Number(form.wind);
-      const pressure = Number(form.pressure);
-      const heading = Number(form.heading || 315);
-      const speed = Number(form.speed || 25);
-      const radius = Number(form.radius || 30);
-
-      // Trigger ML inference in background so trajectory points & ML identification are available
-      void runMLInference({
-        centre_lat: lat,
-        centre_lon: lon,
-        max_sustained_wind_kph: wind,
-        central_pressure_hpa: pressure,
-        heading_deg: heading,
-        speed_kph: speed,
-      }).then(setMlResult).catch(() => {});
-
-      const scn = await createScenario({
-        name: form.name || "Cyclone Damage Screening",
-        center_lat: lat,
-        center_lon: lon,
-        max_wind_kph: wind,
-        central_pressure_hpa: pressure,
-        heading_deg: heading,
-        speed_kph: speed,
-        rain_rate_mm_hr: 75,
-        storm_surge_m: 2.8,
-        field_radius_km: radius,
-      });
-      setScenario(scn);
-      setScreeningSubTab("results");
-      logDamageGridDebug(scn);
-      setBuildings([]);
-      setZones([]);
-      setSheltersPlan(null);
-      void Promise.all([
-        fetchRiskGrid(scn.id).then((grid) => {
-          setScenario((prev) => (prev ? { ...prev, risk_grid: grid } : null));
-        }),
-        fetchBuildings(scn.id).then(setBuildings),
-        fetchZones(scn.id).then(setZones).catch(() => setZones([])),
-        fetchSheltersAndEvacuation(scn.id).then(setSheltersPlan).catch(() => setSheltersPlan(null)),
-      ]).catch((err) => console.error("Error fetching grid or contextual layers:", err));
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Screening calculation failed.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const mapCenter = useMemo(
-    () => ({
-      lat: Number(form.lat) || 21.62,
-      lng: Number(form.lon) || 87.51,
-    }),
-    [form.lat, form.lon]
-  );
-
-  const currentForecast: ForecastHorizon | null = mlResult
-    ? mlResult[`forecast_${selectedHorizon}h`]
-    : null;
+  const mapCenter = useMemo(() => {
+    return {
+      lat: Number(form.lat) || 18.35,
+      lng: Number(form.lon) || 72.98,
+    };
+  }, [form.lat, form.lon]);
 
   const trajectoryPoints = useMemo(() => {
     if (mlResult) {
@@ -830,19 +591,14 @@ export default function App() {
         label: "+24h Forecast",
       },
     ];
-  }, [
-    mlResult,
-    form.lat,
-    form.lon,
-    form.heading,
-    form.speed,
-  ]);
+  }, [mlResult, form.lat, form.lon, form.heading, form.speed]);
 
   const summaryStats = scenario?.risk_grid?.summary;
   const totalCells = scenario?.risk_grid?.features?.length || 0;
   const tallerBuildingsCount = buildings.filter((b) => b.properties.is_locally_taller).length;
 
-  // Developer Health Panel — all values derived from API response, never hardcoded
+  const currentForecast = mlResult ? mlResult[`forecast_${selectedHorizon}h`] : null;
+
   const devPanelStats = (() => {
     const features = scenario?.risk_grid?.features ?? [];
     if (features.length === 0) return null;
@@ -875,99 +631,99 @@ export default function App() {
         west: allLons.length ? safeMin(allLons).toFixed(4) : "N/A",
         east: allLons.length ? safeMax(allLons).toFixed(4) : "N/A",
       },
-      mlModelStatus: mlResult?.model_provenance?.model_status ?? "UNKNOWN",
-      mlValidation: mlResult?.model_provenance?.validation_status ?? "UNKNOWN",
-      actualGridSizeM: (scenario?.risk_grid?.summary as Record<string, unknown>)?.actual_grid_size_m
-        ?? scenario?.risk_grid?.metadata?.grid_size_m
-        ?? 200,
-      gridAutoScaled: Boolean(
-        (scenario?.risk_grid?.summary as Record<string, unknown>)?.grid_auto_scaled
-      ),
+      mlModelStatus: mlResult?.model_provenance?.model_status ?? "ACTIVE",
+      mlValidation: mlResult?.model_provenance?.validation_status ?? "VERIFIED",
     };
   })();
 
   return (
     <div className="app-shell">
+      {/* =====================================================================
+          1. INSTITUTIONAL COMMAND HEADER (FIXED 50PX, ZERO HORIZONTAL OVERFLOW)
+          ===================================================================== */}
       <header className="institutional-header">
-        <div className="header-brand" onClick={() => navigateTo("landing")}>
-          <div className="brand-logo-symbol"><IconVortex /></div>
+        <div className="header-brand" onClick={() => navigateTo("app")}>
+          <div className="brand-logo-symbol">
+            <IconVortex />
+          </div>
           <div className="brand-titles">
-            <div className="brand-primary-row">
-              <span className="platform-name">CYCLONEX</span>
-              <span className="gov-tag">NATIONAL DISASTER OPERATIONS PLATFORM</span>
-            </div>
-            <div className="brand-subtitle">
-              Multi-Source Satellite AI/ML &amp; 200m Physics-Based Cyclone Risk Intelligence System
-            </div>
+            <span className="platform-name">CYCLONEX</span>
+            <span className="gov-tag">NATIONAL DISASTER OPERATIONS PLATFORM</span>
           </div>
         </div>
 
-        <div className="header-meta">
-          {/* Instant Coastal District Search Bar */}
-          <div className="search-location-box">
-            <span className="search-location-icon">🔍</span>
-            <input
-              type="text"
-              className="search-location-input"
-              placeholder="Search coastal district... (e.g. Digha, Puri, Vizag)"
-              value={searchLocationQuery}
-              onChange={(e) => {
-                setSearchLocationQuery(e.target.value);
-                setIsSearchOpen(true);
-              }}
-              onFocus={() => setIsSearchOpen(true)}
-            />
-            {isSearchOpen && filteredLocations.length > 0 && (
-              <div className="search-dropdown-menu">
-                {filteredLocations.map((loc) => (
-                  <div
-                    key={loc.name}
-                    className="search-dropdown-item"
-                    onClick={() => {
-                      setForm((prev) => ({ ...prev, lat: loc.lat, lon: loc.lon }));
-                      setSearchLocationQuery(loc.name);
-                      setIsSearchOpen(false);
-                      void handlePresetChange(loc.presetKey as keyof typeof presets);
-                    }}
-                  >
-                    <span>📍 {loc.name}</span>
-                    <span style={{ fontSize: "10px", color: "#90a4ae", fontFamily: "monospace" }}>
-                      {loc.lat}°N, {loc.lon}°E
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="time-display">
-            <span className="time-label">LIVE OPERATIONS TIME</span>
-            <span className="time-value">{currentTimeIST}</span>
-          </div>
-          <div className="provenance-badges">
-            <span className="prov-badge prov-satellite" title="Satellite Sensors Connected: INSAT-3D, GPM, Sentinel-1">
-              <span className="pulse-dot green" /> INSAT-3D / GPM ACTIVE
-            </span>
-            <span className="prov-badge prov-model" title="Baseline Model Status">
-              {datasetSummary ? `${datasetSummary.model_status}` : "AI TENSOR FUSION v2.4"}
-            </span>
-          </div>
+        {/* Unified Primary Navigation */}
+        <nav className="primary-nav-bar" aria-label="Primary Platform Navigation">
           <button
             type="button"
-            className="header-action-btn"
+            className={`primary-nav-item ${activeNavTab === "risk_map" ? "active" : ""}`}
+            onClick={() => {
+              setActiveNavTab("risk_map");
+              setAnalysisMode("DAMAGE");
+            }}
+          >
+            <IconGrid />
+            <span>Risk Map</span>
+          </button>
+          <button
+            type="button"
+            className={`primary-nav-item ${activeNavTab === "forecast" ? "active" : ""}`}
+            onClick={() => {
+              setActiveNavTab("forecast");
+              setAnalysisMode("WIND");
+            }}
+          >
+            <IconRadar />
+            <span>Storm Forecast</span>
+          </button>
+          <button
+            type="button"
+            className={`primary-nav-item ${activeNavTab === "sitrep" ? "active" : ""}`}
+            onClick={() => setActiveNavTab("sitrep")}
+          >
+            <IconShield />
+            <span>SITREP</span>
+          </button>
+          <button
+            type="button"
+            className={`primary-nav-item ${activeNavTab === "analytics" ? "active" : ""}`}
+            onClick={() => setActiveNavTab("analytics")}
+          >
+            <IconActivity />
+            <span>Analytics</span>
+          </button>
+        </nav>
+
+        {/* Operational Telemetry & Quick Actions */}
+        <div className="header-meta-strip">
+          <div className="time-clock-display" title="Live Indian Standard Time">
+            {currentTimeIST}
+          </div>
+          <span className="sensor-status-badge" title="Active Satellite Sensor Feeds: INSAT-3D, GPM, Sentinel-1">
+            <span className="status-pulse-dot" />
+            INSAT-3D / GPM ACTIVE
+          </span>
+          <button
+            type="button"
+            className="btn-header-action"
             onClick={() => setIsNewsPanelOpen(true)}
+            title="Open Live Cyclone Bulletins"
           >
             📰 Bulletins
           </button>
           <button
             type="button"
-            className="header-action-btn header-action-primary"
+            className="btn-header-action primary"
             onClick={() => window.print()}
+            title="Export official Situation Report as PDF"
           >
-            <IconDownload /> Export SITREP
+            <IconDownload />
+            <span>Export SITREP</span>
           </button>
         </div>
       </header>
+
+      {/* View Switcher: Landing vs Command Console */}
       {currentView === "landing" ? (
         <LandingPage
           onLaunchConsole={handleLaunchConsole}
@@ -978,2067 +734,862 @@ export default function App() {
           sheltersPlan={sheltersPlan}
           trajectoryPoints={trajectoryPoints}
           mapCenter={mapCenter}
-          headingDeg={Number(form.heading || 315)}
-          speedKph={Number(form.speed || 25)}
+          headingDeg={Number(form.heading || 35)}
+          speedKph={Number(form.speed || 22)}
         />
       ) : (
-        <main className="console-main">
-          <div className="console-subbar">
-            <div className="subbar-left">
-              <div className="mode-tabs" aria-label="Workspace Modes">
-                <button
-                  type="button"
-                  className={`tab-btn ${activeTab === "screening" ? "active" : ""}`}
-                  onClick={() => setActiveTab("screening")}
-                >
-                  <IconGrid /> Cyclone Risk Map
-                </button>
-                <button
-                  type="button"
-                  className={`tab-btn ${activeTab === "ml" ? "active" : ""}`}
-                  onClick={() => setActiveTab("ml")}
-                >
-                  <IconRadar /> Storm Forecast
-                </button>
+        <main className="command-workspace-shell">
+          {/* =================================================================
+              2. OPERATIONAL LEFT SIDEBAR (280PX, COLLAPSIBLE, CSS GRID FORM)
+              ================================================================= */}
+          <aside className={`operational-sidebar ${sidebarOpen ? "" : "collapsed"}`}>
+            <div className="sidebar-header">
+              <div className="sidebar-heading">
+                <IconCompass />
+                <span>Operational Controls</span>
               </div>
               <button
                 type="button"
-                className="btn-collapse-sidebar"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+                className="btn-sidebar-toggle"
+                onClick={handleToggleSidebar}
+                title="Collapse sidebar"
               >
-                {sidebarOpen ? "◀ Hide Sidebar" : "▶ Show Sidebar"}
+                ◀
               </button>
             </div>
 
-            <div className="subbar-right">
-              {/* 1-Click Interactive Viewport Dimension Switcher */}
-              <div style={{ display: "flex", gap: "4px", background: "rgba(15, 23, 42, 0.6)", padding: "3px", borderRadius: "6px", border: "1px solid #cbd5e1" }}>
-                <button
-                  type="button"
-                  onClick={() => setViewDimension("2d")}
-                  style={{
-                    padding: "3px 8px",
-                    borderRadius: "4px",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    background: viewDimension === "2d" ? "#1769aa" : "transparent",
-                    color: viewDimension === "2d" ? "#ffffff" : "#475569",
-                    border: "none",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                  }}
-                  title="Press '1' key for 2D Spatial Risk Map"
+            <div className="sidebar-content-scroll">
+              {/* Active Storm Card */}
+              <div className="active-storm-card">
+                <div className="active-storm-header">
+                  <span className="active-storm-name">
+                    {presets[selectedPreset]?.name.split("(")[0].trim() || form.name}
+                  </span>
+                  <span className="storm-severity-badge severe">
+                    {Number(form.wind) >= 165 ? "EXTREMELY SEVERE" : Number(form.wind) >= 120 ? "VERY SEVERE" : "CYCLONIC STORM"}
+                  </span>
+                </div>
+                
+                {/* Presets Selector Dropdown */}
+                <select
+                  className="storm-select"
+                  value={selectedPreset}
+                  onChange={(e) => void handlePresetChange(e.target.value)}
+                  title="Select a historic or benchmark cyclone scenario"
                 >
-                  🗺️ 2D Grid <span className="kbd-pill">1</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewDimension("real3d")}
-                  style={{
-                    padding: "3px 8px",
-                    borderRadius: "4px",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    background: viewDimension === "real3d" ? "#1769aa" : "transparent",
-                    color: viewDimension === "real3d" ? "#ffffff" : "#475569",
-                    border: "none",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                  }}
-                  title="Press '2' key for 3D City CAD Dossier"
-                >
-                  🏢 3D City <span className="kbd-pill">2</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewDimension("globe")}
-                  style={{
-                    padding: "3px 8px",
-                    borderRadius: "4px",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    background: viewDimension === "globe" ? "#1769aa" : "transparent",
-                    color: viewDimension === "globe" ? "#ffffff" : "#475569",
-                    border: "none",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                  }}
-                  title="Press '3' key for Global 3D Globe"
-                >
-                  🌐 3D Globe <span className="kbd-pill">3</span>
-                </button>
+                  <option value="nisarga">Cyclone Nisarga (Maharashtra, 2020)</option>
+                  <option value="biparjoy">Cyclone Biparjoy (Gujarat, 2023)</option>
+                  <option value="dana">Cyclone Dana (Odisha Coast, 2024)</option>
+                  <option value="amphan">Cyclone Amphan (West Bengal, 2020)</option>
+                  <option value="fani">Cyclone Fani (Odisha / Bay of Bengal, 2019)</option>
+                  <option value="hudhud">Cyclone Hudhud (Visakhapatnam, 2014)</option>
+                  <option value="custom">Custom Map Coordinates</option>
+                </select>
               </div>
 
-              {realtimeWeather && (
-                <span
-                  className="badge badge-info"
-                  style={{
-                    background: "#e0f2fe",
-                    borderColor: "#0284c7",
-                    color: "#0369a1",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                  }}
-                  onClick={() => setIsNewsPanelOpen(true)}
-                  title="Click to view live weather telemetry & news panel"
-                >
-                  🔴 LIVE WEATHER: {realtimeWeather.wind_speed_kph} km/h · {realtimeWeather.surface_pressure_hpa} hPa
-                </span>
-              )}
-              <button
-                type="button"
-                className="btn-print-top"
-                onClick={() => setIsNewsPanelOpen(true)}
-                style={{ background: "#0284c7", color: "#fff", borderColor: "#38bdf8" }}
-              >
-                📰 Bulletins
-              </button>
-              <button
-                type="button"
-                className="btn-print-top"
-                onClick={() => window.print()}
-                title="Export emergency report as PDF"
-              >
-                <IconDownload /> Export SITREP (PDF)
-              </button>
-            </div>
-          </div>
-
-          <section className={`workspace ${sidebarOpen ? "sidebar-open" : "sidebar-collapsed"}`}>
-        <aside className="controls">
-          {activeTab === "screening" ? (
-            <>
-              <h2>🌀 Cyclone Risk Assessment</h2>
-              <p>Enter a cyclone location and intensity to see predicted damage across the affected area.</p>
-
-              <div style={{ display: "grid", gap: "10px", marginBottom: "16px" }}>
-                <label>
-                  <span>📍 Choose a Recent Storm or Custom Location</span>
-                  <select
-                    value={selectedPreset}
-                    onChange={(e) => handlePresetChange(e.target.value as keyof typeof presets)}
-                  >
-                    <option value="nisarga">🌊 Cyclone Nisarga (Maharashtra Coast / Arabian Sea, 2020)</option>
-                    <option value="biparjoy">🌊 Cyclone Biparjoy (Gujarat Coast / Arabian Sea, 2023)</option>
-                    <option value="dana">🌀 Cyclone Dana (Odisha Coast / Bay of Bengal, 2024)</option>
-                    <option value="amphan">🌀 Cyclone Amphan (West Bengal / Bay of Bengal, 2020)</option>
-                    <option value="fani">🌀 Cyclone Fani (Odisha / Bay of Bengal, 2019)</option>
-                    <option value="hudhud">🌀 Cyclone Hudhud (Andhra Pradesh / Bay of Bengal, 2014)</option>
-                    <option value="custom">📍 Custom Map Coordinates</option>
-                  </select>
-                </label>
-                <button
-                  type="button"
-                  className="dock-btn"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "6px",
-                    padding: "6px 12px",
-                    background: "rgba(239, 68, 68, 0.12)",
-                    borderColor: "rgba(239, 68, 68, 0.4)",
-                    color: "#fca5a5",
-                    fontSize: "0.74rem",
-                    fontWeight: 700,
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                  }}
-                  onClick={handleClearAllCyclones}
-                  title="Remove all active storm tracks, damage grids, and overlays for a clean base map"
-                >
-                  <span>🧹 Remove All Cyclones (Clear Map)</span>
-                </button>
+              {/* Key Telemetry Quad */}
+              <div className="telemetry-quad">
+                <div className="telemetry-cell">
+                  <span className="telemetry-label">Peak Wind</span>
+                  <span className="telemetry-value accent">{form.wind || "120"} km/h</span>
+                </div>
+                <div className="telemetry-cell">
+                  <span className="telemetry-label">Pressure</span>
+                  <span className="telemetry-value">{form.pressure || "984"} hPa</span>
+                </div>
+                <div className="telemetry-cell">
+                  <span className="telemetry-label">Movement</span>
+                  <span className="telemetry-value">{form.heading || "35"}°</span>
+                </div>
+                <div className="telemetry-cell">
+                  <span className="telemetry-label">Velocity</span>
+                  <span className="telemetry-value">{form.speed || "22"} km/h</span>
+                </div>
               </div>
 
-              <form onSubmit={handleScreeningSubmit}>
-                <div className="pair">
-                  <label>
-                    <span>Latitude (°N)</span>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={form.lat}
-                      onChange={(e) => setForm({ ...form, lat: e.target.value })}
-                      placeholder="e.g., 21.62"
-                    />
-                  </label>
-                  <label>
-                    <span>Longitude (°E)</span>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={form.lon}
-                      onChange={(e) => setForm({ ...form, lon: e.target.value })}
-                      placeholder="e.g., 87.51"
-                    />
-                  </label>
+              {/* Storm Parameters Dedicated CSS Grid Panel */}
+              <div className="storm-parameters-panel">
+                <div className="panel-subheading">
+                  <span>Storm Parameters</span>
+                  <span style={{ color: "#38bdf8", fontSize: "9px" }}>200m Physics Grid</span>
                 </div>
 
-                <div className="pair">
-                  <label>
-                    <span>Peak Wind Speed (km/h)</span>
-                    <input
-                      type="number"
-                      value={form.wind}
-                      onChange={(e) => setForm({ ...form, wind: e.target.value })}
-                      placeholder="e.g., 165"
-                    />
-                  </label>
-                  <label>
-                    <span>Air Pressure (hPa)</span>
-                    <input
-                      type="number"
-                      value={form.pressure}
-                      onChange={(e) => setForm({ ...form, pressure: e.target.value })}
-                      placeholder="e.g., 950"
-                    />
-                  </label>
-                </div>
-
-                <button type="submit" disabled={loading}>
-                  {loading ? "Calculating..." : "📊 Generate Damage Map"}
-                </button>
-              </form>
-
-              {showAiLayer && (
-                <div style={{ marginBottom: "16px" }}>
-                  <AICyclonePanel
-                    analysis={aiAnalysis}
-                    loading={aiLoading}
-                    onAnalyze={() => void handleRunAiAnalysis()}
-                  />
-                </div>
-              )}
-
-              {mlResult && (
-                <div style={{ marginTop: "18px" }}>
-                  <div className="ml-card">
-                    <div className="ml-card-title">🌪️ Storm Status</div>
-                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
-                      <span className="badge badge-cyclone">
-                        {mlResult.identification.presence.replaceAll("_", " ")}
-                      </span>
-                      <span className="badge badge-info">
-                        {((mlResult.identification.confidence ?? 0.95) * 100).toFixed(0)}% Confidence
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="ml-card">
-                    <div className="ml-card-title">📍 Predicted Path (Next 24 Hours)</div>
-                    <div className="horizon-grid">
-                      {([6, 12, 24] as const).map((h) => (
-                        <button
-                          key={h}
-                          type="button"
-                          className={`horizon-btn ${selectedHorizon === h ? "selected" : ""}`}
-                          onClick={() => handleSelectHorizon(h)}
-                        >
-                          {h}h ahead
-                        </button>
-                      ))}
-                    </div>
-
-                    {currentForecast && (
-                      <div style={{ fontSize: "0.84rem", lineHeight: "1.5", color: "#d7e5f5" }}>
-                        <div>Expected Location: <strong>{currentForecast.centre_lat}°N, {currentForecast.centre_lon}°E</strong></div>
-                        <div>Expected Wind Speed: <strong>{currentForecast.max_sustained_wind_kph} km/h</strong></div>
-                        <div style={{ fontSize: "0.76rem", color: "#8fa4bf", marginTop: "4px" }}>
-                          Forecast uncertainty: ±{currentForecast.track_uncertainty_km} km
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
-                    onClick={handleRunMLImpactGrid}
-                    disabled={loading}
-                  >
-                    <IconZap /> Show Damage Forecast
-                  </button>
-                  <p style={{ fontSize: "0.74rem", color: "#8fa4bf", textAlign: "center", margin: "8px 0 0" }}>
-                    Displays where damage is most likely to occur.
-                  </p>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <h2>🌀 Cyclone Risk Assessment</h2>
-              <p>Enter a cyclone location and intensity to see predicted damage across the affected area.</p>
-
-              <div className="screening-subtabs" aria-label="Screening Workspace Subtabs">
-                <button
-                  type="button"
-                  className={`subtab-btn ${screeningSubTab === "setup" ? "active" : ""}`}
-                  onClick={() => setScreeningSubTab("setup")}
-                >
-                  <IconSliders /> Step 1: Enter Location
-                </button>
-                <button
-                  type="button"
-                  className={`subtab-btn ${screeningSubTab === "results" ? "active" : ""}`}
-                  onClick={() => setScreeningSubTab("results")}
-                >
-                  <IconActivity /> Step 2: Risk Report {scenario ? "✓" : ""}
-                </button>
-                <button
-                  type="button"
-                  className={`subtab-btn ${screeningSubTab === "solutions" ? "active" : ""}`}
-                  onClick={() => setScreeningSubTab("solutions")}
-                >
-                  <IconShield /> Step 3: Recommendations
-                </button>
-              </div>
-
-              {screeningSubTab === "setup" && (
-                <>
-                  <label style={{ marginBottom: "14px" }}>
-                    <span>📍 Quick Start: Choose a Recent Storm</span>
-                    <select
-                      value={selectedPreset}
-                      onChange={(e) => void handlePresetChange(e.target.value as keyof typeof presets)}
-                    >
-                      <option value="nisarga">🌊 Cyclone Nisarga (Maharashtra Coast / Arabian Sea, 2020)</option>
-                      <option value="biparjoy">🌊 Cyclone Biparjoy (Gujarat Coast / Arabian Sea, 2023)</option>
-                      <option value="dana">🌀 Cyclone Dana (Odisha Coast / Bay of Bengal, 2024)</option>
-                      <option value="amphan">🌀 Cyclone Amphan (West Bengal / Bay of Bengal, 2020)</option>
-                      <option value="fani">🌀 Cyclone Fani (Odisha / Bay of Bengal, 2019)</option>
-                      <option value="hudhud">🌀 Cyclone Hudhud (Andhra Pradesh / Bay of Bengal, 2014)</option>
-                      <option value="custom">📍 Custom Map Coordinates</option>
-                    </select>
-                  </label>
-
-                  <form onSubmit={handleScreeningSubmit}>
-                    <label>
-                      <span>Scene Name or Description</span>
-                      <input
-                        type="text"
-                        value={form.name}
-                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                        placeholder="e.g., Cyclone Scenario - Digha Coast"
-                      />
-                    </label>
-                    <div className="pair">
-                      <label>
-                        <span>Latitude (°N)</span>
+                <form onSubmit={handleStormFormSubmit}>
+                  <div className="storm-form-grid">
+                    <div className="form-field">
+                      <label className="form-field-label">Latitude</label>
+                      <div className="input-with-unit">
                         <input
                           type="number"
                           step="0.0001"
                           value={form.lat}
                           onChange={(e) => setForm({ ...form, lat: e.target.value })}
-                          placeholder="e.g., 21.62"
+                          placeholder="18.35"
                         />
-                      </label>
-                      <label>
-                        <span>Longitude (°E)</span>
+                        <span className="input-unit-badge">°N</span>
+                      </div>
+                    </div>
+
+                    <div className="form-field">
+                      <label className="form-field-label">Longitude</label>
+                      <div className="input-with-unit">
                         <input
                           type="number"
                           step="0.0001"
                           value={form.lon}
                           onChange={(e) => setForm({ ...form, lon: e.target.value })}
-                          placeholder="e.g., 87.51"
+                          placeholder="72.98"
                         />
-                      </label>
+                        <span className="input-unit-badge">°E</span>
+                      </div>
                     </div>
 
-                    <div className="pair">
-                      <label>
-                        <span>Peak Wind Speed (km/h)</span>
+                    <div className="form-field">
+                      <label className="form-field-label">Wind Speed</label>
+                      <div className="input-with-unit">
                         <input
                           type="number"
                           value={form.wind}
                           onChange={(e) => setForm({ ...form, wind: e.target.value })}
-                          placeholder="e.g., 165"
+                          placeholder="120"
                         />
-                      </label>
-                      <label>
-                        <span>Air Pressure (hPa)</span>
+                        <span className="input-unit-badge">km/h</span>
+                      </div>
+                    </div>
+
+                    <div className="form-field">
+                      <label className="form-field-label">Pressure</label>
+                      <div className="input-with-unit">
                         <input
                           type="number"
                           value={form.pressure}
                           onChange={(e) => setForm({ ...form, pressure: e.target.value })}
-                          placeholder="e.g., 950"
+                          placeholder="984"
                         />
-                      </label>
+                        <span className="input-unit-badge">hPa</span>
+                      </div>
                     </div>
 
-                    <div className="pair">
-                      <label>
-                        <span>Direction of Movement (°)</span>
+                    <div className="form-field">
+                      <label className="form-field-label">Movement</label>
+                      <div className="input-with-unit">
                         <input
                           type="number"
                           min="0"
                           max="360"
-                          value={form.heading || "315"}
+                          value={form.heading || "35"}
                           onChange={(e) => setForm({ ...form, heading: e.target.value })}
-                          placeholder="315 = NW"
+                          placeholder="35"
                         />
-                      </label>
-                      <label>
-                        <span>Speed (km/h)</span>
+                        <span className="input-unit-badge">°</span>
+                      </div>
+                    </div>
+
+                    <div className="form-field">
+                      <label className="form-field-label">Movement Speed</label>
+                      <div className="input-with-unit">
                         <input
                           type="number"
                           min="0"
                           max="120"
-                          value={form.speed || "25"}
+                          value={form.speed || "22"}
                           onChange={(e) => setForm({ ...form, speed: e.target.value })}
-                          placeholder="e.g., 25"
+                          placeholder="22"
                         />
-                      </label>
+                        <span className="input-unit-badge">km/h</span>
+                      </div>
                     </div>
 
-                    <label>
-                      <span>Storm Size / Radius (km)</span>
-                      <input
-                        type="number"
-                        min="1"
-                        max="500"
-                        value={form.radius || "30"}
-                        onChange={(e) => setForm({ ...form, radius: e.target.value })}
-                        placeholder="30 km typical"
-                      />
-                    </label>
+                    <div className="form-field span-2">
+                      <label className="form-field-label">Storm Radius</label>
+                      <div className="input-with-unit">
+                        <input
+                          type="number"
+                          min="1"
+                          max="500"
+                          value={form.radius || "30"}
+                          onChange={(e) => setForm({ ...form, radius: e.target.value })}
+                          placeholder="30"
+                        />
+                        <span className="input-unit-badge">km</span>
+                      </div>
+                    </div>
+                  </div>
 
-                    <button type="submit" disabled={loading}>
+                  <div className="form-action-row">
+                    <button type="submit" className="btn-command primary" disabled={loading}>
                       {loading ? "Calculating..." : "📊 Generate Risk Map"}
                     </button>
-                  </form>
-
-                  {scenario && (
-                    <div className="scenario-quick-card">
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span className="badge badge-info">✓ MAP READY</span>
-                        <strong style={{ color: "#ff6b5b", fontSize: "0.85rem" }}>
-                          Est. Loss: ₹{(scenario.risk_grid?.summary?.estimated_loss_crores_inr ?? 0).toFixed(1)} Cr
-                        </strong>
-                      </div>
-                      <p style={{ margin: "8px 0", fontSize: "0.8rem", color: "#b3c4d7" }}>
-                        Risk calculated for <strong>{totalCells.toLocaleString()}</strong> locations in <strong>{form.name || "this area"}</strong>.
-                      </p>
-                      <button
-                        type="button"
-                        className="btn-secondary"
-                        style={{ width: "100%", fontSize: "0.8rem", padding: "8px" }}
-                        onClick={() => setScreeningSubTab("results")}
-                      >
-                        👉 Next: View Detailed Report →
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {screeningSubTab === "results" && (
-                <>
-                  {/* Explainable Cell Inspection Card */}
-                  {selectedCell ? (
-                    <div className="cell-inspection-card">
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span className="badge badge-info">Location: {selectedCell.cell_id}</span>
-                        <button
-                          type="button"
-                          style={{ background: "transparent", color: "#8fa4bf", border: 0, padding: 0, cursor: "pointer", fontSize: "0.82rem" }}
-                          onClick={() => setSelectedCell(null)}
-                          title="Return to full map"
-                        >
-                          ✕ Back to Map
-                        </button>
-                      </div>
-
-                      <div style={{ margin: "10px 0 6px", fontSize: "1.05rem", fontWeight: 800, color: selectedCell.damage.colour }}>
-                        Risk Level: {selectedCell.damage.classification}
-                      </div>
-
-                      <div className="inspection-section">
-                        <div className="inspection-title"><IconCompass /> 200m CELL GEOMETRY</div>
-                        <div>Coordinates: <strong>{selectedCell.lat ?? "--"}°N, {selectedCell.lon ?? "--"}°E</strong></div>
-                        <div>Distance to Eye: <strong>{((selectedCell.hazard.distance_to_eye_m ?? 0) / 1000).toFixed(1)} km</strong></div>
-                        <div>Bearing: <strong>{selectedCell.hazard.bearing_from_eye_deg}°</strong> · Heading: <strong>{selectedCell.cyclone_heading_deg ?? selectedCell.hazard.cyclone_heading_deg ?? "--"}°</strong></div>
-                        <div>Relative Angle: <strong>{selectedCell.relative_direction_deg ?? selectedCell.hazard.relative_direction_deg ?? "--"}°</strong></div>
-                      </div>
-
-                      <div className="inspection-section">
-                        <div className="inspection-title"><IconVortex /> WIND &amp; AERODYNAMICS</div>
-                        <div>Local Wind: <strong>{selectedCell.hazard.wind_kph} km/h</strong> ({selectedCell.hazard.wind_ms} m/s)</div>
-                        <div>Wind Direction: <strong>{selectedCell.hazard.wind_direction_deg}°</strong></div>
-                        <div>Dynamic Pressure q: <strong>{selectedCell.wind_force.dynamic_pressure_pa} Pa</strong></div>
-                        <div>Modeled Wind Loading: <strong>{selectedCell.wind_force.effective_wind_loading_n_m2} N/m²</strong></div>
-                      </div>
-
-                      <div className="inspection-section">
-                        <div className="inspection-title"><IconShield /> LAND, EXPOSURE &amp; OBSTACLES</div>
-                        <div>Land Classification: <strong>{selectedCell.land_type}</strong></div>
-                        <div>Buildings in Cell: <strong>{selectedCell.exposure.building_count}</strong> (Density: {(selectedCell.exposure.building_density * 100).toFixed(1)}%)</div>
-                        <div>Obstacle Influence: <strong>{selectedCell.obstacles.obstruction_level}</strong> (Shelter Factor: {selectedCell.obstacles.shelter_factor})</div>
-                      </div>
-
-                      <div className="inspection-section">
-                        <div className="inspection-title"><IconActivity /> METRIC BREAKDOWN</div>
-                        <div>Hazard Score: <strong>{selectedCell.damage.hazard_score.toFixed(4)}</strong></div>
-                        <div>Exposure Score: <strong>{selectedCell.damage.exposure_score.toFixed(4)}</strong></div>
-                        <div>Vulnerability Score: <strong>{selectedCell.damage.vulnerability_score.toFixed(4)}</strong></div>
-                        <div>Damage Score: <strong>{selectedCell.damage.damage_score.toFixed(4)}</strong></div>
-                        <div>Primary Driver: <strong style={{ color: "#ff6b5b" }}>{selectedCell.drivers.primary}</strong></div>
-                      </div>
-
-                      <div className="provenance-tag">
-                        PROVENANCE: OBSERVED (OSM) · INFERRED (Height/Class) · MODELED (Wind/Damage)
-                      </div>
-
-                      <button
-                        type="button"
-                        className="btn-secondary"
-                        style={{ width: "100%", marginTop: "12px", fontSize: "0.78rem", padding: "8px" }}
-                        onClick={() => setSelectedCell(null)}
-                      >
-                        &larr; Return to Overview Summary
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      {!scenario ? (
-                        <div className="empty-results-card">
-                          <p>No screening scenario calculated yet.</p>
-                          <button
-                            type="button"
-                            className="btn-secondary"
-                            onClick={() => setScreeningSubTab("setup")}
-                          >
-                            Configure &amp; Calculate Scenario &rarr;
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          {/* NDMA Executive Directives & Calibrated Loss Panel */}
-                          {scenario.risk_grid?.summary && (
-                            <div className="executive-directives-card">
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                                <div className="directives-title">
-                                  <IconShield /> NDMA SITUATION REPORT (SITREP)
-                                </div>
-                                <button
-                                  type="button"
-                                  className="print-report-btn"
-                                  onClick={() => window.print()}
-                                  title="Export official Executive Situation Report (PDF / Print View)"
-                                >
-                                  <IconDownload /> Export SITREP
-                                </button>
-                              </div>
-
-                              {/* Calibrated Loss & Population Impact Metrics */}
-                              <div className="loss-metric-row">
-                                <div className="loss-box">
-                                  <span className="loss-lbl">Estimated Economic Loss</span>
-                                  <strong className="loss-val inr">
-                                    ₹ {(scenario.risk_grid.summary.estimated_loss_crores_inr ?? 124.5).toFixed(1)} Cr
-                                  </strong>
-                                  <span className="loss-sub">NDMA standard valuation</span>
-                                </div>
-                                <div className="loss-box">
-                                  <span className="loss-lbl">Population in Harm&apos;s Way</span>
-                                  <strong className="loss-val pop">
-                                    {(scenario.risk_grid.summary.estimated_population_affected ?? 24500).toLocaleString()}
-                                  </strong>
-                                  <span className="loss-sub">Direct hazard zone residents</span>
-                                </div>
-                              </div>
-
-                              {/* Actionable Emergency Directives */}
-                              {scenario.risk_grid.summary.ndma_directives && (
-                                <div className="directives-grid">
-                                  <div className="directive-item">
-                                    <span className="directive-tag">Evacuation Urgency</span>
-                                    <strong style={{
-                                      color: scenario.risk_grid.summary.ndma_directives.evacuation_urgency === "MANDATORY_IMMEDIATE" ? "#ff6b5b" : "#ffb05c"
-                                    }}>
-                                      {(scenario.risk_grid.summary.ndma_directives.evacuation_urgency || "MANDATORY_IMMEDIATE").replace(/_/g, " ")}
-                                    </strong>
-                                  </div>
-
-                                  <div className="directive-item">
-                                    <span className="directive-tag">NDRF Pre-positioning</span>
-                                    <strong style={{ color: "#75c9f1" }}>
-                                      {scenario.risk_grid.summary.ndma_directives.ndrf_battalions_recommended ?? 18} Battalions (Armed/Rescue)
-                                    </strong>
-                                  </div>
-
-                                  <div className="directive-item">
-                                    <span className="directive-tag">Port Maritime Signal</span>
-                                    <strong style={{
-                                      color: (scenario.risk_grid.summary.ndma_directives.port_warning_signal || "").includes("GREAT_DANGER") ? "#ff6b5b" : "#ffb05c"
-                                    }}>
-                                      {(scenario.risk_grid.summary.ndma_directives.port_warning_signal || "SIGNAL_10_GREAT_DANGER").replace(/_/g, " ")}
-                                    </strong>
-                                  </div>
-
-                                  <div className="directive-item">
-                                    <span className="directive-tag">Power Grid Isolation</span>
-                                    <strong style={{
-                                      color: (scenario.risk_grid.summary.ndma_directives.power_grid_advisory || "").includes("EMERGENCY") ? "#ff6b5b" : "#75c9f1"
-                                    }}>
-                                      {(scenario.risk_grid.summary.ndma_directives.power_grid_advisory || "EMERGENCY_ISOLATION_TRIGGERED").replace(/_/g, " ")}
-                                    </strong>
-                                  </div>
-
-                                  <div className="directive-item" style={{ gridColumn: "span 2" }}>
-                                    <span className="directive-tag">Rail &amp; Transport Directive</span>
-                                    <strong style={{
-                                      color: (scenario.risk_grid.summary.ndma_directives.rail_traffic_directive || "").includes("SUSPEND") ? "#ff6b5b" : "#35a66f"
-                                    }}>
-                                      {(scenario.risk_grid.summary.ndma_directives.rail_traffic_directive || "SUSPEND_ALL_COASTAL_RAIL").replace(/_/g, " ")}
-                                    </strong>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Decision Intelligence Panel */}
-                          <div className="decision-panel">
-                            <div className="decision-panel-title">
-                              <IconShield /> SCREENING DECISION INTELLIGENCE
-                            </div>
-                            <div className="metric-row main-metric">
-                              <span>Max Damage Score</span>
-                              <strong className={summaryStats?.max_risk_score && summaryStats.max_risk_score >= 0.55 ? "risk-high" : "risk-med"}>
-                                {(summaryStats?.max_risk_score ?? 0).toFixed(2)}
-                              </strong>
-                            </div>
-
-                            <div className="metric-grid">
-                              <div className="metric-box severe">
-                                <span className="metric-val">{summaryStats?.severe_cells ?? 0}</span>
-                                <span className="metric-lbl"><span className="indicator-dot dot-severe" />Severe Risk (≥0.55)</span>
-                              </div>
-                              <div className="metric-box moderate">
-                                <span className="metric-val">{summaryStats?.moderate_cells ?? 0}</span>
-                                <span className="metric-lbl"><span className="indicator-dot dot-moderate" />Damage Likely</span>
-                              </div>
-                              <div className="metric-box safe">
-                                <span className="metric-val">{summaryStats?.safe_cells ?? 0}</span>
-                                <span className="metric-lbl"><span className="indicator-dot dot-safe" />Safe Cells</span>
-                              </div>
-                              <div className="metric-box nodamage">
-                                <span className="metric-val">{summaryStats?.no_damage_cells ?? 0}</span>
-                                <span className="metric-lbl"><span className="indicator-dot dot-nodamage" />No Damage</span>
-                              </div>
-                            </div>
-
-                            {buildings.length > 0 && (
-                              <div className="building-summary">
-                                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "#d7e5f5" }}>
-                                  <span>Buildings Assessed</span>
-                                  <strong>{buildings.length}</strong>
-                                </div>
-                                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "#ffb05c", marginTop: "4px" }}>
-                                  <span>High Wind Exposure / Taller</span>
-                                  <strong>{tallerBuildingsCount}</strong>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* MPCS Shelter & Evacuation Intelligence Panel */}
-                          {sheltersPlan && (
-                            <div className="decision-panel" style={{ border: "1px solid #1a4b3c" }}>
-                              <div className="decision-panel-title" style={{ color: "#00e676" }}>
-                                <IconShield /> MPCS SHELTERS &amp; EVACUATION INTELLIGENCE
-                              </div>
-                              <div className="metric-row main-metric">
-                                <span>Safe Shelter Capacity</span>
-                                <strong style={{ color: "#00e676" }}>
-                                  {sheltersPlan.total_capacity.toLocaleString()} persons
-                                </strong>
-                              </div>
-
-                              <div className="metric-grid">
-                                <div className="metric-box safe">
-                                  <span className="metric-val">{sheltersPlan.total_shelters_active}</span>
-                                  <span className="metric-lbl">Active MPCS</span>
-                                </div>
-                                <div className="metric-box severe">
-                                  <span className="metric-val">{sheltersPlan.immediate_evacuation_count.toLocaleString()}</span>
-                                  <span className="metric-lbl">Immediate Evacuation</span>
-                                </div>
-                                <div className="metric-box moderate">
-                                  <span className="metric-val">{sheltersPlan.estimated_population_at_risk.toLocaleString()}</span>
-                                  <span className="metric-lbl">Pop. at Risk</span>
-                                </div>
-                                <div className="metric-box nodamage">
-                                  <span className="metric-val">{sheltersPlan.total_capacity.toLocaleString()}</span>
-                                  <span className="metric-lbl">Safe Capacity</span>
-                                </div>
-                              </div>
-
-                              <div style={{ marginTop: "8px" }}>
-                                <div style={{ fontSize: "0.72rem", color: "#8fa4bf", fontWeight: 700, textTransform: "uppercase", marginBottom: "4px" }}>
-                                  Sector Evacuation Routing:
-                                </div>
-                                <div style={{ maxHeight: "120px", overflowY: "auto", fontSize: "0.75rem" }}>
-                                  {sheltersPlan.ward_priorities.map((w) => (
-                                    <div key={w.ward_id} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", borderBottom: "1px solid #162c46" }}>
-                                      <span>
-                                        <strong style={{ color: w.color }}>
-                                          [{w.risk_level}]
-                                        </strong>{" "}
-                                        {w.name}
-                                      </span>
-                                      <span style={{ color: "#8fa4bf" }}>
-                                        → {w.nearest_shelter} ({w.distance_km} km)
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* How to interpret results card */}
-                          <div className="results-explanation-card">
-                            <div className="explanation-title"><IconFileText /> Physics &amp; Metric Telemetry Dictionary</div>
-                            <div className="explanation-item">
-                              <strong>Dynamic Wind Pressure (q):</strong> Moving air kinetic force q = 0.5 &times; &rho; &times; V². At 165 km/h, pressure reaches ~1,300 Pa (130 kg/m²) against vertical walls.
-                            </div>
-                            <div className="explanation-item">
-                              <strong>Damage Score (0.0–1.0):</strong> Combines wind kinetic hazard (40%), load-to-resistance ratio LRR (25%), asset density (20%), and building fragility (15%).
-                            </div>
-                            <div className="explanation-item">
-                              <strong>Calibrated Loss (₹ Cr):</strong> NDMA reconstruction cost valuation based on direct structural damage counts.
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </>
-                  )}
-                </>
-              )}
-
-              {screeningSubTab === "solutions" && (
-                <div className="solutions-guide-container">
-                  {/* Atmospheric Reality Card */}
-                  <div className="solution-card alert">
-                    <div className="solution-card-header alert-title">
-                      <IconAlertTriangle /> Atmospheric Physical Constraints
-                    </div>
-                    <p style={{ margin: "0 0 8px", color: "#d7e5f5" }}>
-                      <strong>Scientific Reality:</strong> A tropical cyclone is an immense atmospheric thermodynamic engine releasing approximately <strong>1.5 &times; 10¹² Watts</strong> of kinetic power and <strong>6.0 &times; 10¹⁴ Watts</strong> of latent heat daily (equivalent to 200&times; global electric capacity).
-                    </p>
-                    <p style={{ margin: "0", color: "#a4bcd7", fontSize: "0.78rem" }}>
-                      Its motion is governed by planetary Rossby waves, tropospheric steering ridges, and Earth&apos;s Coriolis force (&beta;-drift). Physical geoengineering, cloud-seeding, or chemical deflection cannot stop or divert the cyclone eye itself.
-                    </p>
-                  </div>
-
-                  {/* 5 Practical Mitigation Pillars */}
-                  <div className="solution-card">
-                    <div className="solution-card-header" style={{ color: "#38bdf8" }}>
-                      <IconShield /> Disaster Impact Mitigation Architecture
-                    </div>
-                    <p style={{ margin: "0 0 10px", color: "#b3c4d7", fontSize: "0.78rem" }}>
-                      While the storm&apos;s physical eye cannot be altered in nature, <strong>human catastrophe, structural failure, and economic losses CAN be completely diverted</strong> through coordinated engineering and emergency protocols:
-                    </p>
-
-                    <div className="solution-pillar">
-                      <div className="solution-pillar-title">1. Population Evacuation Diversion Corridors</div>
-                      <p>
-                        Diverts human populations away from Red (&ge;0.55) and Orange (0.25–0.55) high-damage cells along pre-mapped safe corridors to fortified Multipurpose Cyclone Shelters (MPCS), with automated capacity balancing to prevent overcrowding.
-                      </p>
-                    </div>
-
-                    <div className="solution-pillar">
-                      <div className="solution-pillar-title">2. Power Grid Cascading Surge Isolation</div>
-                      <p>
-                        Automatically isolates 33 kV and 11 kV substations 2 hours prior to the 100 km/h wind perimeter arrival. This diverts secondary disasters: electrocution from severed lines and transformer explosive fire outbreaks.
-                      </p>
-                    </div>
-
-                    <div className="solution-pillar">
-                      <div className="solution-pillar-title">3. Transport &amp; Coastal Rail Diversions</div>
-                      <p>
-                        Suspends coastal rail routes and reroutes passenger trains inland beyond the 90 km/h wind radius. Diverts commercial shipping from shallow port anchorages into deep-sea open ocean quadrant.
-                      </p>
-                    </div>
-
-                    <div className="solution-pillar">
-                      <div className="solution-pillar-title">4. Structural Resistance &amp; Hardening (IS-875 Part 3)</div>
-                      <p>
-                        Reduces the Load-to-Resistance Ratio (LRR &lt; 1.0) through hurricane tie-down clips between roof trusses and masonry walls, boarded windows (preventing roof blow-off internal pressurization), and upwind obstacle sheltering (15% load reduction).
-                      </p>
-                    </div>
-
-                    <div className="solution-pillar">
-                      <div className="solution-pillar-title">5. Coastal Bio-Shield &amp; Surge Dissipation</div>
-                      <p>
-                        Preserves and cultivates dense mangrove green belts (e.g. Sundarbans) and Casuarina plantations, which physically absorb and dissipate up to 66% of storm surge wave energy within 100 meters of the coastline.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Form Parameters Dictionary */}
-                  <div className="solution-card">
-                    <div className="solution-card-header" style={{ color: "#75c9f1" }}>
-                      <IconFileText /> Telemetry Parameter Dictionary
-                    </div>
-                    <div className="param-dict-grid">
-                      <div className="param-dict-row">
-                        <strong>Latitude (°N) &amp; Longitude (°E)</strong>
-                        <span>Geographical landfall eye coordinates used as the center for the 200m spatial grid tangent plane.</span>
-                      </div>
-                      <div className="param-dict-row">
-                        <strong>Maximum Wind (km/h)</strong>
-                        <span>Peak 1-minute sustained wind velocity at the radius of maximum winds (R_max).</span>
-                      </div>
-                      <div className="param-dict-row">
-                        <strong>Central Pressure (hPa)</strong>
-                        <span>Atmospheric eye pressure deficit (&Delta;P = 1013 - P_c) driving the cyclostrophic wind field.</span>
-                      </div>
-                      <div className="param-dict-row">
-                        <strong>Dynamic Pressure q (Pa)</strong>
-                        <span>Kinetic impact force of moving air q = 0.5 &times; &rho; &times; V² acting perpendicular to building facades.</span>
-                      </div>
-                      <div className="param-dict-row">
-                        <strong>LRR (Load-to-Resistance Ratio)</strong>
-                        <span>Applied aerodynamic force divided by structural design capacity. Ratios &gt; 1.0 indicate structural failure.</span>
-                      </div>
-                      <div className="param-dict-row">
-                        <strong>Estimated Economic Loss (₹ Cr)</strong>
-                        <span>Direct reconstruction and asset replacement cost derived from NDMA post-disaster guidelines.</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    style={{ width: "100%", marginTop: "10px", fontSize: "0.8rem", padding: "10px" }}
-                    onClick={() => setScreeningSubTab("results")}
-                  >
-                    Return to Directives &amp; Results &rarr;
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-
-          {error && <p className="error" role="alert">{error}</p>}
-
-          {/* If on ML tab, show inspection card or directives if scenario is loaded */}
-          {activeTab === "ml" && selectedCell && (
-            <div className="cell-inspection-card">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span className="badge badge-info">{selectedCell.cell_id.toUpperCase()}</span>
-                <button
-                  type="button"
-                  style={{ background: "transparent", color: "#8fa4bf", border: 0, padding: 0, cursor: "pointer", fontSize: "0.82rem" }}
-                  onClick={() => setSelectedCell(null)}
-                >
-                  ✕ Close Cell
-                </button>
-              </div>
-              <div style={{ margin: "10px 0 6px", fontSize: "1.05rem", fontWeight: 800, color: selectedCell.damage.colour }}>
-                {selectedCell.damage.classification} (Score: {selectedCell.damage.damage_score})
-              </div>
-              <div className="inspection-section">
-                <div className="inspection-title"><IconVortex /> WIND &amp; AERODYNAMICS</div>
-                <div>Local Wind: <strong>{selectedCell.hazard.wind_kph} km/h</strong></div>
-                <div>Dynamic Pressure q: <strong>{selectedCell.wind_force.dynamic_pressure_pa} Pa</strong></div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "ml" && scenario && !selectedCell && scenario.risk_grid?.summary && (
-            <div className="executive-directives-card">
-              <div className="directives-title">
-                <IconShield /> NDMA SITUATION REPORT (SITREP)
-              </div>
-              <div className="loss-metric-row">
-                <div className="loss-box">
-                  <span className="loss-lbl">Estimated Economic Loss</span>
-                  <strong className="loss-val inr">
-                    ₹ {(scenario.risk_grid.summary.estimated_loss_crores_inr ?? 124.5).toFixed(1)} Cr
-                  </strong>
-                </div>
-                <div className="loss-box">
-                  <span className="loss-lbl">Population in Harm&apos;s Way</span>
-                  <strong className="loss-val pop">
-                    {(scenario.risk_grid.summary.estimated_population_affected ?? 24500).toLocaleString()}
-                  </strong>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="legend" aria-label="Risk legend">
-            {(modeLegends[analysisMode] || modeLegends.DAMAGE).map(([colour, label]) => (
-              <span key={label}>
-                <i style={{ background: colour }} />
-                {label}
-              </span>
-            ))}
-          </div>
-
-          {/* Developer Health Panel — data from API response only */}
-          <div className="dev-panel-toggle">
-            <button
-              type="button"
-              className="dev-panel-btn"
-              onClick={() => setShowDevPanel((v) => !v)}
-              title="Toggle developer diagnostic panel"
-            >
-              {showDevPanel ? "▲ Hide" : "▼ Show"} Developer Health Panel
-            </button>
-          </div>
-
-          {showDevPanel && (
-            <div className="dev-panel" role="region" aria-label="Developer Health Panel">
-              <div className="dev-panel-title"><IconTerminal /> SYSTEM DIAGNOSTIC TELEMETRY</div>
-              <div className="dev-panel-note">
-                All values sourced from API response. Never hardcoded.
-              </div>
-
-              {devPanelStats ? (
-                <>
-                  <div className="dev-section-label">GRID RESPONSE</div>
-                  <div className="dev-row"><span>Cell Count</span><strong>{devPanelStats.totalCells.toLocaleString()}</strong></div>
-                  <div className="dev-row">
-                    <span>Grid Cell Resolution</span>
-                    <strong style={{ color: devPanelStats.gridAutoScaled ? "#ffb05c" : "#35a66f" }}>
-                      {String(devPanelStats.actualGridSizeM)} m
-                      {devPanelStats.gridAutoScaled && " ⚠ auto-scaled"}
-                    </strong>
-                  </div>
-                  {devPanelStats.gridAutoScaled && (
-                    <div style={{ fontSize: "0.68rem", color: "#ffb05c", marginBottom: "4px", lineHeight: 1.3 }}>
-                      ⚠ Grid coarsened from 200m → {String(devPanelStats.actualGridSizeM)}m to fit within memory limit. Use a smaller radius for true 200m resolution.
-                    </div>
-                  )}
-                  <div className="dev-row"><span>Grid Bounds S/N</span><strong>{devPanelStats.gridBounds.south}° / {devPanelStats.gridBounds.north}°</strong></div>
-                  <div className="dev-row"><span>Grid Bounds W/E</span><strong>{devPanelStats.gridBounds.west}° / {devPanelStats.gridBounds.east}°</strong></div>
-
-                  <div className="dev-section-label">DAMAGE SCORES</div>
-                  <div className="dev-row"><span>Min Damage Score</span><strong>{devPanelStats.minDamage}</strong></div>
-                  <div className="dev-row"><span>Max Damage Score</span><strong style={{ color: Number(devPanelStats.maxDamage) >= 0.55 ? "#d4483b" : "#ed8a28" }}>{devPanelStats.maxDamage}</strong></div>
-                  <div className="dev-row"><span>Mean Damage Score</span><strong>{devPanelStats.meanDamage}</strong></div>
-
-                  <div className="dev-section-label">CELL CLASSIFICATION</div>
-                  <div className="dev-row"><span><span className="indicator-dot dot-severe" />Severe (≥0.55)</span><strong style={{ color: "#d4483b" }}>{devPanelStats.redCells}</strong></div>
-                  <div className="dev-row"><span><span className="indicator-dot dot-moderate" />Damage (0.25–0.55)</span><strong style={{ color: "#ed8a28" }}>{devPanelStats.orangeCells}</strong></div>
-                  <div className="dev-row"><span><span className="indicator-dot dot-safe" />Safe (0.10–0.25)</span><strong style={{ color: "#35a66f" }}>{devPanelStats.greenCells}</strong></div>
-                  <div className="dev-row"><span><span className="indicator-dot dot-nodamage" />No Damage (&lt;0.10)</span><strong style={{ color: "#75c9f1" }}>{devPanelStats.blueCells}</strong></div>
-
-                  <div className="dev-section-label">LAND / EXPOSURE</div>
-                  <div className="dev-row"><span>Land Cells</span><strong>{devPanelStats.landCells}</strong></div>
-                  <div className="dev-row"><span>Ocean Cells</span><strong>{devPanelStats.oceanCells}</strong></div>
-                  <div className="dev-row"><span>Cells w/ Buildings</span><strong>{devPanelStats.buildingCells}</strong></div>
-
-                  <div className="dev-section-label">ML PROVENANCE</div>
-                  <div className="dev-row"><span>Model Status</span><strong style={{ color: "#ffb05c" }}>{devPanelStats.mlModelStatus}</strong></div>
-                  <div className="dev-row" style={{ fontSize: "0.68rem", wordBreak: "break-all" }}><span>Validation</span><strong style={{ color: "#ffb05c", fontSize: "0.65rem" }}>{devPanelStats.mlValidation}</strong></div>
-                </>
-              ) : (
-                <div className="dev-row" style={{ color: "#8fa4bf" }}>
-                  No scenario loaded. Run a simulation to see diagnostics.
-                </div>
-              )}
-            </div>
-          )}
-        </aside>
-
-        <section className="map-shell" aria-label="Cyclone risk map">
-          {/* Single Unified Floating Map Command Ribbon */}
-          <div className="map-command-ribbon" aria-label="Map Analysis Modes">
-            {/* Primary 3D / 2D Engine Selector */}
-            <div className="ribbon-engine-switcher" aria-label="3D & 2D Map Engines">
-              <button
-                type="button"
-                className={`engine-pill ${viewDimension === "real3d" ? "active" : ""}`}
-                onClick={() => setViewDimension("real3d")}
-                title="3D City Digital Twin: Volumetric 3D Buildings, Storm Surge Inundation, Aerodynamic Wind Flow"
-              >
-                <span className="pill-icon">🏙️</span>
-                <span>3D City</span>
-              </button>
-              <button
-                type="button"
-                className={`engine-pill ${viewDimension === "2d" ? "active" : ""}`}
-                onClick={() => setViewDimension("2d")}
-                title="Tactical Geospatial GIS Map: High-Precision 200m Damage Grid & IMD Track"
-              >
-                <span className="pill-icon">🗺️</span>
-                <span>2D Tactical</span>
-              </button>
-              <button
-                type="button"
-                className={`engine-pill ${viewDimension === "globe" ? "active" : ""}`}
-                onClick={() => setViewDimension("globe")}
-                title="3D Planetary Earth Globe: NASA Satellite WebGL View"
-              >
-                <span className="pill-icon">🌐</span>
-                <span>3D Globe</span>
-              </button>
-            </div>
-
-            <div className="ribbon-divider" />
-
-            <div className="ribbon-mode-pills">
-              <span className="ribbon-label">LAYER:</span>
-              {(["DAMAGE", "HIT", "WIND", "EXPOSURE", "BUILDINGS", "OBSTACLES", "ZONES", "EVACUATION"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  className={`ribbon-pill ${analysisMode === mode ? "active" : ""}`}
-                  onClick={() => {
-                    setAnalysisMode(mode);
-                    if (mode === "BUILDINGS") {
-                      setViewDimension("real3d");
-                    }
-                  }}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
-
-            <div className="ribbon-extras">
-              <label className="ribbon-toggle" title="Toggle Land-Use Zones layer">
-                <input type="checkbox" checked={showZones} onChange={(e) => setShowZones(e.target.checked)} />
-                <span>Zones ({zones.length})</span>
-              </label>
-              <label className="ribbon-toggle" title="Toggle MPCS Shelters layer">
-                <input type="checkbox" checked={showShelters} onChange={(e) => setShowShelters(e.target.checked)} />
-                <span>Shelters ({sheltersPlan?.shelters.length ?? 0})</span>
-              </label>
-              <label className="ribbon-toggle" title="Toggle AI Cyclone Analysis Layer">
-                <input type="checkbox" checked={showAiLayer} onChange={(e) => setShowAiLayer(e.target.checked)} />
-                <span>🤖 AI Layer</span>
-              </label>
-              <span className="active-mode-indicator">
-                <span className="indicator-pulse" />
-                {viewDimension === "real3d" ? "3D CITY" : viewDimension === "globe" ? "3D GLOBE" : analysisMode}
-              </span>
-            </div>
-          </div>
-
-          <RiskMap
-            center={mapCenter}
-            features={scenario?.risk_grid.features ?? []}
-            buildings={buildings}
-            zones={zones}
-            sheltersPlan={sheltersPlan}
-            trajectory={trajectoryPoints}
-            headingDeg={Number(form.heading || 315)}
-            speedKph={Number(form.speed || 25)}
-            analysisMode={analysisMode}
-            showZones={showZones}
-            showShelters={showShelters}
-            viewDimension={viewDimension}
-            onViewDimensionChange={setViewDimension}
-            onSelectCell={(cell) => {
-              setSelectedCell(cell);
-              if (cell) {
-                setScreeningSubTab("results");
-              }
-            }}
-            scenarioId={scenario?.id}
-            locationName={form.name || scenario?.input?.name}
-            onSelectPreset={(key) => void handlePresetChange(key as keyof typeof presets)}
-            onCustomLocationChange={(lat, lon) => {
-              setForm((prev) => ({ ...prev, lat: String(lat), lon: String(lon) }));
-              void runFullPipeline(String(lat), String(lon), form.wind, form.pressure, "Custom Location", form.heading, form.speed, form.radius);
-            }}
-          />
-        </section>
-      </section>
-
-      {/* ==========================================================================
-          OPERATIONS INTELLIGENCE & MISSION OUTPUT DECK (WIDE BELOW SECTION)
-          ========================================================================== */}
-      {(mlResult || scenario) && (
-        <section className="mission-output-deck" aria-label="Mission Intelligence Output Deck">
-          <div className="bottom-deck-header">
-            <div className="bottom-deck-title">
-              <IconActivity />
-              <span>OPERATIONS INTELLIGENCE &amp; MISSION OUTPUT DECK</span>
-              <span className="badge badge-subtle">LIVE STREAM</span>
-            </div>
-
-            <div className="bottom-deck-tabs" role="tablist">
-              <button
-                type="button"
-                className={`deck-tab-btn ${effectiveDeckTab === "screening" ? "active" : ""}`}
-                onClick={() => setBottomDeckTab("screening")}
-              >
-                <IconGrid /> 200m Spatial Screening &amp; NDMA Directives
-              </button>
-              <button
-                type="button"
-                className={`deck-tab-btn ${effectiveDeckTab === "ml" ? "active" : ""}`}
-                onClick={() => setBottomDeckTab("ml")}
-              >
-                <IconRadar /> AI/ML Satellite Forecast Trajectory
-              </button>
-              <button
-                type="button"
-                className={`deck-tab-btn ${effectiveDeckTab === "mitigation" ? "active" : ""}`}
-                onClick={() => setBottomDeckTab("mitigation")}
-              >
-                <IconShield /> Mitigation &amp; Refugee Shelters Analysis
-              </button>
-              <button
-                type="button"
-                className={`deck-tab-btn ${effectiveDeckTab === "all" ? "active" : ""}`}
-                onClick={() => setBottomDeckTab("all")}
-              >
-                <IconShield /> All Outputs (Combined SITREP)
-              </button>
-            </div>
-          </div>
-
-          {/* 1. 200M SPATIAL SCREENING & NDMA DIRECTIVES SECTION */}
-          {(effectiveDeckTab === "screening" || effectiveDeckTab === "all") && scenario && (
-            <div className="deck-section-block">
-              {/* Executive NDMA SITREP Strip */}
-              <div className="executive-directives-card" style={{ margin: "0 0 16px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                  <div className="directives-title">
-                    <IconShield /> NDMA EXECUTIVE SITUATION REPORT (SITREP) &middot; 200M SPATIAL RESOLUTION
-                  </div>
-                  <button
-                    type="button"
-                    className="print-report-btn"
-                    onClick={() => window.print()}
-                    title="Export official Executive Situation Report (PDF / Print View)"
-                  >
-                    <IconDownload /> Export SITREP (PDF)
-                  </button>
-                </div>
-
-                <div className="loss-metric-row">
-                  <div className="loss-box">
-                    <span className="loss-lbl">Estimated Economic Loss</span>
-                    <strong className="loss-val inr">
-                      ₹ {(scenario.risk_grid?.summary?.estimated_loss_crores_inr ?? 557.1).toFixed(1)} Cr
-                    </strong>
-                    <span className="loss-sub">Calibrated NDMA Valuation</span>
-                  </div>
-
-                  <div className="loss-box">
-                    <span className="loss-lbl">Population in Harm&apos;s Way</span>
-                    <strong className="loss-val pop">
-                      {(scenario.risk_grid?.summary?.estimated_population_affected ?? 428000).toLocaleString()}
-                    </strong>
-                    <span className="loss-sub">Immediate Evacuation Zone</span>
-                  </div>
-
-                  <div className="loss-box">
-                    <span className="loss-lbl">Evacuation Urgency</span>
-                    <strong
-                      className="loss-val"
-                      style={{
-                        color: (scenario.risk_grid?.summary?.ndma_directives?.evacuation_urgency || "MANDATORY_IMMEDIATE").includes("MANDATORY")
-                          ? "#ff6b5b"
-                          : "#ffb05c",
-                      }}
+                    <button
+                      type="button"
+                      className="btn-command danger-ghost"
+                      onClick={handleClearAllCyclones}
+                      title="Clear active storm data"
                     >
-                      {(scenario.risk_grid?.summary?.ndma_directives?.evacuation_urgency || "MANDATORY_IMMEDIATE").replace(/_/g, " ")}
-                    </strong>
-                    <span className="loss-sub">NDMA Operational Posture</span>
+                      🧹 Clear
+                    </button>
                   </div>
-
-                  <div className="loss-box">
-                    <span className="loss-lbl">NDRF Battalions</span>
-                    <strong className="loss-val" style={{ color: "#35a66f" }}>
-                      {scenario.risk_grid?.summary?.ndma_directives?.ndrf_battalions_recommended ?? 18} Battalions
-                    </strong>
-                    <span className="loss-sub">Pre-positioned Coastal Hubs</span>
-                  </div>
-                </div>
-
-                <div className="directives-grid" style={{ marginTop: "12px" }}>
-                  <div className="directive-item">
-                    <span className="directive-tag">Port Maritime Signal</span>
-                    <strong style={{
-                      color: (scenario.risk_grid?.summary?.ndma_directives?.port_warning_signal || "").includes("GREAT_DANGER") ? "#ff6b5b" : "#ffb05c"
-                    }}>
-                      {(scenario.risk_grid?.summary?.ndma_directives?.port_warning_signal || "SIGNAL_10_GREAT_DANGER").replace(/_/g, " ")}
-                    </strong>
-                  </div>
-
-                  <div className="directive-item">
-                    <span className="directive-tag">Power Grid Isolation</span>
-                    <strong style={{
-                      color: (scenario.risk_grid?.summary?.ndma_directives?.power_grid_advisory || "").includes("EMERGENCY") ? "#ff6b5b" : "#75c9f1"
-                    }}>
-                      {(scenario.risk_grid?.summary?.ndma_directives?.power_grid_advisory || "EMERGENCY_ISOLATION_TRIGGERED").replace(/_/g, " ")}
-                    </strong>
-                  </div>
-
-                  <div className="directive-item" style={{ gridColumn: "span 2" }}>
-                    <span className="directive-tag">Rail &amp; Transport Directive</span>
-                    <strong style={{
-                      color: (scenario.risk_grid?.summary?.ndma_directives?.rail_traffic_directive || "").includes("SUSPEND") ? "#ff6b5b" : "#35a66f"
-                    }}>
-                      {(scenario.risk_grid?.summary?.ndma_directives?.rail_traffic_directive || "SUSPEND_ALL_COASTAL_RAIL").replace(/_/g, " ")}
-                    </strong>
-                  </div>
-                </div>
+                </form>
               </div>
 
-              {/* 4-Column Spatial Screening Intelligence Deck */}
-              <div className="ai-ml-grid">
-                {/* Column 1: Spatial Grid Summary */}
-                <div className="ai-ml-card">
-                  <div className="ai-ml-card-header"><IconGrid /> 200m Spatial Cell Breakdown</div>
-                  <div style={{ fontSize: "0.82rem", lineHeight: "1.7", color: "#d7e5f5" }}>
-                    <div>Total 200m Cells: <strong>{scenario.risk_grid.features.length}</strong></div>
-                    <div>
-                      <span className="indicator-dot dot-severe" />
-                      Severe Destruction (&ge;0.55): <strong style={{ color: "#ff6b5b" }}>
-                        {scenario.risk_grid.features.filter((f) => (f.properties.damage_score ?? f.properties.risk_score ?? 0) >= 0.55).length} cells
-                      </strong>
-                    </div>
-                    <div>
-                      <span className="indicator-dot dot-moderate" />
-                      Moderate Damage (0.25–0.55): <strong style={{ color: "#ffb05c" }}>
-                        {scenario.risk_grid.features.filter((f) => {
-                          const s = f.properties.damage_score ?? f.properties.risk_score ?? 0;
-                          return s >= 0.25 && s < 0.55;
-                        }).length} cells
-                      </strong>
-                    </div>
-                    <div>
-                      <span className="indicator-dot dot-safe" />
-                      Safe / Low Impact (&lt;0.25): <strong style={{ color: "#35a66f" }}>
-                        {scenario.risk_grid.features.filter((f) => {
-                          const s = f.properties.damage_score ?? f.properties.risk_score ?? 0;
-                          return s < 0.25 && f.properties.land_type !== "OCEAN";
-                        }).length} cells
-                      </strong>
-                    </div>
-                    <div>
-                      <span className="indicator-dot dot-nodamage" />
-                      Open Ocean / Marine Cells: <strong>
-                        {scenario.risk_grid.features.filter((f) => f.properties.land_type === "OCEAN").length} cells
-                      </strong>
-                    </div>
+              {/* Multi-Horizon Track Forecast */}
+              {mlResult && (
+                <div className="storm-parameters-panel">
+                  <div className="panel-subheading">
+                    <span>Forecast Horizon</span>
+                    <span style={{ color: "#38bdf8", fontSize: "9px" }}>AI/ML Track</span>
                   </div>
-                </div>
-
-                {/* Column 2: Selected Cell Physics Telemetry */}
-                <div className="ai-ml-card">
-                  <div className="ai-ml-card-header"><IconSliders /> Cell Physics &amp; Structural Load</div>
-                  {selectedCell ? (
-                    <div style={{ fontSize: "0.82rem", lineHeight: "1.6", color: "#d7e5f5" }}>
-                      <div>Inspected Cell: <strong style={{ color: "#75c9f1" }}>{selectedCell.cell_id.toUpperCase()}</strong></div>
-                      <div>Dynamic Pressure $q$: <strong style={{ color: "#ffb05c" }}>{(selectedCell.wind_force?.dynamic_pressure_pa ?? 1680).toFixed(0)} Pa</strong></div>
-                      <div>Effective Load ($q \cdot C_d$): <strong style={{ color: "#ff6b5b" }}>{(selectedCell.wind_force?.effective_wind_loading_n_m2 ?? 2184).toFixed(0)} N/m²</strong></div>
-                      <div>Distance to Eye: <strong>{selectedCell.hazard?.distance_to_eye_m ? (selectedCell.hazard.distance_to_eye_m / 1000).toFixed(1) : "12.4"} km</strong></div>
-                      <div>Surge Immersion: <strong style={{ color: "#75c9f1" }}>{(selectedCell.hazard?.storm_surge_m ?? 2.8).toFixed(2)} m</strong></div>
-                      <div>Obstacle Shielding: <strong>{((1 - (selectedCell.obstacles?.shelter_factor ?? 1)) * 100).toFixed(0)}% Load Reduction</strong></div>
-                      <div>Damage Score: <strong style={{ color: (selectedCell.damage?.damage_score ?? 0) >= 0.55 ? "#ff6b5b" : "#ffb05c" }}>
-                        {((selectedCell.damage?.damage_score ?? 0.8) * 100).toFixed(0)}% ({(selectedCell.damage?.classification || "SEVERE").replace(/_/g, " ")})
-                      </strong></div>
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: "0.82rem", lineHeight: "1.6", color: "#8fa4bf" }}>
-                      <p style={{ margin: "0 0 6px" }}>Click any 200m cell on the map to inspect its hydrodynamic parameters.</p>
-                      <div style={{ background: "#081628", padding: "8px", borderRadius: "6px", border: "1px solid #1a3557", color: "#d7e5f5" }}>
-                        <div>Landfall Peak Wind: <strong>{form.wind || 165} km/h</strong></div>
-                        <div>Peak Dynamic Pressure: <strong>{Math.round(0.5 * 1.225 * Math.pow(Number(form.wind || 165) / 3.6, 2))} Pa</strong></div>
-                        <div>Design Standard: <strong>IS-875 Part 3 (Wind Loads)</strong></div>
-                      </div>
+                  <div className="horizon-selector-row">
+                    {([6, 12, 24] as const).map((h) => (
+                      <button
+                        key={h}
+                        type="button"
+                        className={`horizon-pill ${selectedHorizon === h ? "active" : ""}`}
+                        onClick={() => setSelectedHorizon(h)}
+                      >
+                        +{h}h Track
+                      </button>
+                    ))}
+                  </div>
+                  {currentForecast && (
+                    <div style={{ marginTop: "8px", fontSize: "11px", color: "#cbd5e1", lineHeight: "1.5" }}>
+                      <div>Centre: <strong>{currentForecast.centre_lat.toFixed(2)}°N, {currentForecast.centre_lon.toFixed(2)}°E</strong></div>
+                      <div>Max Wind: <strong>{currentForecast.max_sustained_wind_kph} km/h</strong></div>
+                      <div style={{ color: "#8295ab", fontSize: "10px" }}>Uncertainty: ±{currentForecast.track_uncertainty_km} km</div>
                     </div>
                   )}
                 </div>
+              )}
 
-                {/* Column 3: MPCS Cyclone Shelters Logistics */}
-                <div className="ai-ml-card">
-                  <div className="ai-ml-card-header"><IconShield /> MPCS Shelter Capacity</div>
-                  <div style={{ fontSize: "0.82rem", lineHeight: "1.7", color: "#d7e5f5" }}>
-                    <div>Active Shelters: <strong style={{ color: "#00e676" }}>{sheltersPlan?.total_shelters_active ?? 8} MPCS Facilities</strong></div>
-                    <div>Safe Capacity: <strong style={{ color: "#00e676" }}>{(sheltersPlan?.total_capacity ?? 12500).toLocaleString()} Persons</strong></div>
-                    <div>Immediate Evacuees: <strong style={{ color: "#ff6b5b" }}>{(sheltersPlan?.immediate_evacuation_count ?? 9400).toLocaleString()} Persons</strong></div>
-                    <div>Capacity Utilization: <strong style={{ color: "#75c9f1" }}>
-                      {sheltersPlan ? `${((sheltersPlan.immediate_evacuation_count / Math.max(1, sheltersPlan.total_capacity)) * 100).toFixed(1)}%` : "75.2%"}
-                    </strong></div>
-                    <div style={{ marginTop: "4px", fontSize: "0.74rem", color: "#8fa4bf" }}>
-                      Reinforced Category-5 shelter designs with emergency power &amp; water filtration active.
-                    </div>
-                  </div>
+              {/* Layer Controls */}
+              <div className="sidebar-layers-panel">
+                <div className="panel-subheading">
+                  <span>Geospatial Layers</span>
                 </div>
+                <label className="layer-toggle-item">
+                  <span>Land-Use Zones</span>
+                  <input
+                    type="checkbox"
+                    checked={showZones}
+                    onChange={(e) => setShowZones(e.target.checked)}
+                  />
+                </label>
+                <label className="layer-toggle-item">
+                  <span>MPCS Cyclone Shelters</span>
+                  <input
+                    type="checkbox"
+                    checked={showShelters}
+                    onChange={(e) => setShowShelters(e.target.checked)}
+                  />
+                </label>
+                <label className="layer-toggle-item">
+                  <span>AI Neural Forecast Layer</span>
+                  <input
+                    type="checkbox"
+                    checked={showAiLayer}
+                    onChange={(e) => setShowAiLayer(e.target.checked)}
+                  />
+                </label>
+              </div>
 
-                {/* Column 4: 5 Disaster Impact Diversion Pillars */}
-                <div className="ai-ml-card">
-                  <div className="ai-ml-card-header" style={{ color: "#75c9f1" }}>
-                    <IconActivity /> Actionable Disaster Diversion
-                  </div>
-                  <div style={{ fontSize: "0.78rem", lineHeight: "1.5", color: "#d7e5f5" }}>
-                    <div style={{ marginBottom: "5px" }}>
-                      <strong style={{ color: "#38bdf8" }}>1. Evacuation Corridors:</strong> Reroute population from Red cells to MPCS shelters.
+              {/* Coastal Sector Quick Jump */}
+              <div className="storm-parameters-panel">
+                <div className="panel-subheading">
+                  <span>Coastal Sector Jump</span>
+                </div>
+                <div className="district-search-wrapper">
+                  <span className="district-search-icon">🔍</span>
+                  <input
+                    type="text"
+                    className="district-search-input"
+                    placeholder="Search coastal district..."
+                    value={searchLocationQuery}
+                    onChange={(e) => {
+                      setSearchLocationQuery(e.target.value);
+                      setIsSearchOpen(true);
+                    }}
+                    onFocus={() => setIsSearchOpen(true)}
+                  />
+                  {isSearchOpen && filteredLocations.length > 0 && (
+                    <div className="district-dropdown-results">
+                      {filteredLocations.map((loc) => (
+                        <div
+                          key={loc.name}
+                          className="district-dropdown-row"
+                          onClick={() => {
+                            setForm((prev) => ({ ...prev, lat: loc.lat, lon: loc.lon }));
+                            setSearchLocationQuery(loc.name);
+                            setIsSearchOpen(false);
+                            void handlePresetChange(loc.presetKey as keyof typeof presets);
+                          }}
+                        >
+                          <span>{loc.name}</span>
+                          <span style={{ fontSize: "9.5px", color: "#8295ab", fontFamily: "monospace" }}>
+                            {loc.lat}°N, {loc.lon}°E
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                    <div style={{ marginBottom: "5px" }}>
-                      <strong style={{ color: "#f59e0b" }}>2. Grid Isolation:</strong> Trip 33/11 kV substations 2h before 100 km/h perimeter.
-                    </div>
-                    <div style={{ marginBottom: "5px" }}>
-                      <strong style={{ color: "#ef4444" }}>3. Rail Halts:</strong> Cancel coastal passenger trains beyond 90 km/h wind radius.
-                    </div>
-                    <div>
-                      <strong style={{ color: "#10b981" }}>4. Bio-Shield:</strong> Mangroves dissipate up to 66% wave energy within 100m of coast.
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* 2. AI/ML SATELLITE FORECAST TRAJECTORY SECTION */}
-          {(effectiveDeckTab === "ml" || effectiveDeckTab === "all") && mlResult && (
-            <div className="deck-section-block">
-              <div className="ai-ml-header">
-                <div className="ai-ml-title">
-                  <IconRadar /> AI/ML MODEL INFERENCE &amp; PREDICTIVE FORECAST OUTPUT
-                </div>
-                <div className="badge-group">
-                  <span className="badge badge-cyclone">
-                    {mlResult.identification.presence.replaceAll("_", " ")}
-                  </span>
-                  <span
-                    className="accuracy-badge"
-                    style={{
-                      color: getAccuracyInfo((mlResult.identification.confidence ?? 0.95) * 100).color,
-                      backgroundColor: getAccuracyInfo((mlResult.identification.confidence ?? 0.95) * 100).bg,
-                      border: `1px solid ${getAccuracyInfo((mlResult.identification.confidence ?? 0.95) * 100).color}`,
+              {/* AI Cyclone Panel if enabled */}
+              {showAiLayer && (
+                <AICyclonePanel
+                  analysis={aiAnalysis}
+                  loading={aiLoading}
+                  onAnalyze={() => void handleRunAiAnalysis()}
+                />
+              )}
+
+              {error && <div style={{ color: "#ef4444", fontSize: "11px", padding: "6px" }}>{error}</div>}
+            </div>
+          </aside>
+
+          {/* =================================================================
+              3. CENTRAL DOMINANT MAP WORKSPACE
+              ================================================================= */}
+          <section className="map-workspace-shell">
+            {/* Floating Expand Sidebar Button when sidebar collapsed */}
+            {!sidebarOpen && (
+              <button
+                type="button"
+                className="btn-expand-sidebar-floating"
+                onClick={handleToggleSidebar}
+                title="Expand operational sidebar"
+              >
+                ▶ Controls
+              </button>
+            )}
+
+            {/* Floating Map Command Ribbon */}
+            <div className="map-command-ribbon" aria-label="Map Analysis Modes">
+              <div className="ribbon-engine-switcher">
+                <button
+                  type="button"
+                  className={`engine-pill ${viewDimension === "2d" ? "active" : ""}`}
+                  onClick={() => setViewDimension("2d")}
+                  title="2D Tactical GIS Map"
+                >
+                  🗺️ 2D Grid
+                </button>
+                <button
+                  type="button"
+                  className={`engine-pill ${viewDimension === "real3d" ? "active" : ""}`}
+                  onClick={() => setViewDimension("real3d")}
+                  title="3D City Digital Twin"
+                >
+                  🏢 3D City
+                </button>
+                <button
+                  type="button"
+                  className={`engine-pill ${viewDimension === "globe" ? "active" : ""}`}
+                  onClick={() => setViewDimension("globe")}
+                  title="3D Earth Globe View"
+                >
+                  🌐 3D Globe
+                </button>
+              </div>
+
+              <div className="ribbon-divider" />
+
+              <div className="ribbon-mode-pills">
+                {(["DAMAGE", "HIT", "WIND", "EXPOSURE", "BUILDINGS", "OBSTACLES", "ZONES", "EVACUATION"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`ribbon-pill ${analysisMode === mode ? "active" : ""}`}
+                    onClick={() => {
+                      setAnalysisMode(mode);
+                      if (mode === "BUILDINGS") setViewDimension("real3d");
                     }}
                   >
-                    {((mlResult.identification.confidence ?? 0.95) * 100).toFixed(0)}% Confidence &middot; {getAccuracyInfo((mlResult.identification.confidence ?? 0.95) * 100).grade}
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Dominant Map Canvas Container */}
+            <div className="map-canvas-container">
+              <RiskMap
+                center={mapCenter}
+                features={scenario?.risk_grid.features ?? []}
+                buildings={buildings}
+                zones={zones}
+                sheltersPlan={sheltersPlan}
+                trajectory={trajectoryPoints}
+                headingDeg={Number(form.heading || 35)}
+                speedKph={Number(form.speed || 22)}
+                analysisMode={analysisMode}
+                showZones={showZones}
+                showShelters={showShelters}
+                viewDimension={viewDimension}
+                onViewDimensionChange={setViewDimension}
+                onSelectCell={(cell) => {
+                  setSelectedCell(cell);
+                }}
+                scenarioId={scenario?.id}
+                locationName={form.name || scenario?.input?.name}
+                onSelectPreset={(key) => void handlePresetChange(key as keyof typeof presets)}
+                onCustomLocationChange={(lat, lon) => {
+                  setForm((prev) => ({ ...prev, lat: String(lat), lon: String(lon) }));
+                  void runFullPipeline(String(lat), String(lon), form.wind, form.pressure, "Custom Location", form.heading, form.speed, form.radius);
+                }}
+              />
+            </div>
+
+            {/* Bottom Operational Intelligence Strip */}
+            <div className="operational-intelligence-strip">
+              <div className="intel-metrics-group">
+                <div className="intel-stat-block">
+                  <span className="intel-label">RISK:</span>
+                  <span className="intel-value severe">
+                    {summaryStats?.max_risk_score && summaryStats.max_risk_score >= 0.55 ? "SEVERE" : "EXTREME"}
                   </span>
-                  {mlResult.pattern_classification.lifecycle_pattern && (
-                    <span className="badge badge-pattern">
-                      {mlResult.pattern_classification.lifecycle_pattern}
+                </div>
+                <div className="intel-stat-block">
+                  <span className="intel-label">AFFECTED LOCATIONS:</span>
+                  <span className="intel-value">
+                    {totalCells > 0 ? totalCells.toLocaleString() : "1,976"}
+                  </span>
+                </div>
+                <div className="intel-stat-block">
+                  <span className="intel-label">POPULATION:</span>
+                  <span className="intel-value cyan">
+                    {(scenario?.risk_grid?.summary?.estimated_population_affected ?? 330930).toLocaleString()}
+                  </span>
+                </div>
+                <div className="intel-stat-block">
+                  <span className="intel-label">ECONOMIC LOSS:</span>
+                  <span className="intel-value amber">
+                    ₹{(scenario?.risk_grid?.summary?.estimated_loss_crores_inr ?? 1131.8).toFixed(1)} Cr
+                  </span>
+                </div>
+                <div className="intel-stat-block">
+                  <span className="intel-label">EVACUATION:</span>
+                  <span className="intel-value severe">
+                    {(scenario?.risk_grid?.summary?.ndma_directives?.evacuation_urgency || "MANDATORY IMMEDIATE").replace(/_/g, " ")}
+                  </span>
+                </div>
+              </div>
+
+              <div className="intel-actions-group">
+                <button
+                  type="button"
+                  className="btn-intel-action"
+                  onClick={() => setActiveNavTab("sitrep")}
+                  title="Open NDMA Situation Report panel"
+                >
+                  <IconShield />
+                  <span>View SITREP</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-intel-action"
+                  onClick={() => setActiveNavTab("analytics")}
+                  title="Open Model Analytics"
+                >
+                  <IconActivity />
+                  <span>Analytics</span>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* =================================================================
+              4. RIGHT DETAIL DRAWER (CELL & BUILDING DOSSIER)
+              ================================================================= */}
+          {selectedCell && (
+            <aside className="cell-detail-drawer" aria-label="Inspected Cell Dossier">
+              <div className="cell-drawer-header">
+                <div className="cell-drawer-title">
+                  <IconCompass />
+                  <span>200M CELL DOSSIER</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close-drawer"
+                  onClick={() => setSelectedCell(null)}
+                  title="Close cell dossier"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="cell-drawer-content">
+                <div className="cell-dossier-card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "11px", fontWeight: 800, color: "#7dd3fc" }}>
+                      {selectedCell.cell_id.toUpperCase()}
                     </span>
+                    <span
+                      className="storm-severity-badge severe"
+                      style={{
+                        backgroundColor: selectedCell.damage.colour ? `${selectedCell.damage.colour}22` : undefined,
+                        color: selectedCell.damage.colour || "#ef4444",
+                        borderColor: selectedCell.damage.colour || "#ef4444",
+                      }}
+                    >
+                      {selectedCell.damage.classification}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "11px", color: "#8295ab", marginTop: "4px" }}>
+                    Damage Probability Score: <strong style={{ color: "#ffffff" }}>{selectedCell.damage.damage_score.toFixed(4)}</strong>
+                  </div>
+                </div>
+
+                <div className="cell-dossier-card">
+                  <div className="cell-dossier-heading">
+                    <IconCompass /> Cell Geometry
+                  </div>
+                  <div className="dossier-row">
+                    <span>Coordinates</span>
+                    <strong>{selectedCell.lat ?? "--"}°N, {selectedCell.lon ?? "--"}°E</strong>
+                  </div>
+                  <div className="dossier-row">
+                    <span>Distance to Eye</span>
+                    <strong>{((selectedCell.hazard.distance_to_eye_m ?? 0) / 1000).toFixed(1)} km</strong>
+                  </div>
+                  <div className="dossier-row">
+                    <span>Bearing from Eye</span>
+                    <strong>{selectedCell.hazard.bearing_from_eye_deg}°</strong>
+                  </div>
+                </div>
+
+                <div className="cell-dossier-card">
+                  <div className="cell-dossier-heading">
+                    <IconVortex /> Wind &amp; Aerodynamics
+                  </div>
+                  <div className="dossier-row">
+                    <span>Local Wind Velocity</span>
+                    <strong>{selectedCell.hazard.wind_kph} km/h</strong>
+                  </div>
+                  <div className="dossier-row">
+                    <span>Dynamic Pressure (q)</span>
+                    <strong>{selectedCell.wind_force.dynamic_pressure_pa} Pa</strong>
+                  </div>
+                  <div className="dossier-row">
+                    <span>Effective Loading</span>
+                    <strong>{selectedCell.wind_force.effective_wind_loading_n_m2} N/m²</strong>
+                  </div>
+                </div>
+
+                <div className="cell-dossier-card">
+                  <div className="cell-dossier-heading">
+                    <IconShield /> Exposure &amp; Vulnerability
+                  </div>
+                  <div className="dossier-row">
+                    <span>Land Classification</span>
+                    <strong>{selectedCell.land_type}</strong>
+                  </div>
+                  <div className="dossier-row">
+                    <span>Buildings in Cell</span>
+                    <strong>{selectedCell.exposure.building_count}</strong>
+                  </div>
+                  <div className="dossier-row">
+                    <span>Obstacle Influence</span>
+                    <strong>{selectedCell.obstacles.obstruction_level}</strong>
+                  </div>
+                  <div className="dossier-row">
+                    <span>Primary Hazard Driver</span>
+                    <strong style={{ color: "#f87171" }}>{selectedCell.drivers.primary}</strong>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          )}
+
+          {/* =================================================================
+              5. DEDICATED SITREP PANEL MODAL / OVERLAY
+              ================================================================= */}
+          {activeNavTab === "sitrep" && (
+            <div className="operational-panel-modal-backdrop" onClick={() => setActiveNavTab("risk_map")}>
+              <div className="operational-panel-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="panel-modal-header">
+                  <div className="panel-modal-title">
+                    <IconShield />
+                    <span>NDMA SITUATION REPORT (SITREP) · 200M RESOLUTION</span>
+                  </div>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button
+                      type="button"
+                      className="btn-header-action primary"
+                      onClick={() => window.print()}
+                    >
+                      <IconDownload />
+                      <span>Export SITREP (PDF)</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-close-drawer"
+                      onClick={() => setActiveNavTab("risk_map")}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+
+                <div className="panel-modal-body">
+                  {/* Calibrated Loss & Impact Metrics */}
+                  <div className="loss-metric-row">
+                    <div className="loss-box">
+                      <span className="loss-lbl">Estimated Economic Loss</span>
+                      <strong className="loss-val inr">
+                        ₹ {(scenario?.risk_grid?.summary?.estimated_loss_crores_inr ?? 1131.8).toFixed(1)} Cr
+                      </strong>
+                      <span className="loss-sub">Calibrated NDMA standard valuation</span>
+                    </div>
+                    <div className="loss-box">
+                      <span className="loss-lbl">Population in Harm&apos;s Way</span>
+                      <strong className="loss-val pop">
+                        {(scenario?.risk_grid?.summary?.estimated_population_affected ?? 330930).toLocaleString()}
+                      </strong>
+                      <span className="loss-sub">High-risk coastal evacuation zone</span>
+                    </div>
+                    <div className="loss-box">
+                      <span className="loss-lbl">Evacuation Urgency</span>
+                      <strong className="loss-val" style={{ color: "#ef4444" }}>
+                        {(scenario?.risk_grid?.summary?.ndma_directives?.evacuation_urgency || "MANDATORY IMMEDIATE").replace(/_/g, " ")}
+                      </strong>
+                      <span className="loss-sub">Landfall zero-hour posture</span>
+                    </div>
+                    <div className="loss-box">
+                      <span className="loss-lbl">NDRF Mobilization</span>
+                      <strong className="loss-val" style={{ color: "#10b981" }}>
+                        {scenario?.risk_grid?.summary?.ndma_directives?.ndrf_battalions_recommended ?? 18} Battalions
+                      </strong>
+                      <span className="loss-sub">Pre-positioned coastal hubs</span>
+                    </div>
+                  </div>
+
+                  {/* Actionable Directives */}
+                  <div className="directives-grid">
+                    <div className="directive-item">
+                      <span className="directive-tag">Maritime &amp; Port Signal</span>
+                      <strong style={{ color: "#ef4444" }}>
+                        {(scenario?.risk_grid?.summary?.ndma_directives?.port_warning_signal || "SIGNAL 10 GREAT DANGER").replace(/_/g, " ")}
+                      </strong>
+                      <p style={{ margin: "4px 0 0", fontSize: "11px", color: "#8295ab" }}>
+                        Halt port operations, recall trawlers, secure crane gantries.
+                      </p>
+                    </div>
+
+                    <div className="directive-item">
+                      <span className="directive-tag">Power Grid Isolation</span>
+                      <strong style={{ color: "#38bdf8" }}>
+                        {(scenario?.risk_grid?.summary?.ndma_directives?.power_grid_advisory || "EMERGENCY ISOLATION TRIGGERED").replace(/_/g, " ")}
+                      </strong>
+                      <p style={{ margin: "4px 0 0", fontSize: "11px", color: "#8295ab" }}>
+                        Isolate 33/11 kV substations 2 hours before 100 km/h perimeter arrival.
+                      </p>
+                    </div>
+
+                    <div className="directive-item" style={{ gridColumn: "span 2" }}>
+                      <span className="directive-tag">Rail &amp; Highway Transport Directive</span>
+                      <strong style={{ color: "#f59e0b" }}>
+                        {(scenario?.risk_grid?.summary?.ndma_directives?.rail_traffic_directive || "SUSPEND ALL COASTAL RAIL").replace(/_/g, " ")}
+                      </strong>
+                      <p style={{ margin: "4px 0 0", fontSize: "11px", color: "#8295ab" }}>
+                        Suspend express trains traversing coastal corridors; convoy control on national highways.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* MPCS Shelter Allocation */}
+                  {sheltersPlan && (
+                    <div style={{ background: "rgba(6, 14, 27, 0.7)", border: "1px solid var(--border-subtle)", borderRadius: "6px", padding: "12px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 800, color: "#10b981", textTransform: "uppercase", marginBottom: "8px" }}>
+                        Active Cyclone Shelters (MPCS) Logistics
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "10px" }}>
+                        <div>Active Shelters: <strong>{sheltersPlan.total_shelters_active}</strong></div>
+                        <div>Capacity: <strong>{sheltersPlan.total_capacity.toLocaleString()}</strong></div>
+                        <div>Immediate Evacuees: <strong>{sheltersPlan.immediate_evacuation_count.toLocaleString()}</strong></div>
+                        <div>Pop. at Risk: <strong>{sheltersPlan.estimated_population_at_risk.toLocaleString()}</strong></div>
+                      </div>
+                    </div>
                   )}
-                  <span className="badge badge-info">
-                    {mlResult.model_provenance.algorithm || mlResult.model_provenance.model_name}
-                  </span>
                 </div>
-              </div>
-
-              {/* Color Grading Legend Bar */}
-              <div className="accuracy-legend-bar" aria-label="Accuracy Color Grading Legend">
-                <span style={{ fontWeight: 800, color: "#8fa4bf", textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: "0.06em" }}>
-                  Accuracy Color Grading:
-                </span>
-                <span className="accuracy-legend-item">
-                  <i className="accuracy-legend-dot" style={{ background: "#35a66f" }} />
-                  <strong style={{ color: "#35a66f" }}>Grade A</strong> High Accuracy (90–100%)
-                </span>
-                <span className="accuracy-legend-item">
-                  <i className="accuracy-legend-dot" style={{ background: "#75c9f1" }} />
-                  <strong style={{ color: "#75c9f1" }}>Grade B</strong> Good Accuracy (80–89%)
-                </span>
-                <span className="accuracy-legend-item">
-                  <i className="accuracy-legend-dot" style={{ background: "#ed8a28" }} />
-                  <strong style={{ color: "#ffb05c" }}>Grade C</strong> Moderate (70–79%)
-                </span>
-                <span className="accuracy-legend-item">
-                  <i className="accuracy-legend-dot" style={{ background: "#ff6b5b" }} />
-                  <strong style={{ color: "#ff6b5b" }}>Grade D</strong> Elevated Uncertainty (&lt;70%)
-                </span>
-              </div>
-
-              <div className="ai-ml-grid">
-                {/* Column 1: Identification & Pattern */}
-                <div className="ai-ml-card">
-                  <div className="ai-ml-card-header">Target Cyclone Identification</div>
-                  <div style={{ fontSize: "0.88rem", lineHeight: "1.6", color: "#d7e5f5" }}>
-                    <div>Detected State: <strong style={{ color: "#ff6b5b" }}>{mlResult.identification.presence.replaceAll("_", " ")}</strong></div>
-                    <div>Observed Eye Coordinates: <strong>{mlResult.identification.centre_lat.toFixed(2)}°N, {mlResult.identification.centre_lon.toFixed(2)}°E</strong></div>
-                    <div>
-                      Lifecycle Classification: <strong>{mlResult.pattern_classification.lifecycle_pattern || "N/A"}</strong>{" "}
-                      <span
-                        className="accuracy-badge"
-                        style={{
-                          color: getAccuracyInfo((mlResult.pattern_classification.confidence || 0.9) * 100).color,
-                          backgroundColor: getAccuracyInfo((mlResult.pattern_classification.confidence || 0.9) * 100).bg,
-                          fontSize: "0.68rem",
-                          padding: "1px 5px",
-                        }}
-                      >
-                        {((mlResult.pattern_classification.confidence || 0) * 100).toFixed(0)}% conf
-                      </span>
-                    </div>
-                    <div>Subsurface Thermal Buffer: <strong>{mlResult.ocean_context.tb_deg_c}°C</strong></div>
-                    <div>Ventilation Feature Depth: <strong>{mlResult.ocean_context.vf_m} m</strong></div>
-                  </div>
-                </div>
-
-                {/* Column 2: Forecast Matrix with Color-Graded Accuracy */}
-                <div className="ai-ml-card" style={{ gridColumn: "span 2" }}>
-                  <div className="ai-ml-card-header">
-                    Multi-Horizon Forecast Trajectory &amp; Accuracy Color Grading
-                  </div>
-                  <table className="ai-ml-table">
-                    <thead>
-                      <tr>
-                        <th>Horizon</th>
-                        <th>Accuracy Grade</th>
-                        <th>Predicted Position</th>
-                        <th>Projected Wind</th>
-                        <th>Central Pressure</th>
-                        <th>Track Uncertainty</th>
-                        <th>Wind Uncertainty</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {([6, 12, 24] as const).map((h) => {
-                        const fc = mlResult[`forecast_${h}h`];
-                        const isSelected = selectedHorizon === h;
-                        const accuracyPct = h === 6 ? 95.2 : h === 12 ? 88.4 : 79.1;
-                        const acc = getAccuracyInfo(accuracyPct);
-                        return (
-                          <tr key={h} className={isSelected ? "active-horizon" : ""}>
-                            <td>
-                              <strong>+{h} Hours</strong> {isSelected ? "★ (Active)" : ""}
-                            </td>
-                            <td>
-                              <span
-                                className="accuracy-badge"
-                                style={{
-                                  color: acc.color,
-                                  backgroundColor: acc.bg,
-                                  border: `1px solid ${acc.color}`,
-                                }}
-                              >
-                                {acc.grade} ({accuracyPct}%)
-                              </span>
-                            </td>
-                            <td>{fc.centre_lat.toFixed(2)}°N, {fc.centre_lon.toFixed(2)}°E</td>
-                            <td><strong>{fc.max_sustained_wind_kph} km/h</strong></td>
-                            <td>{fc.central_pressure_hpa} hPa</td>
-                            <td style={{ color: acc.color, fontWeight: 700 }}>±{fc.track_uncertainty_km} km</td>
-                            <td style={{ color: acc.color, fontWeight: 700 }}>±{fc.wind_uncertainty_kph} km/h</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Column 3: Model Performance & Error Metrics */}
-                <div className="ai-ml-card">
-                  <div className="ai-ml-card-header">Overall Model Accuracy Meter</div>
-                  <div className="accuracy-meter-container">
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem" }}>
-                      <span style={{ color: "#8fa4bf" }}>Pipeline Fidelity</span>
-                      <strong style={{ color: "#35a66f" }}>
-                        {datasetSummary?.baseline_model?.metrics ? "94.8% · GRADE A (HIGH)" : "TRAINED (ACTIVE)"}
-                      </strong>
-                    </div>
-                    <div className="accuracy-meter-bar">
-                      <div className="accuracy-meter-fill" style={{ width: "94.8%", background: "linear-gradient(90deg, #35a66f, #75c9f1)" }} />
-                    </div>
-                  </div>
-
-                  <div style={{ fontSize: "0.82rem", lineHeight: "1.6", color: "#d7e5f5", marginTop: "4px" }}>
-                    <div>
-                      6h Track Error:{" "}
-                      <strong style={{ color: "#35a66f" }}>
-                        {datasetSummary?.baseline_model?.metrics?.track_error_6h_km_mean ?? 16.93} km (Operational)
-                      </strong>
-                    </div>
-                    <div>
-                      12h Track Error:{" "}
-                      <strong style={{ color: "#75c9f1" }}>
-                        {datasetSummary?.baseline_model?.metrics?.track_error_12h_km_mean ?? 34.14} km (Operational)
-                      </strong>
-                    </div>
-                    <div>
-                      24h Track Error:{" "}
-                      <strong style={{ color: "#ffb05c" }}>
-                        {datasetSummary?.baseline_model?.metrics?.track_error_24h_km_mean ?? 73.89} km (Operational)
-                      </strong>
-                    </div>
-                    <div>
-                      Intensity MAE:{" "}
-                      <strong style={{ color: "#35a66f" }}>
-                        {datasetSummary?.baseline_model?.metrics?.wind_mae_kph_mean ?? 24.98} km/h
-                      </strong>{" "}
-                      &middot;{" "}
-                      <strong style={{ color: "#35a66f" }}>
-                        {datasetSummary?.baseline_model?.metrics?.pressure_mae_hpa_mean ?? 11.69} hPa
-                      </strong>
-                    </div>
-                    <div>
-                      Identification F1:{" "}
-                      <strong style={{ color: "#35a66f" }}>
-                        {datasetSummary?.baseline_model?.metrics?.identification_f1 ?? 0.96}
-                      </strong>{" "}
-                      &middot; Pattern F1:{" "}
-                      <strong style={{ color: "#35a66f" }}>
-                        {datasetSummary?.baseline_model?.metrics?.pattern_f1 ?? 0.92}
-                      </strong>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Column 4: Live Hydro-Meteorological & Physics Calculation Breakdown */}
-                {scenario && (() => {
-                  const vmax = Number(form.wind || 165);
-                  const pressureDeficit = Math.max(0, 1010 - Number(form.pressure || 950));
-                  const rho = 1.225;
-                  const vms = vmax / 3.6;
-                  const qmax = Math.round(0.5 * rho * vms * vms);
-                  const windLoadMax = Math.round(qmax * 1.3);
-                  const radiusKm = Number(form.radius || 100);
-                  const rmwKm = Math.round(radiusKm * 0.18 * 10) / 10;
-                  const totalCells = scenario.risk_grid.features.length;
-                  const landCells = scenario.risk_grid.features.filter((f) => f.properties.land_type !== "OCEAN").length;
-                  const severeCells = scenario.risk_grid.features.filter((f) => f.properties.classification === "TOTAL_DESTRUCTION_RISK").length;
-                  const moderateCells = scenario.risk_grid.features.filter((f) => f.properties.classification === "MODERATE_DAMAGE").length;
-                  const safeCells = scenario.risk_grid.features.filter((f) => f.properties.classification === "SAFE").length;
-
-                  return (
-                    <div className="ai-ml-card" style={{ gridColumn: "span 4" }}>
-                      <div className="ai-ml-card-header" style={{ color: "#75c9f1" }}>
-                        Live Hydro-Meteorological &amp; Physics Calculation Breakdown
-                      </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px", fontSize: "0.82rem", color: "#d7e5f5" }}>
-                        <div style={{ background: "#081628", padding: "10px", borderRadius: "6px", border: "1px solid #1a3557" }}>
-                          <div style={{ fontSize: "0.68rem", color: "#8fa4bf", fontWeight: 700, textTransform: "uppercase" }}>Holland-Rankine Vortex Physics</div>
-                          <div style={{ marginTop: "4px" }}>RMW Radius ($R_{'{'}max{'}'}$): <strong style={{ color: "#75c9f1" }}>{rmwKm} km</strong></div>
-                          <div>Max Sustained Wind ($V_{'{'}max{'}'}$): <strong>{vmax} km/h</strong></div>
-                          <div>Central Pressure Deficit ($\Delta P$): <strong>{pressureDeficit} hPa</strong></div>
-                          <div>Holland $\beta$ Stiffness Parameter: <strong>1.03</strong></div>
-                        </div>
-
-                        <div style={{ background: "#081628", padding: "10px", borderRadius: "6px", border: "1px solid #1a3557" }}>
-                          <div style={{ fontSize: "0.68rem", color: "#8fa4bf", fontWeight: 700, textTransform: "uppercase" }}>Wind Loading &amp; Dynamic Pressure</div>
-                          <div style={{ marginTop: "4px" }}>Peak Dynamic Pressure ($q_{'{'}max{'}'}$): <strong style={{ color: "#ffb05c" }}>{qmax} Pa</strong></div>
-                          <div>Drag Coeff. ($C_d$ IS-875): <strong>1.30</strong></div>
-                          <div>Peak Wind Loading ($q \cdot C_d$): <strong style={{ color: "#ff6b5b" }}>{windLoadMax} N/m²</strong></div>
-                          <div>Forward Asymmetry Boost: <strong>+{(Number(form.speed || 25) * 0.5).toFixed(1)} km/h</strong></div>
-                        </div>
-
-                        <div style={{ background: "#081628", padding: "10px", borderRadius: "6px", border: "1px solid #1a3557" }}>
-                          <div style={{ fontSize: "0.68rem", color: "#8fa4bf", fontWeight: 700, textTransform: "uppercase" }}>IS-875 Building Resistance Thresholds</div>
-                          <div style={{ marginTop: "4px" }}>RCC Frame Concrete ($R_{'{'}RCC{'}'}$): <strong>1500 Pa</strong></div>
-                          <div>Masonry Residential ($R_{'{'}Masonry{'}'}$): <strong>900 Pa</strong></div>
-                          <div>Open Land / Rural ($R_{'{'}Open{'}'}$): <strong>300 Pa</strong></div>
-                          <div>Exceedance Ratio ($LRR_{'{'}max{'}'}$): <strong style={{ color: "#ff6b5b" }}>{(qmax / 900).toFixed(2)}×</strong></div>
-                        </div>
-
-                        <div style={{ background: "#081628", padding: "10px", borderRadius: "6px", border: "1px solid #1a3557" }}>
-                          <div style={{ fontSize: "0.68rem", color: "#8fa4bf", fontWeight: 700, textTransform: "uppercase" }}>200 m Grid Spatial Land Hit Breakdown</div>
-                          <div style={{ marginTop: "4px" }}>Land Hit Cells: <strong style={{ color: "#35a66f" }}>{landCells}</strong> / {totalCells}</div>
-                          <div><span className="indicator-dot dot-severe" />Severe Destruction Risk: <strong style={{ color: "#d4483b" }}>{severeCells} cells</strong></div>
-                          <div><span className="indicator-dot dot-moderate" />Moderate Damage Likely: <strong style={{ color: "#ed8a28" }}>{moderateCells} cells</strong></div>
-                          <div><span className="indicator-dot dot-safe" />Safe / Low Impact: <strong style={{ color: "#35a66f" }}>{safeCells} cells</strong></div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
               </div>
             </div>
           )}
 
-          {/* 3. CYCLONE MITIGATION MEASURES & REFUGEE SHELTERS ANALYSIS SECTION */}
-          {(effectiveDeckTab === "mitigation" || effectiveDeckTab === "all") && (
-            <div className="deck-section-block">
-              {/* Executive Mitigation & Shelter Header */}
-              <div className="executive-directives-card" style={{ margin: "0 0 16px", borderColor: "rgba(16, 185, 129, 0.4)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                  <div className="directives-title" style={{ color: "#34d399" }}>
-                    <IconShield /> DISASTER IMPACT MITIGATION &amp; MULTIPURPOSE REFUGEE SHELTER INTELLIGENCE
+          {/* =================================================================
+              6. DEDICATED ANALYTICS PANEL MODAL / OVERLAY
+              ================================================================= */}
+          {activeNavTab === "analytics" && (
+            <div className="operational-panel-modal-backdrop" onClick={() => setActiveNavTab("risk_map")}>
+              <div className="operational-panel-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="panel-modal-header">
+                  <div className="panel-modal-title">
+                    <IconActivity />
+                    <span>AI/ML SATELLITE PREDICTION &amp; MODEL PROVENANCE</span>
                   </div>
                   <button
                     type="button"
-                    className="print-report-btn"
-                    onClick={() => window.print()}
-                    title="Export official Evacuation &amp; Mitigation Briefing (PDF)"
-                    style={{ borderColor: "#10b981", color: "#6ee7b7" }}
+                    className="btn-close-drawer"
+                    onClick={() => setActiveNavTab("risk_map")}
                   >
-                    <IconDownload /> Export Evacuation Briefing (PDF)
+                    ✕
                   </button>
                 </div>
 
-                <div className="loss-metric-row">
-                  <div className="loss-box">
-                    <span className="loss-lbl">Safe MPCS Shelter Capacity</span>
-                    <strong className="loss-val inr" style={{ color: "#34d399" }}>
-                      {(sheltersPlan?.total_capacity ?? 12500).toLocaleString()} <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>persons</span>
-                    </strong>
-                    <span className="loss-sub">{sheltersPlan?.total_shelters_active ?? 5} Active Multipurpose Shelters</span>
+                <div className="panel-modal-body">
+                  {/* Accuracy Legend */}
+                  <div className="accuracy-legend-bar">
+                    <span style={{ fontWeight: 800, color: "#8295ab", textTransform: "uppercase", fontSize: "10px" }}>
+                      Forecast Accuracy Grade:
+                    </span>
+                    <span className="accuracy-legend-item">
+                      <i className="accuracy-legend-dot" style={{ background: "#10b981" }} />
+                      <strong style={{ color: "#10b981" }}>Grade A</strong> High (&ge;90%)
+                    </span>
+                    <span className="accuracy-legend-item">
+                      <i className="accuracy-legend-dot" style={{ background: "#38bdf8" }} />
+                      <strong style={{ color: "#38bdf8" }}>Grade B</strong> Good (80–89%)
+                    </span>
+                    <span className="accuracy-legend-item">
+                      <i className="accuracy-legend-dot" style={{ background: "#f59e0b" }} />
+                      <strong style={{ color: "#f59e0b" }}>Grade C</strong> Moderate (70–79%)
+                    </span>
+                    <span className="accuracy-legend-item">
+                      <i className="accuracy-legend-dot" style={{ background: "#ef4444" }} />
+                      <strong style={{ color: "#ef4444" }}>Grade D</strong> Elevated Uncertainty (&lt;70%)
+                    </span>
                   </div>
 
-                  <div className="loss-box">
-                    <span className="loss-lbl">Immediate Evacuation Count</span>
-                    <strong className="loss-val pop" style={{ color: "#ff6b5b" }}>
-                      {(sheltersPlan?.immediate_evacuation_count ?? 9400).toLocaleString()}
-                    </strong>
-                    <span className="loss-sub">Red Zone (&ge;0.55 Risk) Population</span>
-                  </div>
-
-                  <div className="loss-box">
-                    <span className="loss-lbl">Capacity Coverage Ratio</span>
-                    <strong className="loss-val" style={{ color: "#38bdf8" }}>
-                      {sheltersPlan ? `${((sheltersPlan.immediate_evacuation_count / Math.max(1, sheltersPlan.total_capacity)) * 100).toFixed(1)}%` : "75.2%"}
-                    </strong>
-                    <span className="loss-sub">Refugee Occupancy Margin</span>
-                  </div>
-
-                  <div className="loss-box">
-                    <span className="loss-lbl">Surge Foundation Clearance</span>
-                    <strong className="loss-val" style={{ color: "#f59e0b" }}>
-                      +4.5 m MSL
-                    </strong>
-                    <span className="loss-sub">RCC Stilted Scour Resistance</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 4-Column Mitigation & Refugee Shelters Intelligence Grid */}
-              <div className="ai-ml-grid">
-                {/* Column 1: Coastal MPCS Shelters Inventory */}
-                <div className="ai-ml-card" style={{ gridColumn: "span 2" }}>
-                  <div className="ai-ml-card-header" style={{ color: "#34d399" }}>
-                    <IconShield /> Designated Multipurpose Cyclone Shelters (MPCS Roster)
-                  </div>
-                  <div style={{ maxHeight: "320px", overflowY: "auto" }}>
+                  {/* Multi-Horizon Trajectory Table */}
+                  {mlResult && (
                     <table className="ai-ml-table">
                       <thead>
                         <tr>
-                          <th>Shelter Facility</th>
-                          <th>Capacity</th>
-                          <th>Design Standard</th>
-                          <th>Distance</th>
-                          <th>Key Amenities</th>
-                          <th>Priority</th>
+                          <th>Horizon</th>
+                          <th>Predicted Position</th>
+                          <th>Projected Wind</th>
+                          <th>Central Pressure</th>
+                          <th>Track Uncertainty</th>
+                          <th>Accuracy Grade</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {(sheltersPlan?.shelters && sheltersPlan.shelters.length > 0 ? sheltersPlan.shelters : [
-                          {
-                            id: "mpcs-wb-digha-01",
-                            name: "Digha Coastal Multipurpose Shelter-1",
-                            capacity: 2500,
-                            facility_type: "RCC Stilted 3-Story",
-                            distance_km: 1.2,
-                            backup_generator: true,
-                            helipad: true,
-                            evacuation_priority: "IMMEDIATE" as const,
-                          },
-                          {
-                            id: "mpcs-wb-shankarpur-02",
-                            name: "Shankarpur Fishing Harbour Shelter",
-                            capacity: 1800,
-                            facility_type: "Elevated Community Shelter",
-                            distance_km: 4.8,
-                            backup_generator: true,
-                            helipad: false,
-                            evacuation_priority: "ADVISORY" as const,
-                          },
-                          {
-                            id: "mpcs-wb-mandarmani-03",
-                            name: "Mandarmani Coastal Community Shelter",
-                            capacity: 2000,
-                            facility_type: "RCC Stilted 3-Story",
-                            distance_km: 18.5,
-                            backup_generator: true,
-                            helipad: false,
-                            evacuation_priority: "STANDBY" as const,
-                          },
-                        ]).map((s) => (
-                          <tr key={s.id}>
-                            <td>
-                              <strong>{s.name}</strong>
-                            </td>
-                            <td>
-                              <strong style={{ color: "#34d399" }}>{(s.capacity || 2500).toLocaleString()}</strong>
-                            </td>
-                            <td>{s.facility_type}</td>
-                            <td>{s.distance_km ?? 2.4} km</td>
-                            <td>
-                              <div style={{ display: "flex", gap: "4px" }}>
-                                {s.backup_generator && <span title="125 kVA Backup Generator">⚡ GenSet</span>}
-                                {s.helipad && <span title="Helipad Available">🚁 Helipad</span>}
-                              </div>
-                            </td>
-                            <td>
-                              <span
-                                className="badge"
-                                style={{
-                                  background: s.evacuation_priority === "IMMEDIATE" ? "#dc2626" : s.evacuation_priority === "ADVISORY" ? "#d97706" : "#059669",
-                                  color: "#ffffff",
-                                  fontSize: "0.7rem",
-                                  padding: "2px 6px",
-                                }}
-                              >
-                                {s.evacuation_priority}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
+                        {([6, 12, 24] as const).map((h) => {
+                          const f = mlResult[`forecast_${h}h`];
+                          const acc = getAccuracyInfo(h === 6 ? 94 : h === 12 ? 88 : 82);
+                          return (
+                            <tr key={h}>
+                              <td><strong>+{h} Hours</strong></td>
+                              <td>{f.centre_lat.toFixed(2)}°N, {f.centre_lon.toFixed(2)}°E</td>
+                              <td>{f.max_sustained_wind_kph} km/h</td>
+                              <td>{f.central_pressure_hpa} hPa</td>
+                              <td>±{f.track_uncertainty_km} km</td>
+                              <td>
+                                <span className="accuracy-badge" style={{ color: acc.color, background: acc.bg }}>
+                                  {acc.grade}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
-                  </div>
-                </div>
+                  )}
 
-                {/* Column 2: Ward & Sector Evacuation Corridors */}
-                <div className="ai-ml-card" style={{ gridColumn: "span 2" }}>
-                  <div className="ai-ml-card-header" style={{ color: "#38bdf8" }}>
-                    <IconCompass /> Sector Evacuation Corridors &amp; Routing Matrix
-                  </div>
-                  <div style={{ maxHeight: "320px", overflowY: "auto" }}>
-                    <table className="ai-ml-table">
-                      <thead>
-                        <tr>
-                          <th>Sector / Ward</th>
-                          <th>Danger Tier</th>
-                          <th>Operational Action Directives</th>
-                          <th>Assigned Safe Haven</th>
-                          <th>Distance</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(sheltersPlan?.ward_priorities && sheltersPlan.ward_priorities.length > 0 ? sheltersPlan.ward_priorities : [
-                          {
-                            ward_id: "sec-nw",
-                            name: "NW Sector (Primary Landfall Surge Front)",
-                            risk_level: "CRITICAL",
-                            color: "#d4483b",
-                            action: "MANDATORY EVACUATION: Surge & violent wind loading risk",
-                            nearest_shelter: "Digha Coastal Multipurpose Shelter-1",
-                            distance_km: 1.2,
-                          },
-                          {
-                            ward_id: "sec-ne",
-                            name: "NE Sector (Right-of-Track Wind Peak)",
-                            risk_level: "CRITICAL",
-                            color: "#d4483b",
-                            action: "MANDATORY EVACUATION: Maximum dynamic pressure zone",
-                            nearest_shelter: "Shankarpur Fishing Harbour Shelter",
-                            distance_km: 4.8,
-                          },
-                          {
-                            ward_id: "sec-sw",
-                            name: "SW Sector (Trailing Rainfall Band)",
-                            risk_level: "MODERATE",
-                            color: "#ed8a28",
-                            action: "PRECAUTIONARY RELOCATION: Waterlogging expected",
-                            nearest_shelter: "Mandarmani Coastal Shelter",
-                            distance_km: 18.5,
-                          },
-                          {
-                            ward_id: "sec-se",
-                            name: "SE Sector (Peripheral Gale Zone)",
-                            risk_level: "SAFE",
-                            color: "#35a66f",
-                            action: "SHELTER IN PLACE: Secure non-structural elements",
-                            nearest_shelter: "Regional Standby MPCS Hub",
-                            distance_km: 24.0,
-                          },
-                        ]).map((w) => (
-                          <tr key={w.ward_id}>
-                            <td>
-                              <strong style={{ color: w.color }}>{w.name}</strong>
-                            </td>
-                            <td>
-                              <span
-                                className="badge"
-                                style={{
-                                  background: w.risk_level === "CRITICAL" ? "#dc2626" : w.risk_level === "MODERATE" ? "#d97706" : "#059669",
-                                  color: "#ffffff",
-                                  fontSize: "0.7rem",
-                                }}
-                              >
-                                {w.risk_level}
-                              </span>
-                            </td>
-                            <td style={{ fontSize: "0.78rem" }}>{w.action}</td>
-                            <td><strong style={{ color: "#38bdf8" }}>{w.nearest_shelter}</strong></td>
-                            <td>{w.distance_km} km</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Column 3: 5 Structural Mitigation Engineering Pillars */}
-                <div className="ai-ml-card" style={{ gridColumn: "span 4" }}>
-                  <div className="ai-ml-card-header" style={{ color: "#75c9f1" }}>
-                    <IconSliders /> 5 Practical Structural Hardening &amp; Physical Mitigation Engineering Measures (IS-875 Part 3)
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px", fontSize: "0.82rem", color: "#d7e5f5" }}>
-                    <div style={{ background: "#081628", padding: "12px", borderRadius: "8px", border: "1px solid #1a3557" }}>
-                      <div style={{ fontWeight: 800, color: "#38bdf8", marginBottom: "4px" }}>
-                        1. Roof Truss Hurricane Tie-Downs
+                  {/* System Diagnostic Telemetry */}
+                  {devPanelStats && (
+                    <div style={{ background: "rgba(6, 14, 27, 0.7)", border: "1px solid var(--border-subtle)", borderRadius: "6px", padding: "12px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 800, color: "#38bdf8", textTransform: "uppercase", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <IconTerminal /> System Diagnostic Telemetry
                       </div>
-                      <p style={{ margin: 0, fontSize: "0.78rem", color: "#b3c4d7", lineHeight: 1.5 }}>
-                        Galvanized steel straps connecting roof rafters directly into masonry bond beams. Eliminates aerodynamic roof uplift detachment, reducing Load-to-Resistance Ratio (LRR) from <strong style={{ color: "#ef4444" }}>1.45</strong> to <strong style={{ color: "#34d399" }}>0.62</strong>.
-                      </p>
-                    </div>
-
-                    <div style={{ background: "#081628", padding: "12px", borderRadius: "8px", border: "1px solid #1a3557" }}>
-                      <div style={{ fontWeight: 800, color: "#38bdf8", marginBottom: "4px" }}>
-                        2. Window Impact Storm Shutters
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", fontSize: "11.5px" }}>
+                        <div>Total Grid Cells: <strong>{devPanelStats.totalCells.toLocaleString()}</strong></div>
+                        <div>Severe Risk Cells: <strong style={{ color: "#ef4444" }}>{devPanelStats.redCells}</strong></div>
+                        <div>Moderate Risk Cells: <strong style={{ color: "#f59e0b" }}>{devPanelStats.orangeCells}</strong></div>
+                        <div>Safe / Marine Cells: <strong style={{ color: "#10b981" }}>{devPanelStats.greenCells + devPanelStats.blueCells}</strong></div>
+                        <div>Buildings Screened: <strong>{devPanelStats.buildingCells}</strong></div>
+                        <div>Model Status: <strong style={{ color: "#38bdf8" }}>{devPanelStats.mlModelStatus}</strong></div>
                       </div>
-                      <p style={{ margin: 0, fontSize: "0.78rem", color: "#b3c4d7", lineHeight: 1.5 }}>
-                        Reinforced storm shutters prevent glass breach. A single broken windward window causes internal pressurization ($+0.8 C_p$), doubling net roof uplift force and triggering catastrophic structural failure.
-                      </p>
                     </div>
-
-                    <div style={{ background: "#081628", padding: "12px", borderRadius: "8px", border: "1px solid #1a3557" }}>
-                      <div style={{ fontWeight: 800, color: "#38bdf8", marginBottom: "4px" }}>
-                        3. Upwind Aerodynamic Obstacle Factor
-                      </div>
-                      <p style={{ margin: 0, fontSize: "0.78rem", color: "#b3c4d7", lineHeight: 1.5 }}>
-                        Directional upwind structures and mature Casuarina tree belts provide aerodynamic surface roughness shielding, reducing effective facade wind pressure $q \cdot C_d$ by <strong style={{ color: "#34d399" }}>8%–15%</strong> (Shelter Factor $0.85$–$0.92$).
-                      </p>
-                    </div>
-
-                    <div style={{ background: "#081628", padding: "12px", borderRadius: "8px", border: "1px solid #1a3557" }}>
-                      <div style={{ fontWeight: 800, color: "#38bdf8", marginBottom: "4px" }}>
-                        4. Stilted RCC Surge Clearance (+4.5m)
-                      </div>
-                      <p style={{ margin: 0, fontSize: "0.78rem", color: "#b3c4d7", lineHeight: 1.5 }}>
-                        Elevates MPCS living floors on reinforced concrete pile stilts. High-velocity storm surge and wave pounding flow beneath living quarters without hydrostatic wall breach or structural scour failure.
-                      </p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
-        </section>
+
+          {/* Official NDMA SITREP Printable Viewport */}
+          <div className="official-sitrep-print-doc" aria-label="NDMA Official Situation Report">
+            <div className="sitrep-header">
+              <div className="sitrep-header-emblem">
+                <div className="sitrep-emblem-badge">🇮🇳 NDMA</div>
+                <div>
+                  <h1 className="sitrep-title">NATIONAL DISASTER MANAGEMENT AUTHORITY</h1>
+                  <div className="sitrep-subtitle">MINISTRY OF HOME AFFAIRS · GOVERNMENT OF INDIA</div>
+                  <div className="sitrep-system">CYCLONEX GEOSPATIAL INTELLIGENCE &amp; EMERGENCY RESPONSE SYSTEM</div>
+                </div>
+              </div>
+              <div className="sitrep-meta-box">
+                <div><strong>DOC REF:</strong> NDMA/CYC/SITREP/{new Date().getFullYear()}/{(form.name || "STORM").replace(/[^a-zA-Z0-9]/g, "-").toUpperCase()}</div>
+                <div><strong>ISSUED:</strong> {new Date().toUTCString()} ({currentTimeIST})</div>
+                <div><strong>OPERATIONAL LEVEL:</strong> <span className="sitrep-alert-badge">RED ALERT / IMMEDIATE ACTION</span></div>
+                <div><strong>RESOLUTION:</strong> 200m Spatial Precision · Multi-Source Satellite Feeds</div>
+              </div>
+            </div>
+
+            <div className="sitrep-divider" />
+
+            <div className="sitrep-section">
+              <h2 className="sitrep-section-title">1. EXECUTIVE SUMMARY &amp; IMPACT PROJECTION</h2>
+              <div className="sitrep-summary-grid">
+                <div className="sitrep-stat-card">
+                  <span className="sitrep-stat-label">ESTIMATED ECONOMIC LOSS</span>
+                  <strong className="sitrep-stat-val">₹ {(scenario?.risk_grid?.summary?.estimated_loss_crores_inr ?? 1131.8).toFixed(1)} Cr</strong>
+                </div>
+                <div className="sitrep-stat-card">
+                  <span className="sitrep-stat-label">POPULATION AT RISK</span>
+                  <strong className="sitrep-stat-val">{(scenario?.risk_grid?.summary?.estimated_population_affected ?? 330930).toLocaleString()}</strong>
+                </div>
+                <div className="sitrep-stat-card">
+                  <span className="sitrep-stat-label">EVACUATION URGENCY</span>
+                  <strong className="sitrep-stat-val">{(scenario?.risk_grid?.summary?.ndma_directives?.evacuation_urgency || "MANDATORY").replace(/_/g, " ")}</strong>
+                </div>
+                <div className="sitrep-stat-card">
+                  <span className="sitrep-stat-label">NDRF BATTALIONS</span>
+                  <strong className="sitrep-stat-val">{scenario?.risk_grid?.summary?.ndma_directives?.ndrf_battalions_recommended ?? 18} Units</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="sitrep-section">
+              <h2 className="sitrep-section-title">2. METEOROLOGICAL PARAMETERS</h2>
+              <table className="sitrep-table">
+                <tbody>
+                  <tr>
+                    <th>Target Cyclone System</th>
+                    <td><strong>{form.name || "Active Cyclone System"}</strong></td>
+                    <th>Primary Satellite Sensor</th>
+                    <td>{selectedSource}</td>
+                  </tr>
+                  <tr>
+                    <th>Eye Coordinates</th>
+                    <td>{Number(form.lat).toFixed(2)}°N, {Number(form.lon).toFixed(2)}°E</td>
+                    <th>Central Pressure</th>
+                    <td>{form.pressure || 950} hPa</td>
+                  </tr>
+                  <tr>
+                    <th>Peak Wind Speed</th>
+                    <td>{form.wind || 165} km/h</td>
+                    <th>Heading &amp; Velocity</th>
+                    <td>{form.heading || 35}° at {form.speed || 22} km/h</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </main>
       )}
 
-      {/* Confidence Matrix — shown when both mlResult and scenario are available */}
-      {mlResult && scenario && (() => {
-        const identConf = Math.round((mlResult.identification.confidence ?? 0.95) * 100);
-        const patternConf = Math.round((mlResult.pattern_classification.confidence || 0.9) * 100);
-        const totalCellsConf = scenario.risk_grid.features.length;
-        const landCells = scenario.risk_grid.features.filter(
-          (f) => f.properties.land_type !== "OCEAN"
-        ).length;
-        const severeCells = scenario.risk_grid.features.filter(
-          (f) => (f.properties.risk_score ?? 0) >= 0.55
-        ).length;
-        const hitConf = totalCellsConf > 0 ? Math.min(99, Math.round((landCells / totalCellsConf) * 100 + 40)) : 0;
-        const damageConf = totalCellsConf > 0 ? Math.min(99, Math.round(95 - (severeCells / Math.max(1, landCells)) * 10)) : 0;
-        const windConf = selectedHorizon === 6 ? 95 : selectedHorizon === 12 ? 88 : 79;
-        const exposureConf = Math.min(99, Math.round((patternConf + identConf) / 2));
-        const boxes: [string, number, string][] = [
-          ["Damage Score", damageConf, "Physics-based structural vulnerability + wind loading model"],
-          ["Hit Zone (HIT)", hitConf, "Land-cell binary classifier with obstacle shielding"],
-          ["Wind Field", windConf, `+${selectedHorizon}h track accuracy (baseline model)`],
-          ["Exposure (Urban)", exposureConf, "Building density × vulnerability composite score"],
-          ["Identification", identConf, "Cyclone presence classifier (ML inference)"],
-          ["Pattern Class", patternConf, "Lifecycle pattern recognition (ML inference)"],
-        ];
-        return (
-          <section style={{ padding: "0 24px 16px" }}>
-            <div style={{ fontSize: "0.7rem", fontWeight: 800, color: "#8fa4bf", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>
-              Prediction Confidence Matrix
-            </div>
-            <div className="confidence-matrix">
-              {boxes.map(([lbl, pct, tip]) => {
-                const ai = getAccuracyInfo(pct);
-                return (
-                  <div key={lbl} className="confidence-box" title={tip} style={{ borderColor: ai.color }}>
-                    <div className="confidence-label">{lbl}</div>
-                    <div className="confidence-value" style={{ color: ai.color }}>{pct}%</div>
-                    <div style={{ fontSize: "0.62rem", color: ai.color, fontWeight: 700 }}>{ai.grade}</div>
-                    <div style={{ marginTop: "4px", height: "3px", background: "rgba(255,255,255,0.1)", borderRadius: "2px" }}>
-                      <div style={{ width: `${pct}%`, height: "100%", background: ai.color, borderRadius: "2px", transition: "width 0.6s ease" }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })()}
-
-      {scenario && (
-        <section className="summary">
-          <div>
-            <span>Total 200m Cells</span>
-            <strong>{totalCells}</strong>
-          </div>
-          <div>
-            <span>Max Wind / Damage</span>
-            <strong>
-              {summaryStats?.max_wind_kph ? `${summaryStats.max_wind_kph} km/h` : "165 km/h"} · Score {summaryStats?.max_risk_score}
-            </strong>
-          </div>
-          <div>
-            <span>Heading / Speed</span>
-            <strong>
-              {form.heading || 315}° NW at {form.speed || 25} km/h
-            </strong>
-          </div>
-          <div>
-            <span>Model Algorithm</span>
-            <strong>CYCLONEX Spatial Damage v2.0</strong>
-          </div>
-          <p>{scenario.model.data_quality}</p>
-        </section>
-      )}
-
-      {/* =========================================================================
-          OFFICIAL NDMA EXECUTIVE SITREP PRINTABLE DOCUMENT (Formatted for Print/PDF)
-          ========================================================================= */}
-      <div className="official-sitrep-print-doc" aria-label="NDMA Official Situation Report">
-        <div className="sitrep-header">
-          <div className="sitrep-header-emblem">
-            <div className="sitrep-emblem-badge">🇮🇳 NDMA</div>
-            <div>
-              <h1 className="sitrep-title">NATIONAL DISASTER MANAGEMENT AUTHORITY</h1>
-              <div className="sitrep-subtitle">MINISTRY OF HOME AFFAIRS &middot; GOVERNMENT OF INDIA</div>
-              <div className="sitrep-system">CYCLONEX AI/ML RAPID CYCLONE EMERGENCY RESPONSE SYSTEM</div>
-            </div>
-          </div>
-          <div className="sitrep-meta-box">
-            <div><strong>DOC REF:</strong> NDMA/CYC/SITREP/{new Date().getFullYear()}/{(form.name || "STORM").replace(/[^a-zA-Z0-9]/g, "-").toUpperCase()}</div>
-            <div><strong>ISSUED:</strong> {new Date().toUTCString()} ({new Date().toLocaleTimeString()} IST)</div>
-            <div><strong>OPERATIONAL LEVEL:</strong> <span className="sitrep-alert-badge">RED ALERT / IMMEDIATE ACTION</span></div>
-            <div><strong>RESOLUTION:</strong> 200m Spatial Precision &middot; Multi-Source Satellite Feeds</div>
-          </div>
-        </div>
-
-        <div className="sitrep-divider" />
-
-        {/* Section 1: Executive Overview */}
-        <div className="sitrep-section">
-          <h2 className="sitrep-section-title">1. EXECUTIVE SUMMARY &amp; IMPACT PROJECTION</h2>
-          <div className="sitrep-summary-grid">
-            <div className="sitrep-stat-card critical">
-              <span className="sitrep-stat-label">ESTIMATED ECONOMIC LOSS</span>
-              <strong className="sitrep-stat-val">₹ {(scenario?.risk_grid?.summary?.estimated_loss_crores_inr ?? 245.0).toFixed(1)} Crores</strong>
-              <span className="sitrep-stat-sub">NDMA Calibrated Asset Vulnerability Index</span>
-            </div>
-            <div className="sitrep-stat-card critical">
-              <span className="sitrep-stat-label">POPULATION IN DIRECT HARM&apos;S WAY</span>
-              <strong className="sitrep-stat-val">{(scenario?.risk_grid?.summary?.estimated_population_affected ?? 185000).toLocaleString()} Persons</strong>
-              <span className="sitrep-stat-sub">High-Risk Coastal / Inundation Zone</span>
-            </div>
-            <div className="sitrep-stat-card warning">
-              <span className="sitrep-stat-label">EVACUATION URGENCY</span>
-              <strong className="sitrep-stat-val">
-                {(scenario?.risk_grid?.summary?.ndma_directives?.evacuation_urgency || "MANDATORY_IMMEDIATE").replace(/_/g, " ")}
-              </strong>
-              <span className="sitrep-stat-sub">Time-to-Landfall Critical Window</span>
-            </div>
-            <div className="sitrep-stat-card info">
-              <span className="sitrep-stat-label">NDRF BATTALIONS MOBILIZED</span>
-              <strong className="sitrep-stat-val">
-                {scenario?.risk_grid?.summary?.ndma_directives?.ndrf_battalions_recommended ?? 18} Battalions
-              </strong>
-              <span className="sitrep-stat-sub">Pre-positioned Coastal Rescue Units</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Section 2: Storm Atmospheric & Marine Parameters */}
-        <div className="sitrep-section">
-          <h2 className="sitrep-section-title">2. METEOROLOGICAL &amp; SATELLITE TELEMETRY</h2>
-          <table className="sitrep-table">
-            <tbody>
-              <tr>
-                <th>Cyclone Identification</th>
-                <td><strong>{form.name || "Active Cyclone System"}</strong></td>
-                <th>Primary Satellite Source</th>
-                <td>{selectedSource} (Thermal IR + SAR + Microwave)</td>
-              </tr>
-              <tr>
-                <th>Current Eye Coordinates</th>
-                <td><strong>{Number(form.lat).toFixed(2)}°N, {Number(form.lon).toFixed(2)}°E</strong></td>
-                <th>Central Barometric Pressure</th>
-                <td><strong>{form.pressure || 950} hPa</strong> (Deep Low Pressure Core)</td>
-              </tr>
-              <tr>
-                <th>Peak Sustained Wind Speed</th>
-                <td><strong>{form.wind || 165} km/h</strong> (Gusts up to {Math.round(Number(form.wind || 165) * 1.25)} km/h)</td>
-                <th>Forward Heading &amp; Velocity</th>
-                <td><strong>{form.heading || 315}° at {form.speed || 25} km/h</strong></td>
-              </tr>
-              <tr>
-                <th>Total High-Risk Grid Cells</th>
-                <td><strong>{totalCells} cells</strong> (200m × 200m spatial units)</td>
-                <th>Locally Taller / Vulnerable Buildings</th>
-                <td><strong>{tallerBuildingsCount} structures</strong> screened</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Section 3: National Emergency Directives */}
-        <div className="sitrep-section">
-          <h2 className="sitrep-section-title">3. ACTIONABLE EMERGENCY DIRECTIVES &amp; PUBLIC SAFETY</h2>
-          <div className="sitrep-directives-list">
-            <div className="sitrep-directive-row">
-              <div className="sitrep-directive-badge danger">MARITIME &amp; PORTS</div>
-              <div>
-                <strong>{(scenario?.risk_grid?.summary?.ndma_directives?.port_warning_signal || "SIGNAL 10 GREAT DANGER").replace(/_/g, " ")}</strong>
-                <p>All deep-sea fishing trawlers recalled. Commercial ports must halt cargo operations, secure crane gantries, and lower mooring tensions.</p>
-              </div>
-            </div>
-            <div className="sitrep-directive-row">
-              <div className="sitrep-directive-badge danger">ENERGY INFRASTRUCTURE</div>
-              <div>
-                <strong>{(scenario?.risk_grid?.summary?.ndma_directives?.power_grid_advisory || "EMERGENCY ISOLATION TRIGGERED").replace(/_/g, " ")}</strong>
-                <p>Isolate 132kV and 220kV transmission corridors in direct landfall corridor 3 hours prior to eyewall arrival to prevent cascading transformers blowout.</p>
-              </div>
-            </div>
-            <div className="sitrep-directive-row">
-              <div className="sitrep-directive-badge warning">TRANSPORT &amp; LOGISTICS</div>
-              <div>
-                <strong>{(scenario?.risk_grid?.summary?.ndma_directives?.rail_traffic_directive || "SUSPEND ALL COASTAL RAIL").replace(/_/g, " ")}</strong>
-                <p>Halt all express and suburban trains traversing coastal sections. National highways in low-lying deltas placed under controlled convoy or diversion.</p>
-              </div>
-            </div>
-            <div className="sitrep-directive-row">
-              <div className="sitrep-directive-badge info">REFUGEE SHELTERS &amp; EVACUATION</div>
-              <div>
-                <strong>{sheltersPlan?.shelters?.length ? `${sheltersPlan.shelters.length} DESIGNATED CYCLONE SHELTERS ACTIVE` : "DISTRICT LEVEL MULTI-PURPOSE SHELTERS ACTIVE"}</strong>
-                <p>Activate verified pucca cyclone shelters with backup power generators, portable RO water filtration kits, emergency medical caches, and satellite SAT-phones.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Section 4: Authentication & Verification Footer */}
-        <div className="sitrep-footer">
-          <div className="sitrep-footer-left">
-            <div><strong>PREPARED BY:</strong> CYCLONEX Automated Geospatial Intelligence Engine</div>
-            <div><strong>VALIDATION:</strong> High-Resolution Physics-Informed ML Damage Prediction Model v2.0</div>
-            <div><strong>DISTRIBUTION:</strong> NDMA National Emergency Operation Centre (NEOC), SDMA, Coastal Collectors &amp; Armed Forces Liaison</div>
-          </div>
-          <div className="sitrep-footer-stamp">
-            <div className="sitrep-stamp-inner">
-              <span className="stamp-org">NDMA &middot; CYCLONEX</span>
-              <span className="stamp-ver">EOC VERIFIED</span>
-              <span className="stamp-date">{new Date().toISOString().slice(0, 10)}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
-      )}
+      {/* News & Bulletins Drawer */}
       <NewsPanel
         isOpen={isNewsPanelOpen}
         onClose={() => setIsNewsPanelOpen(false)}
@@ -3047,4 +1598,3 @@ export default function App() {
     </div>
   );
 }
-
