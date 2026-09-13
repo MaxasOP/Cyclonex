@@ -111,7 +111,7 @@ export default function ForecastPage({
 
   // Playback timer loop
   useEffect(() => {
-    let timer: NodeJS.Timeout | null = null;
+    let timer: ReturnType<typeof setInterval> | null = null;
     if (isPlaying) {
       timer = setInterval(() => {
         setSelectedHorizon(prev => {
