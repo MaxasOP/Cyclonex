@@ -693,6 +693,7 @@ export interface GeminiAdvisory {
   urgency_level: string;
   executive_summary: string;
   early_warning_advisory_dispatch: string;
+  multilingual_advisories?: Record<string, string>;
   infrastructure_hardening_plan: Array<{ domain: string; action: string; deadline: string; priority: string }>;
   reasoning_steps: string[];
 }
