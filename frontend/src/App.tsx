@@ -7,6 +7,7 @@ import HistoricalAnalyticsPage from "./pages/HistoricalAnalyticsPage";
 import DataSourcesPage from "./pages/DataSourcesPage";
 import DocumentationPage from "./pages/DocumentationPage";
 import BulletinsPage from "./pages/BulletinsPage";
+import ResilienceForecasterPage from "./pages/ResilienceForecasterPage";
 import {
   createScenario,
   fetchBuildings,
@@ -70,6 +71,7 @@ import {
   Compass,
   Users,
   Building2,
+  ShieldAlert,
 } from "lucide-react";
 
 export type ActiveSection =
@@ -93,7 +95,8 @@ export type AppPage =
   | "analytics"
   | "data-sources"
   | "docs"
-  | "bulletins";
+  | "bulletins"
+  | "resilience";
 
 function getPageFromHash(): AppPage {
   const hash = window.location.hash.replace("#", "").toLowerCase();
@@ -105,6 +108,7 @@ function getPageFromHash(): AppPage {
   if (hash === "data-sources" || hash === "datasources" || hash === "api") return "data-sources";
   if (hash === "docs" || hash === "documentation") return "docs";
   if (hash === "bulletins" || hash === "sitrep") return "bulletins";
+  if (hash === "resilience" || hash === "infrastructure" || hash === "challenge05") return "resilience";
   return "app";
 }
 
@@ -492,6 +496,7 @@ export default function App() {
     { id: "data-sources", label: "Data Sources", icon: Radio, tooltip: "Data Feeds & Telemetry" },
     { id: "docs", label: "Docs", icon: BookOpen, tooltip: "Methodology & NDMA SOPs" },
     { id: "bulletins", label: "Bulletins", icon: Bell, tooltip: "Port Warnings & SITREP" },
+    { id: "resilience", label: "Resilience", icon: ShieldAlert, tooltip: "Challenge 05: Infrastructure Vulnerability & GEE" },
   ];
 
   const NAV_RAIL_ITEMS: Array<{
@@ -955,7 +960,8 @@ export default function App() {
                currentView === "evacuation" ? "Shelters & Evacuation" :
                currentView === "analytics" ? "Historical Analytics" :
                currentView === "data-sources" ? "Data Feeds & Telemetry" :
-               currentView === "docs" ? "Methodology & NDMA SOPs" : "Port Warnings & Bulletins"}
+               currentView === "docs" ? "Methodology & NDMA SOPs" :
+               currentView === "resilience" ? "Track-Based Infrastructure Vulnerability Forecaster (Challenge 05)" : "Port Warnings & Bulletins"}
             </span>
             <span className="sih-student-badge" style={{ marginLeft: "12px" }}>
               SIH 2024 · Problem Statement ID: 1736
@@ -1138,6 +1144,11 @@ export default function App() {
           speedKph={Number(form.speed) || 22}
           mlResult={mlResult}
           onNavigateToCommand={() => navigateTo("app")}
+        />
+      ) : currentView === "resilience" ? (
+        <ResilienceForecasterPage
+          onNavigateToCommand={() => navigateTo("app")}
+          onNavigateToAILab={() => navigateTo("ai-lab")}
         />
       ) : (
         <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden" }}>

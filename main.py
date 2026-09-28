@@ -998,4 +998,66 @@ def api_get_ai_models_status():
     return ai_service.get_models_status()
 
 
+# =========================================================
+# CHALLENGE 05: TRACK-BASED INFRASTRUCTURE VULNERABILITY FORECASTER
+# (Theme: Resilience · GEE Feeds · Gemini 3.7 Flash Multimodal Reasoning)
+# =========================================================
+from gemini_resilience_service import resilience_service
+
+
+class ResilienceAssessmentRequest(BaseModel):
+    storm_name: str = "Cyclone Nisarga"
+    eye_lat: float = Field(default=18.35, ge=-90.0, le=90.0)
+    eye_lon: float = Field(default=72.98, ge=-180.0, le=180.0)
+    max_wind_kmh: float = Field(default=120.0, ge=0.0, le=350.0)
+    central_pressure_hpa: float = Field(default=984.0, ge=800.0, le=1050.0)
+    heading_deg: float = Field(default=315.0, ge=0.0, le=360.0)
+    forward_speed_kmh: float = Field(default=22.0, ge=0.0, le=120.0)
+
+
+@app.post("/api/resilience/assess")
+def api_assess_resilience_post(req: ResilienceAssessmentRequest):
+    """Execute complete Challenge 05 Resilience Assessment combining GEE, Surge, Infrastructure and Gemini 3.7 Flash."""
+    try:
+        return resilience_service.evaluate_resilience_assessment(
+            storm_name=req.storm_name,
+            eye_lat=req.eye_lat,
+            eye_lon=req.eye_lon,
+            max_wind_kmh=req.max_wind_kmh,
+            central_pressure_hpa=req.central_pressure_hpa,
+            heading_deg=req.heading_deg,
+            forward_speed_kmh=req.forward_speed_kmh,
+        )
+    except Exception as e:
+        print(f"[RESILIENCE SERVICE ERROR] {e}", flush=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/resilience/assess")
+def api_assess_resilience_get(
+    storm_name: str = "Cyclone Nisarga",
+    eye_lat: float = 18.35,
+    eye_lon: float = 72.98,
+    max_wind_kmh: float = 120.0,
+    central_pressure_hpa: float = 984.0,
+    heading_deg: float = 315.0,
+    forward_speed_kmh: float = 22.0,
+):
+    """GET endpoint for Challenge 05 Resilience Assessment."""
+    try:
+        return resilience_service.evaluate_resilience_assessment(
+            storm_name=storm_name,
+            eye_lat=eye_lat,
+            eye_lon=eye_lon,
+            max_wind_kmh=max_wind_kmh,
+            central_pressure_hpa=central_pressure_hpa,
+            heading_deg=heading_deg,
+            forward_speed_kmh=forward_speed_kmh,
+        )
+    except Exception as e:
+        print(f"[RESILIENCE SERVICE ERROR] {e}", flush=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
 

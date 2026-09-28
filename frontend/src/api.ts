@@ -646,4 +646,110 @@ export async function fetchAIModelsStatus(): Promise<Record<string, unknown> | n
   }
 }
 
+// =========================================================
+// CHALLENGE 05: TRACK-BASED INFRASTRUCTURE VULNERABILITY FORECASTER
+// =========================================================
+
+export interface InfrastructureItem {
+  id: string;
+  name: string;
+  category: "POWER_GRID" | "ARTERIAL_ROAD" | "MEDICAL_SHELTER" | string;
+  lat: number;
+  lon: number;
+  elevation_m: number;
+  design_wind_tolerance_kmh: number;
+  flood_threshold_m: number;
+  status: "OPERATIONAL" | "ELEVATED_VULNERABILITY" | "CRITICAL_RISK" | "SHUTDOWN_RECOMMENDED" | string;
+  details: Record<string, any>;
+}
+
+export interface GEELayer {
+  id: string;
+  name: string;
+  gee_collection: string;
+  resolution: string;
+  frequency: string;
+  status: string;
+  utility: string;
+}
+
+export interface ParametricInsuranceData {
+  policy_name: string;
+  insured_entity: string;
+  total_coverage_inr_cr: number;
+  wind_trigger: { threshold_kmh: number; recorded_kmh: number; status: string };
+  surge_trigger: { threshold_m: number; recorded_m: number; status: string };
+  total_payout_percentage: number;
+  disbursed_liquidity_inr_cr: number;
+  payout_status: string;
+  time_to_settlement: string;
+  allocated_funds_use: Array<{ item: string; allocation_cr: number }>;
+}
+
+export interface GeminiAdvisory {
+  source: string;
+  confidence_score: number;
+  resilience_rating: string;
+  urgency_level: string;
+  executive_summary: string;
+  early_warning_advisory_dispatch: string;
+  infrastructure_hardening_plan: Array<{ domain: string; action: string; deadline: string; priority: string }>;
+  reasoning_steps: string[];
+}
+
+export interface ResilienceAssessmentResult {
+  status: string;
+  challenge_meta: { challenge_id: string; challenge_title: string; theme: string; domain: string };
+  storm_telemetry: {
+    name: string;
+    eye_lat: number;
+    eye_lon: number;
+    max_wind_kmh: number;
+    central_pressure_hpa: number;
+    heading_deg: number;
+    forward_speed_kmh: number;
+  };
+  surge_and_runoff: {
+    peak_surge_height_m: number;
+    inverted_barometer_component_m: number;
+    wind_stress_component_m: number;
+    inundation_reach_km: number;
+    projected_24h_rainfall_mm: number;
+    flash_flood_risk_level: string;
+    primary_drainage_pathways: Array<{ name: string; capacity_utilization: string; risk: string }>;
+  };
+  critical_infrastructure: InfrastructureItem[];
+  parametric_insurance: ParametricInsuranceData;
+  gee_satellite_feeds: GEELayer[];
+  gemini_multimodal_advisory: GeminiAdvisory;
+}
+
+export async function fetchResilienceAssessment(params?: {
+  storm_name?: string;
+  eye_lat?: number;
+  eye_lon?: number;
+  max_wind_kmh?: number;
+  central_pressure_hpa?: number;
+  heading_deg?: number;
+  forward_speed_kmh?: number;
+}): Promise<ResilienceAssessmentResult | null> {
+  try {
+    const q = new URLSearchParams();
+    if (params?.storm_name) q.set("storm_name", params.storm_name);
+    if (params?.eye_lat != null) q.set("eye_lat", String(params.eye_lat));
+    if (params?.eye_lon != null) q.set("eye_lon", String(params.eye_lon));
+    if (params?.max_wind_kmh != null) q.set("max_wind_kmh", String(params.max_wind_kmh));
+    if (params?.central_pressure_hpa != null) q.set("central_pressure_hpa", String(params.central_pressure_hpa));
+    if (params?.heading_deg != null) q.set("heading_deg", String(params.heading_deg));
+    if (params?.forward_speed_kmh != null) q.set("forward_speed_kmh", String(params.forward_speed_kmh));
+
+    const response = await fetch(`${apiBaseUrl}/api/resilience/assess?${q.toString()}`);
+    if (!response.ok) return null;
+    return response.json() as Promise<ResilienceAssessmentResult>;
+  } catch {
+    return null;
+  }
+}
+
+
 
