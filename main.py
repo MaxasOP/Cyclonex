@@ -1013,6 +1013,9 @@ class ResilienceAssessmentRequest(BaseModel):
     central_pressure_hpa: float = Field(default=984.0, ge=800.0, le=1050.0)
     heading_deg: float = Field(default=315.0, ge=0.0, le=360.0)
     forward_speed_kmh: float = Field(default=22.0, ge=0.0, le=120.0)
+    simulate_failure_gemini: bool = False
+    simulate_failure_gee: bool = False
+    simulate_failure_weather: bool = False
 
 
 @app.post("/api/resilience/assess")
@@ -1027,6 +1030,9 @@ def api_assess_resilience_post(req: ResilienceAssessmentRequest):
             central_pressure_hpa=req.central_pressure_hpa,
             heading_deg=req.heading_deg,
             forward_speed_kmh=req.forward_speed_kmh,
+            simulate_failure_gemini=req.simulate_failure_gemini,
+            simulate_failure_gee=req.simulate_failure_gee,
+            simulate_failure_weather=req.simulate_failure_weather,
         )
     except Exception as e:
         print(f"[RESILIENCE SERVICE ERROR] {e}", flush=True)
@@ -1035,13 +1041,16 @@ def api_assess_resilience_post(req: ResilienceAssessmentRequest):
 
 @app.get("/api/resilience/assess")
 def api_assess_resilience_get(
-    storm_name: str = "Cyclone Nisarga",
-    eye_lat: float = 18.35,
-    eye_lon: float = 72.98,
-    max_wind_kmh: float = 120.0,
-    central_pressure_hpa: float = 984.0,
-    heading_deg: float = 315.0,
-    forward_speed_kmh: float = 22.0,
+    storm_name: str = "Cyclone Dana",
+    eye_lat: float = 20.4,
+    eye_lon: float = 86.8,
+    max_wind_kmh: float = 125.0,
+    central_pressure_hpa: float = 980.0,
+    heading_deg: float = 320.0,
+    forward_speed_kmh: float = 18.0,
+    simulate_failure_gemini: bool = False,
+    simulate_failure_gee: bool = False,
+    simulate_failure_weather: bool = False,
 ):
     """GET endpoint for Challenge 05 Resilience Assessment."""
     try:
@@ -1053,6 +1062,9 @@ def api_assess_resilience_get(
             central_pressure_hpa=central_pressure_hpa,
             heading_deg=heading_deg,
             forward_speed_kmh=forward_speed_kmh,
+            simulate_failure_gemini=simulate_failure_gemini,
+            simulate_failure_gee=simulate_failure_gee,
+            simulate_failure_weather=simulate_failure_weather,
         )
     except Exception as e:
         print(f"[RESILIENCE SERVICE ERROR] {e}", flush=True)

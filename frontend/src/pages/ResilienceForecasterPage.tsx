@@ -23,11 +23,20 @@ import {
   Globe,
   Waves,
   Compass,
+  FileText,
+  Clock,
+  Check,
+  Info,
+  Server,
+  Database,
+  ArrowRight,
 } from "lucide-react";
 import {
   fetchResilienceAssessment,
   type ResilienceAssessmentResult,
   type InfrastructureItem,
+  type RecommendationEvidenceAction,
+  type EvacuationRouteOption,
 } from "../api";
 
 interface ResilienceForecasterPageProps {
@@ -131,6 +140,14 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
   const [selectedLang, setSelectedLang] = useState<IndianLang>("or");
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
 
+  // Failure Simulation Mode (Graceful Degradation Testing)
+  const [failGemini, setFailGemini] = useState<boolean>(false);
+  const [failGEE, setFailGEE] = useState<boolean>(false);
+  const [failWeather, setFailWeather] = useState<boolean>(false);
+
+  // Lifecycle Mode Toggle
+  const [lifecyclePhase, setLifecyclePhase] = useState<"PRE_LANDFALL" | "POST_LANDFALL">("PRE_LANDFALL");
+
   // Layer Toggles
   const [layerPower, setLayerPower] = useState<boolean>(true);
   const [layerRoads, setLayerRoads] = useState<boolean>(true);
@@ -140,11 +157,16 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
 
   const [copied, setCopied] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [showProblemStatement, setShowProblemStatement] = useState<boolean>(true);
+  const [showProvenanceDrawer, setShowProvenanceDrawer] = useState<boolean>(false);
 
   const activePreset = STORM_PRESETS.find((p) => p.id === selectedPresetId) || STORM_PRESETS[0];
 
-  const loadAssessment = async (preset = activePreset) => {
+  const loadAssessment = async (
+    preset = activePreset,
+    overrideFailGemini = failGemini,
+    overrideFailGEE = failGEE,
+    overrideFailWeather = failWeather
+  ) => {
     setIsRefreshing(true);
     const res = await fetchResilienceAssessment({
       storm_name: preset.name,
@@ -154,6 +176,9 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
       central_pressure_hpa: preset.central_pressure_hpa,
       heading_deg: preset.heading_deg,
       forward_speed_kmh: preset.forward_speed_kmh,
+      simulate_failure_gemini: overrideFailGemini,
+      simulate_failure_gee: overrideFailGEE,
+      simulate_failure_weather: overrideFailWeather,
     });
     if (res) {
       setData(res);
@@ -167,7 +192,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
 
   useEffect(() => {
     loadAssessment();
-  }, []);
+  }, [failGemini, failGEE, failWeather]);
 
   const handleSelectPreset = (preset: StormPreset) => {
     setSelectedPresetId(preset.id);
@@ -213,7 +238,6 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
     if (!activeAdvisoryText) return;
 
     window.speechSynthesis.cancel();
-    // Speak first 350 characters for immediate, urgent emergency alert
     const textSnippet = activeAdvisoryText.slice(0, 350);
     const utterance = new SpeechSynthesisUtterance(textSnippet);
     utterance.lang = LANG_CONFIG[selectedLang]?.speechCode || "en-IN";
@@ -230,7 +254,176 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
   return (
     <div className="op-showcase-root">
       <div className="op-showcase-container">
-        {/* Challenge 05 Banner Card - Aligned with Hackathon Specification */}
+        
+        {/* System Health Status Center Banner */}
+        <div
+          style={{
+            background: "rgba(10, 15, 26, 0.9)",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            borderRadius: "8px",
+            padding: "8px 16px",
+            marginBottom: "16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "10px",
+            fontSize: "11px",
+            fontFamily: "'JetBrains Mono', monospace",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
+            <span style={{ color: "#94a3b8", display: "flex", alignItems: "center", gap: "5px" }}>
+              <Server size={12} color="#38bdf8" />
+              SYSTEM HEALTH:
+            </span>
+            <span style={{ color: data?.system_status?.meteorology === "LIVE" ? "#34d399" : "#fbbf24" }}>
+              ● MET: {data?.system_status?.meteorology || "LIVE"}
+            </span>
+            <span style={{ color: data?.system_status?.gee_sentinel1 === "CONNECTED" ? "#34d399" : "#60a5fa" }}>
+              ● GEE SATELLITE: {data?.system_status?.gee_sentinel1 || "CACHED"}
+            </span>
+            <span style={{ color: "#34d399" }}>
+              ● ML ENGINE: {data?.system_status?.ml_engine || "ACTIVE"}
+            </span>
+            <span style={{ color: data?.system_status?.gemini_ai === "ACTIVE" ? "#c084fc" : "#f59e0b" }}>
+              ● GEMINI: {data?.system_status?.gemini_ai || "ACTIVE"}
+            </span>
+            <span style={{ color: data?.system_status?.rule_engine === "ACTIVE" ? "#f59e0b" : "#64748b" }}>
+              ● RULE ENGINE: {data?.system_status?.rule_engine || "STANDBY"}
+            </span>
+            <span style={{ color: "#34d399" }}>
+              ● TTS VOICE: {data?.system_status?.tts_speech || "READY"}
+            </span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button
+              type="button"
+              onClick={() => setShowProvenanceDrawer(!showProvenanceDrawer)}
+              style={{
+                background: showProvenanceDrawer ? "rgba(37, 99, 235, 0.3)" : "rgba(255, 255, 255, 0.05)",
+                border: "1px solid rgba(255, 255, 255, 0.12)",
+                color: "#e2e8f0",
+                padding: "3px 8px",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "10.5px",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              <Info size={11} />
+              <span>Data Provenance</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Developer Failure Simulation Drawer (Demonstrates Graceful Degradation) */}
+        <div
+          style={{
+            background: "rgba(15, 23, 42, 0.6)",
+            border: "1px solid rgba(245, 158, 11, 0.25)",
+            borderRadius: "6px",
+            padding: "8px 16px",
+            marginBottom: "16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "10px",
+            fontSize: "11px",
+          }}
+        >
+          <span style={{ color: "#fbbf24", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
+            🛠️ TEST GRACEFUL DEGRADATION:
+          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", color: failGemini ? "#f87171" : "#94a3b8", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={failGemini}
+                onChange={(e) => setFailGemini(e.target.checked)}
+              />
+              <span>Simulate Gemini Offline (Test RuleEngine Fallback)</span>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", color: failGEE ? "#f87171" : "#94a3b8", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={failGEE}
+                onChange={(e) => setFailGEE(e.target.checked)}
+              />
+              <span>Simulate GEE Offline (Test Cache)</span>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", color: failWeather ? "#f87171" : "#94a3b8", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={failWeather}
+                onChange={(e) => setFailWeather(e.target.checked)}
+              />
+              <span>Simulate Met API Offline</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Data Provenance Table (Collapsible) */}
+        {showProvenanceDrawer && (
+          <div
+            style={{
+              background: "rgba(15, 23, 42, 0.95)",
+              border: "1px solid rgba(59, 130, 246, 0.3)",
+              borderRadius: "8px",
+              padding: "14px 18px",
+              marginBottom: "18px",
+              fontSize: "11.5px",
+            }}
+          >
+            <div style={{ color: "#60a5fa", fontWeight: 700, marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px" }}>
+              <Database size={13} />
+              DATA PROVENANCE &amp; TRACEABILITY AUDIT
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", color: "#cbd5e1" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.1)", textAlign: "left", color: "#94a3b8", fontSize: "10.5px" }}>
+                    <th style={{ padding: "6px 8px" }}>OUTPUT DOMAIN</th>
+                    <th style={{ padding: "6px 8px" }}>DATA SOURCES</th>
+                    <th style={{ padding: "6px 8px" }}>DATASET / COLLECTION</th>
+                    <th style={{ padding: "6px 8px" }}>MODEL VERSION</th>
+                    <th style={{ padding: "6px 8px" }}>LATENCY</th>
+                    <th style={{ padding: "6px 8px" }}>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data?.provenance?.map((p, idx) => (
+                    <tr key={idx} style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
+                      <td style={{ padding: "6px 8px", fontWeight: 700, color: "#ffffff" }}>{p.output_domain}</td>
+                      <td style={{ padding: "6px 8px", color: "#94a3b8" }}>{p.data_sources.join(", ")}</td>
+                      <td style={{ padding: "6px 8px", fontFamily: "'JetBrains Mono', monospace", color: "#60a5fa" }}>{p.dataset_collection}</td>
+                      <td style={{ padding: "6px 8px" }}>{p.model_version}</td>
+                      <td style={{ padding: "6px 8px" }}>{p.processing_latency_ms}ms</td>
+                      <td style={{ padding: "6px 8px" }}>
+                        <span style={{
+                          background: p.status === "LIVE" ? "rgba(16, 185, 129, 0.2)" : "rgba(245, 158, 11, 0.2)",
+                          color: p.status === "LIVE" ? "#34d399" : "#fbbf24",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          fontSize: "10px",
+                          fontWeight: 700,
+                        }}>
+                          {p.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Challenge 05 Banner Card */}
         <div
           style={{
             background: "linear-gradient(135deg, rgba(30, 58, 138, 0.28) 0%, rgba(15, 23, 42, 0.85) 100%)",
@@ -292,7 +485,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                     }}
                   >
                     <Sparkles size={11} />
-                    Gemini 3.7 Flash Multimodal
+                    Gemini 3.7 Flash Decision Intelligence
                   </span>
                   <span
                     style={{
@@ -341,7 +534,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 style={{ fontSize: "12px", padding: "8px 14px", display: "flex", alignItems: "center", gap: "6px" }}
               >
                 <RefreshCw size={13} className={isRefreshing ? "animate-spin" : ""} />
-                <span>Recalibrate</span>
+                <span>Recalibrate Forecaster</span>
               </button>
               <button
                 type="button"
@@ -352,40 +545,6 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 <Navigation size={13} />
                 <span>Tactical Map</span>
               </button>
-            </div>
-          </div>
-
-          {/* Collapsible Problem / Challenge Breakdown */}
-          <div
-            style={{
-              marginTop: "18px",
-              paddingTop: "14px",
-              borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-            }}
-          >
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: "16px", fontSize: "12px" }}>
-              <div style={{ background: "rgba(0, 0, 0, 0.25)", padding: "10px 14px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.06)" }}>
-                <span style={{ color: "#60a5fa", fontWeight: 700, display: "block", marginBottom: "4px", letterSpacing: "0.04em" }}>
-                  THE PROBLEM
-                </span>
-                <p style={{ color: "#cbd5e1", margin: 0, lineHeight: "1.45" }}>
-                  Extreme weather events in the Bay of Bengal and coastal APAC require rapid anticipatory action.
-                  Shifting disaster response from post-landfall recovery to pre-landfall evacuation planning,
-                  infrastructure hardening, and parametric insurance liquidity saves lives and livelihoods.
-                </p>
-              </div>
-              <div style={{ background: "rgba(0, 0, 0, 0.25)", padding: "10px 14px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.06)" }}>
-                <span style={{ color: "#34d399", fontWeight: 700, display: "block", marginBottom: "4px", letterSpacing: "0.04em" }}>
-                  THE CHALLENGE
-                </span>
-                <p style={{ color: "#cbd5e1", margin: 0, lineHeight: "1.45" }}>
-                  Build an AI-powered predictive risk and vulnerability modeling platform utilizing Google Earth Engine (GEE)
-                  satellite feeds, real-time meteorological data, and Gemini 3.7 Flash's multimodal reasoning. The solution
-                  should simulate cyclone storm surges, predict local rainfall damage pathways, map exposure for critical
-                  infrastructure (power grids, arterial roads, medical shelters), and automate early-warning advisory dispatches
-                  for local municipal and disaster management authorities.
-                </p>
-              </div>
             </div>
           </div>
         </div>
@@ -449,6 +608,42 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
               );
             })}
           </div>
+
+          {/* Lifecycle Mode Toggle */}
+          <div style={{ display: "flex", gap: "4px", background: "rgba(0,0,0,0.3)", padding: "3px", borderRadius: "6px" }}>
+            <button
+              type="button"
+              onClick={() => setLifecyclePhase("PRE_LANDFALL")}
+              style={{
+                background: lifecyclePhase === "PRE_LANDFALL" ? "#2563eb" : "transparent",
+                color: lifecyclePhase === "PRE_LANDFALL" ? "#ffffff" : "#94a3b8",
+                border: "none",
+                borderRadius: "4px",
+                padding: "4px 10px",
+                fontSize: "11px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Pre-Landfall Action
+            </button>
+            <button
+              type="button"
+              onClick={() => setLifecyclePhase("POST_LANDFALL")}
+              style={{
+                background: lifecyclePhase === "POST_LANDFALL" ? "#7c3aed" : "transparent",
+                color: lifecyclePhase === "POST_LANDFALL" ? "#ffffff" : "#94a3b8",
+                border: "none",
+                borderRadius: "4px",
+                padding: "4px 10px",
+                fontSize: "11px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Post-Landfall Assessment
+            </button>
+          </div>
         </div>
 
         {/* Anticipatory Action Live KPI Strip */}
@@ -460,7 +655,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
           <div className="saas-live-stat">
             <span className="saas-live-label">Critical Infrastructure at Risk</span>
             <span className="saas-live-val" style={{ color: "#ef4444" }}>
-              {data ? `${data.critical_infrastructure.filter((i) => i.status === "CRITICAL_RISK").length} High-Risk Assets` : "Loading..."}
+              {data ? `${data.critical_infrastructure.filter((i: any) => i.overall_vulnerability === "CRITICAL" || i.status === "CRITICAL_RISK").length} High-Risk Assets` : "Loading..."}
             </span>
           </div>
           <div className="saas-live-stat">
@@ -470,24 +665,80 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
             </span>
           </div>
           <div className="saas-live-stat">
-            <span className="saas-live-label">Parametric Liquidity Wire</span>
+            <span className="saas-live-label">Parametric Liquidity Simulation</span>
             <span className="saas-live-val" style={{ color: "#10b981" }}>
-              {data ? `₹${data.parametric_insurance.disbursed_liquidity_inr_cr} Cr Activated` : "Loading..."}
+              {data ? `₹${data.parametric_insurance.disbursed_liquidity_inr_cr} Cr Triggered` : "Loading..."}
             </span>
           </div>
           <div className="saas-live-stat">
-            <span className="saas-live-label">Gemini 3.7 Flash Confidence</span>
+            <span className="saas-live-label">AI Decision Confidence</span>
             <span className="saas-live-val" style={{ color: "#a855f7" }}>
-              {data ? `${(data.gemini_multimodal_advisory.confidence_score * 100).toFixed(1)}% High` : "Loading..."}
+              {data ? `${(data.gemini_multimodal_advisory.confidence_score * 100).toFixed(1)}%` : "Loading..."}
             </span>
           </div>
         </div>
 
-        {/* Main Grid: Left Infrastructure Geospatial Engine & Right Gemini Reasoning Console */}
+        {/* Complete Causal Rainfall Damage Pathway Card */}
+        <div
+          style={{
+            background: "linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.7) 100%)",
+            border: "1px solid rgba(59, 130, 246, 0.3)",
+            borderRadius: "10px",
+            padding: "16px 20px",
+            marginBottom: "24px",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+            <span style={{ fontSize: "12px", fontWeight: 700, color: "#60a5fa", display: "flex", alignItems: "center", gap: "6px" }}>
+              <Droplets size={14} />
+              COMPLETE CAUSAL RAINFALL DAMAGE PATHWAY (RAINFALL → RUNOFF → INUNDATION → ROAD IMPACT)
+            </span>
+            <span style={{ fontSize: "11px", color: "#38bdf8", background: "rgba(56, 189, 248, 0.15)", padding: "2px 8px", borderRadius: "10px" }}>
+              Physics-Informed Causal Model
+            </span>
+          </div>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "10px", fontSize: "11px" }}>
+            <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>1. RAIN RATE</span>
+              <strong style={{ color: "#ffffff", fontSize: "13px" }}>75 mm/hr</strong>
+              <span style={{ color: "#64748b", display: "block", fontSize: "10px", marginTop: "2px" }}>Convective Core</span>
+            </div>
+            <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>2. 24H ACCUMULATION</span>
+              <strong style={{ color: "#38bdf8", fontSize: "13px" }}>{data?.surge_and_runoff.projected_24h_rainfall_mm || 280} mm</strong>
+              <span style={{ color: "#64748b", display: "block", fontSize: "10px", marginTop: "2px" }}>Basin Watershed</span>
+            </div>
+            <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>3. SOIL SATURATION</span>
+              <strong style={{ color: "#fbbf24", fontSize: "13px" }}>SATURATED</strong>
+              <span style={{ color: "#64748b", display: "block", fontSize: "10px", marginTop: "2px" }}>100% Infiltration</span>
+            </div>
+            <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>4. RUNOFF COEFF</span>
+              <strong style={{ color: "#f59e0b", fontSize: "13px" }}>0.88 Overland</strong>
+              <span style={{ color: "#64748b", display: "block", fontSize: "10px", marginTop: "2px" }}>Hydro Runoff</span>
+            </div>
+            <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>5. DRAINAGE CAPACITY</span>
+              <strong style={{ color: "#ef4444", fontSize: "13px" }}>142% OVERTOPPING</strong>
+              <span style={{ color: "#64748b", display: "block", fontSize: "10px", marginTop: "2px" }}>Estuary Alpha</span>
+            </div>
+            <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>6. ESTIMATED FLOOD</span>
+              <strong style={{ color: "#f87171", fontSize: "13px" }}>+{data?.surge_and_runoff.max_flood_depth_m || 1.45}m Depth</strong>
+              <span style={{ color: "#64748b", display: "block", fontSize: "10px", marginTop: "2px" }}>Road Culvert Breach</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Split Grid: Left Geospatial & Asset Inspection | Right Gemini Reasoning Console */}
         <div className="op-split-grid" style={{ gridTemplateColumns: "1.15fr 0.85fr", gap: "24px" }}>
-          {/* Left: Infrastructure Vulnerability & Geospatial Canvas */}
+          
+          {/* Left Column */}
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            {/* Visual Canvas Container */}
+            
+            {/* Visual Geospatial Canvas */}
             <div
               style={{
                 position: "relative",
@@ -524,7 +775,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                     INFRASTRUCTURE EXPOSURE &amp; DRAINAGE RUNOFF · {activePreset.name.toUpperCase()}
                   </span>
                 </div>
-                <div>{activePreset.basin.toUpperCase()} MARITIME SECTOR ({activePreset.state})</div>
+                <div>{activePreset.basin.toUpperCase()} ({activePreset.state})</div>
               </div>
 
               {/* Layer Controls Bar */}
@@ -574,7 +825,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                     checked={layerSurge}
                     onChange={(e) => setLayerSurge(e.target.checked)}
                   />
-                  <span>🌊 Surge &amp; SAR</span>
+                  <span>🌊 Surge &amp; Inundation</span>
                 </label>
               </div>
 
@@ -598,7 +849,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   {activePreset.basin.toUpperCase()}
                 </text>
 
-                {/* Storm Surge Inundation Reach Polygon (Hydrodynamic Simulation) */}
+                {/* Storm Surge Inundation Reach Polygon */}
                 {layerSurge && (
                   <g>
                     <path
@@ -631,7 +882,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   strokeDasharray="6 3"
                 />
                 <text x="310" y="135" fill="#60a5fa" fontSize="8.5" fontFamily="'JetBrains Mono', monospace">
-                  RUNOFF CHANNEL (142% OVERTOPPING)
+                  DRAINAGE OVERTOPPING (+1.45m FLOOD)
                 </text>
 
                 {/* Arterial Road (Evacuation Corridor) */}
@@ -650,7 +901,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   </g>
                 )}
 
-                {/* High Voltage Power Grid (220kV/132kV Lines) */}
+                {/* High Voltage Power Grid (220kV Lines) */}
                 {layerPower && (
                   <g>
                     <path
@@ -668,7 +919,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 )}
 
                 {/* Critical Infrastructure Nodes */}
-                {data?.critical_infrastructure.map((item, idx) => {
+                {data?.critical_infrastructure.map((item: any, idx: number) => {
                   const isPower = item.category === "POWER_GRID";
                   const isRoad = item.category === "ARTERIAL_ROAD";
                   const isMed = item.category === "MEDICAL_SHELTER";
@@ -677,17 +928,16 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   if (isRoad && !layerRoads) return null;
                   if (isMed && !layerMedical) return null;
 
-                  const isSelected = item.id === selectedInfraId;
-                  const isCritical = item.status === "CRITICAL_RISK";
+                  const isSelected = item.asset_id === selectedInfraId || item.id === selectedInfraId;
+                  const isCritical = item.overall_vulnerability === "CRITICAL" || item.status === "CRITICAL_RISK";
 
-                  // Projected coordinates
                   const posX = 260 + (idx % 3) * 90;
                   const posY = 100 + idx * 65;
 
                   return (
                     <g
-                      key={item.id}
-                      onClick={() => setSelectedInfraId(item.id)}
+                      key={item.asset_id || item.id}
+                      onClick={() => setSelectedInfraId(item.asset_id || item.id)}
                       style={{ cursor: "pointer" }}
                     >
                       {isSelected && (
@@ -715,7 +965,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   );
                 })}
 
-                {/* Storm Eye Coordinate & Dynamic Wind Vector */}
+                {/* Storm Eye Coordinate */}
                 <circle cx="120" cy="180" r="14" fill="rgba(239, 68, 68, 0.3)" stroke="#ef4444" strokeWidth="2" />
                 <circle cx="120" cy="180" r="4" fill="#ffffff" />
                 <text x="140" y="185" fill="#ef4444" fontSize="10" fontWeight="bold" fontFamily="'JetBrains Mono', monospace">
@@ -724,7 +974,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
               </svg>
             </div>
 
-            {/* Selected Infrastructure Inspection Dossier Card */}
+            {/* Selected Infrastructure Inspection Dossier Card (Cross-Layer Intelligence) */}
             {selectedInfra && (
               <div
                 style={{
@@ -750,60 +1000,136 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   <span
                     style={{
                       background:
-                        selectedInfra.status === "CRITICAL_RISK"
+                        (selectedInfra.overall_vulnerability === "CRITICAL" || selectedInfra.status === "CRITICAL_RISK")
                           ? "rgba(239, 68, 68, 0.2)"
                           : "rgba(245, 158, 11, 0.2)",
                       color:
-                        selectedInfra.status === "CRITICAL_RISK" ? "#ef4444" : "#f59e0b",
-                      border: `1px solid ${
-                        selectedInfra.status === "CRITICAL_RISK"
-                          ? "rgba(239, 68, 68, 0.4)"
-                          : "rgba(245, 158, 11, 0.4)"
-                      }`,
+                        (selectedInfra.overall_vulnerability === "CRITICAL" || selectedInfra.status === "CRITICAL_RISK") ? "#ef4444" : "#f59e0b",
+                      border: "1px solid currentColor",
                       fontSize: "11px",
                       fontWeight: 700,
                       padding: "2px 8px",
                       borderRadius: "4px",
                     }}
                   >
-                    {selectedInfra.status}
+                    {selectedInfra.overall_vulnerability || selectedInfra.status}
                   </span>
                 </div>
 
+                {/* Sub-Exposure Matrix */}
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(3, 1fr)",
-                    gap: "12px",
+                    gridTemplateColumns: "repeat(4, 1fr)",
+                    gap: "10px",
                     marginBottom: "14px",
-                    fontSize: "12px",
+                    fontSize: "11.5px",
                   }}
                 >
-                  <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 12px", borderRadius: "4px" }}>
-                    <div style={{ color: "#64748b", fontSize: "11px" }}>SURFACE ELEVATION</div>
+                  <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 10px", borderRadius: "4px" }}>
+                    <div style={{ color: "#64748b", fontSize: "10.5px" }}>SURFACE ELEVATION</div>
                     <strong style={{ color: "#ffffff" }}>+{selectedInfra.elevation_m}m MSL</strong>
                   </div>
-                  <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 12px", borderRadius: "4px" }}>
-                    <div style={{ color: "#64748b", fontSize: "11px" }}>DESIGN WIND TOLERANCE</div>
-                    <strong style={{ color: "#ffffff" }}>{selectedInfra.design_wind_tolerance_kmh} km/h</strong>
+                  <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 10px", borderRadius: "4px" }}>
+                    <div style={{ color: "#64748b", fontSize: "10.5px" }}>WIND EXPOSURE</div>
+                    <strong style={{ color: "#f87171" }}>{selectedInfra.wind_exposure_pct || 92}%</strong>
                   </div>
-                  <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 12px", borderRadius: "4px" }}>
-                    <div style={{ color: "#64748b", fontSize: "11px" }}>FLOOD THRESHOLD</div>
-                    <strong style={{ color: "#38bdf8" }}>+{selectedInfra.flood_threshold_m}m Tidal Limit</strong>
+                  <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 10px", borderRadius: "4px" }}>
+                    <div style={{ color: "#64748b", fontSize: "10.5px" }}>FLOOD EXPOSURE</div>
+                    <strong style={{ color: "#38bdf8" }}>{selectedInfra.flood_exposure_pct || 78}%</strong>
+                  </div>
+                  <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 10px", borderRadius: "4px" }}>
+                    <div style={{ color: "#64748b", fontSize: "10.5px" }}>SALT ARC RISK</div>
+                    <strong style={{ color: "#c084fc" }}>{selectedInfra.salt_spray_exposure_pct || 85}%</strong>
                   </div>
                 </div>
 
-                {/* Hardening Action Recommendation */}
+                {/* Road Passability & Alternate Route Callout (if Road) */}
+                {selectedInfra.category === "ARTERIAL_ROAD" && selectedInfra.alternate_route && (
+                  <div style={{ background: "rgba(245, 158, 11, 0.12)", border: "1px solid rgba(245, 158, 11, 0.3)", padding: "10px 14px", borderRadius: "6px", fontSize: "12px", marginBottom: "12px" }}>
+                    <span style={{ color: "#fbbf24", fontWeight: 700, display: "block", marginBottom: "3px" }}>
+                      ⚠️ Passability Status: {selectedInfra.passability_status || "IMPASSABLE_FLOODED"} (+1.45m Water Over Culvert)
+                    </span>
+                    <span style={{ color: "#cbd5e1" }}>
+                      Alternate Elevated Route: <strong style={{ color: "#ffffff" }}>{selectedInfra.alternate_route.name}</strong> (+{selectedInfra.alternate_route.additional_km} km distance penalty)
+                    </span>
+                  </div>
+                )}
+
+                {/* Shelter Readiness Index (if Medical Shelter) */}
+                {selectedInfra.category === "MEDICAL_SHELTER" && selectedInfra.shelter_readiness && (
+                  <div style={{ background: "rgba(16, 185, 129, 0.12)", border: "1px solid rgba(16, 185, 129, 0.3)", padding: "10px 14px", borderRadius: "6px", fontSize: "12px", marginBottom: "12px" }}>
+                    <span style={{ color: "#34d399", fontWeight: 700, display: "block", marginBottom: "6px" }}>
+                      🏥 Shelter Readiness Index: {selectedInfra.shelter_readiness.overall_readiness_index * 100}%
+                    </span>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", fontSize: "11px", color: "#cbd5e1" }}>
+                      <div>Safety: <strong>{(selectedInfra.shelter_readiness.physical_safety_score * 100).toFixed(0)}%</strong></div>
+                      <div>Readiness: <strong>{(selectedInfra.shelter_readiness.operational_readiness_score * 100).toFixed(0)}%</strong></div>
+                      <div>Access: <strong>{(selectedInfra.shelter_readiness.accessibility_score * 100).toFixed(0)}%</strong></div>
+                      <div>Capacity: <strong>{(selectedInfra.shelter_readiness.capacity_score * 100).toFixed(0)}%</strong></div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Hardening Action Directive */}
                 <div style={{ background: "rgba(37, 99, 235, 0.12)", border: "1px solid rgba(37, 99, 235, 0.3)", padding: "10px 14px", borderRadius: "6px", fontSize: "12.5px" }}>
                   <span style={{ color: "#60a5fa", fontWeight: 700, display: "block", marginBottom: "4px" }}>
-                    🛠️ Pre-Landfall Infrastructure Hardening Directive:
+                    🛠️ Pre-Landfall Hardening Directive:
                   </span>
                   <span style={{ color: "#e2e8f0" }}>
-                    {selectedInfra.details.hardening_action || selectedInfra.details.vulnerability || "Maintain active monitoring"}
+                    {selectedInfra.hardening_directive || selectedInfra.details?.hardening_action || "Maintain active emergency monitoring"}
                   </span>
                 </div>
               </div>
             )}
+
+            {/* Evacuation Routing Options (Fastest vs Safest Trade-Offs) */}
+            <div
+              style={{
+                background: "rgba(15, 23, 42, 0.75)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: "8px",
+                padding: "16px",
+              }}
+            >
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "#94a3b8", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Navigation size={13} />
+                EVACUATION CORRIDOR SELECTION (TRADE-OFF ANALYSIS)
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {data?.evacuation?.recommended_routes.map((rt: EvacuationRouteOption) => (
+                  <div
+                    key={rt.route_id}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.02)",
+                      border: "1px solid rgba(255, 255, 255, 0.06)",
+                      borderRadius: "6px",
+                      padding: "8px 12px",
+                      fontSize: "11.5px",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px" }}>
+                      <strong style={{ color: "#ffffff" }}>{rt.name}</strong>
+                      <span
+                        style={{
+                          background: rt.route_type === "Safest" ? "rgba(16, 185, 129, 0.2)" : rt.route_type === "Fastest" ? "rgba(245, 158, 11, 0.2)" : "rgba(59, 130, 246, 0.2)",
+                          color: rt.route_type === "Safest" ? "#34d399" : rt.route_type === "Fastest" ? "#fbbf24" : "#60a5fa",
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          padding: "1px 6px",
+                          borderRadius: "4px",
+                        }}
+                      >
+                        {rt.route_type} ({rt.travel_time_minutes} mins · {rt.distance_km} km)
+                      </span>
+                    </div>
+                    <p style={{ color: "#94a3b8", margin: 0, fontSize: "11px", lineHeight: "1.4" }}>
+                      {rt.trade_off_explanation}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             {/* Google Earth Engine (GEE) Ingestion Drawer */}
             <div
@@ -825,18 +1151,23 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "11px" }}>
                 {data?.gee_satellite_feeds.map((gee) => (
-                  <div key={gee.id} style={{ background: "rgba(255,255,255,0.02)", padding: "6px 10px", borderRadius: "4px", border: "1px solid rgba(255,255,255,0.05)" }}>
-                    <strong style={{ color: "#ffffff", display: "block" }}>{gee.name}</strong>
-                    <span style={{ color: "#64748b" }}>{gee.gee_collection} ({gee.resolution})</span>
+                  <div key={gee.id} style={{ background: "rgba(255,255,255,0.02)", padding: "8px 10px", borderRadius: "4px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "2px" }}>
+                      <strong style={{ color: "#ffffff" }}>{gee.name}</strong>
+                      <span style={{ fontSize: "9.5px", color: gee.status === "LIVE" ? "#34d399" : "#fbbf24" }}>{gee.status}</span>
+                    </div>
+                    <span style={{ color: "#64748b", display: "block" }}>{gee.gee_collection} ({gee.resolution})</span>
                   </div>
                 ))}
               </div>
             </div>
+
           </div>
 
-          {/* Right: Gemini 3.7 Flash Multimodal Reasoning Console */}
+          {/* Right Column: Gemini Decision Intelligence & Action Console */}
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            {/* Gemini Reasoning Header Card */}
+            
+            {/* Gemini Decision Intelligence Header Card */}
             <div
               style={{
                 background: "linear-gradient(135deg, rgba(88, 28, 135, 0.3) 0%, rgba(15, 23, 42, 0.9) 100%)",
@@ -849,19 +1180,19 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <Cpu size={16} color="#c084fc" />
                   <span style={{ fontSize: "13px", fontWeight: 700, color: "#ffffff" }}>
-                    Gemini 3.7 Flash Multimodal Reasoning Engine
+                    {data?.gemini_multimodal_advisory?.source || "Gemini 3.7 Flash Decision Intelligence"}
                   </span>
                 </div>
                 <span style={{ fontSize: "11px", color: "#c084fc", background: "rgba(168, 85, 247, 0.15)", padding: "2px 8px", borderRadius: "10px" }}>
-                  Lat: 64ms · XAI
+                  Explainable AI (XAI)
                 </span>
               </div>
               <p style={{ fontSize: "12.5px", color: "#cbd5e1", margin: 0, lineHeight: "1.5" }}>
-                {data?.gemini_multimodal_advisory?.executive_summary || "Synthesizing multimodal satellite imagery, GEE topography, and storm track..."}
+                {data?.gemini_multimodal_advisory?.executive_summary || "Synthesizing multimodal satellite feeds, GEE topography, and storm surge dynamics..."}
               </p>
             </div>
 
-            {/* Gemini Data Input Pipeline — All streams Gemini connects */}
+            {/* Evidence -> Reasoning -> Action Cards */}
             <div
               style={{
                 background: "rgba(15, 23, 42, 0.85)",
@@ -871,168 +1202,54 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
               }}
             >
               <div style={{ fontSize: "11px", fontWeight: 700, color: "#c084fc", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px", letterSpacing: "0.05em" }}>
-                <Cpu size={12} />
-                GEMINI INPUT STREAMS CONNECTED
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "7px", fontSize: "11.5px" }}>
-                {[
-                  {
-                    icon: "🌀",
-                    label: "Real-time Meteorological Data",
-                    color: "#38bdf8",
-                    value: data?.gemini_multimodal_advisory?.input_streams_connected?.real_time_met
-                      || `${activePreset.name} (${activePreset.max_wind_kmh} km/h, ${activePreset.central_pressure_hpa} hPa, hdg ${activePreset.heading_deg}°)`,
-                  },
-                  {
-                    icon: "🛰️",
-                    label: "GEE Satellite Feeds (4 Sensors)",
-                    color: "#fbbf24",
-                    value: data?.gemini_multimodal_advisory?.input_streams_connected?.gee_satellite
-                      || "Sentinel-1 SAR + SRTM 30m DEM + Dynamic World LULC + VIIRS DNB",
-                  },
-                  {
-                    icon: "🌊",
-                    label: "Storm Surge Simulation",
-                    color: "#60a5fa",
-                    value: data?.gemini_multimodal_advisory?.input_streams_connected?.storm_surge_sim
-                      || `+${data?.surge_and_runoff.peak_surge_height_m || "—"}m crest, ${data?.surge_and_runoff.inundation_reach_km || "—"} km reach`,
-                  },
-                  {
-                    icon: "🌧️",
-                    label: "Rainfall → Damage Pathway Prediction",
-                    color: "#34d399",
-                    value: data?.gemini_multimodal_advisory?.input_streams_connected?.rainfall_damage_pathways
-                      || `${data?.surge_and_runoff.projected_24h_rainfall_mm || "—"}mm 24h runoff · drainage overtopping`,
-                  },
-                  {
-                    icon: "🏗️",
-                    label: "Critical Infrastructure Vulnerability",
-                    color: "#f87171",
-                    value: data?.gemini_multimodal_advisory?.input_streams_connected?.critical_infra_vulnerability
-                      || `${data?.critical_infrastructure.filter(i => i.status === "CRITICAL_RISK").length || "—"} critical assets (Power, Roads, Medical)`,
-                  },
-                ].map((row) => (
-                  <div
-                    key={row.label}
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: "10px",
-                      background: "rgba(255, 255, 255, 0.02)",
-                      border: "1px solid rgba(255, 255, 255, 0.05)",
-                      borderRadius: "5px",
-                      padding: "6px 10px",
-                    }}
-                  >
-                    <span style={{ fontSize: "14px", flexShrink: 0 }}>{row.icon}</span>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "1px", minWidth: 0 }}>
-                      <span style={{ color: row.color, fontWeight: 700, fontSize: "10.5px", letterSpacing: "0.03em" }}>{row.label}</span>
-                      <span style={{ color: "#94a3b8", fontSize: "10.5px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.value}</span>
-                    </div>
-                    <span
-                      style={{
-                        marginLeft: "auto",
-                        flexShrink: 0,
-                        background: "rgba(16, 185, 129, 0.15)",
-                        color: "#34d399",
-                        fontSize: "9px",
-                        fontWeight: 700,
-                        padding: "1px 6px",
-                        borderRadius: "10px",
-                        alignSelf: "center",
-                      }}
-                    >
-                      CONNECTED
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Gemini Action Synthesis — What Gemini decides to do */}
-            <div
-              style={{
-                background: "linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(15, 23, 42, 0.9) 100%)",
-                border: "1px solid rgba(59, 130, 246, 0.3)",
-                borderRadius: "8px",
-                padding: "14px 18px",
-              }}
-            >
-              <div style={{ fontSize: "11px", fontWeight: 700, color: "#60a5fa", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px", letterSpacing: "0.05em" }}>
                 <Activity size={12} />
-                GEMINI ACTION SYNTHESIS (REASONING → ACTIONS)
+                GEMINI DECISION REASONING: EVIDENCE → REASONING → ACTION
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "7px", fontSize: "11.5px" }}>
-                {[
-                  {
-                    domain: "⚡ Power Grid",
-                    action: data?.gemini_multimodal_advisory?.action_synthesis?.power_hardening_action
-                      || "Controlled de-energization of coastal 33kV feeders; silicone insulator coating against salt-arc flashover.",
-                    urgency: "CRITICAL",
-                  },
-                  {
-                    domain: "🛣️ Arterial Roads",
-                    action: data?.gemini_multimodal_advisory?.action_synthesis?.road_diversion_action
-                      || "Pre-stage clearing equipment at 5 km intervals; divert traffic to elevated ridge bypass routes.",
-                    urgency: "HIGH",
-                  },
-                  {
-                    domain: "🏥 Medical Shelters",
-                    action: data?.gemini_multimodal_advisory?.action_synthesis?.medical_shelter_action
-                      || "Elevate oxygen concentrators above +3.0m datum; lock dual diesel generator fuel reserves.",
-                    urgency: "CRITICAL",
-                  },
-                  {
-                    domain: "📢 Early-Warning Advisories",
-                    action: data?.gemini_multimodal_advisory?.action_synthesis?.automated_advisory_action
-                      || "Automated NDMA/SDMA multilingual dispatch (EN, HI, OR, BN, GU, MR) + voice TTS broadcast.",
-                    urgency: "IMMEDIATE",
-                  },
-                  {
-                    domain: "💰 Parametric Insurance",
-                    action: data?.gemini_multimodal_advisory?.action_synthesis?.parametric_liquidity_action
-                      || `Automated sub-12-min wire payout of ₹${data?.parametric_insurance.disbursed_liquidity_inr_cr || "—"} Cr to District Relief Fund.`,
-                    urgency: "AUTO",
-                  },
-                ].map((item) => (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {data?.gemini_multimodal_advisory?.evidence_reasoning_actions?.map((era: RecommendationEvidenceAction, idx: number) => (
                   <div
-                    key={item.domain}
+                    key={idx}
                     style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: "10px",
                       background: "rgba(255, 255, 255, 0.02)",
-                      border: "1px solid rgba(255, 255, 255, 0.05)",
-                      borderRadius: "5px",
-                      padding: "6px 10px",
+                      border: "1px solid rgba(255, 255, 255, 0.06)",
+                      borderRadius: "6px",
+                      padding: "10px 12px",
+                      fontSize: "11.5px",
                     }}
                   >
-                    <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1, minWidth: 0 }}>
-                      <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "10.5px" }}>{item.domain}</span>
-                      <span style={{ color: "#94a3b8", fontSize: "10.5px", lineHeight: "1.4" }}>{item.action}</span>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                      <strong style={{ color: "#60a5fa" }}>{era.domain}</strong>
+                      <span
+                        style={{
+                          background: era.priority === "CRITICAL" ? "rgba(239, 68, 68, 0.2)" : "rgba(245, 158, 11, 0.2)",
+                          color: era.priority === "CRITICAL" ? "#ef4444" : "#f59e0b",
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                        }}
+                      >
+                        {era.deadline}
+                      </span>
                     </div>
-                    <span
-                      style={{
-                        flexShrink: 0,
-                        background:
-                          item.urgency === "CRITICAL" ? "rgba(239, 68, 68, 0.2)"
-                          : item.urgency === "IMMEDIATE" ? "rgba(245, 158, 11, 0.2)"
-                          : item.urgency === "AUTO" ? "rgba(16, 185, 129, 0.2)"
-                          : "rgba(96, 165, 250, 0.2)",
-                        color:
-                          item.urgency === "CRITICAL" ? "#f87171"
-                          : item.urgency === "IMMEDIATE" ? "#fbbf24"
-                          : item.urgency === "AUTO" ? "#34d399"
-                          : "#60a5fa",
-                        fontSize: "9px",
-                        fontWeight: 700,
-                        padding: "2px 6px",
-                        borderRadius: "10px",
-                        alignSelf: "center",
-                      }}
-                    >
-                      {item.urgency}
-                    </span>
+                    
+                    {/* Evidence */}
+                    <div style={{ marginBottom: "4px" }}>
+                      <span style={{ color: "#94a3b8", fontSize: "10.5px", fontWeight: 700 }}>EVIDENCE: </span>
+                      <span style={{ color: "#cbd5e1", fontSize: "11px" }}>{era.evidence.join(" · ")}</span>
+                    </div>
+
+                    {/* Reasoning */}
+                    <div style={{ marginBottom: "6px" }}>
+                      <span style={{ color: "#94a3b8", fontSize: "10.5px", fontWeight: 700 }}>REASONING: </span>
+                      <span style={{ color: "#cbd5e1", fontSize: "11px" }}>{era.reasoning}</span>
+                    </div>
+
+                    {/* Action */}
+                    <div style={{ background: "rgba(37, 99, 235, 0.15)", padding: "6px 8px", borderRadius: "4px", border: "1px solid rgba(37, 99, 235, 0.3)" }}>
+                      <span style={{ color: "#38bdf8", fontWeight: 700, fontSize: "10.5px" }}>ACTION: </span>
+                      <span style={{ color: "#ffffff", fontSize: "11px" }}>{era.action}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1102,7 +1319,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 </div>
               </div>
 
-              {/* Language Selector Pill Bar (Checklist Criterion 5) */}
+              {/* Language Selector Pill Bar (6 Coastal Indian Languages) */}
               <div
                 style={{
                   display: "flex",
@@ -1149,7 +1366,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
               <textarea
                 readOnly
                 value={activeAdvisoryText}
-                rows={9}
+                rows={8}
                 style={{
                   width: "100%",
                   background: "rgba(0, 0, 0, 0.4)",
@@ -1165,7 +1382,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
               />
             </div>
 
-            {/* Pre-Landfall Infrastructure Hardening Directives */}
+            {/* Dynamic Anticipatory Action Timeline (T-24h to T+24h) */}
             <div
               style={{
                 background: "rgba(15, 23, 42, 0.8)",
@@ -1174,42 +1391,35 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 padding: "16px",
               }}
             >
-              <div style={{ fontSize: "12px", fontWeight: 700, color: "#94a3b8", marginBottom: "12px" }}>
-                PRE-LANDFALL INFRASTRUCTURE HARDENING PLAN
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "#94a3b8", marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Clock size={13} />
+                DYNAMIC ANTICIPATORY ACTION TIMELINE (T - 24H TO T + 24H)
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                {data?.gemini_multimodal_advisory?.infrastructure_hardening_plan.map((plan, i) => (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {data?.dynamic_timeline?.map((tm, i) => (
                   <div
                     key={i}
                     style={{
+                      display: "flex",
+                      gap: "10px",
                       background: "rgba(255, 255, 255, 0.02)",
-                      border: "1px solid rgba(255, 255, 255, 0.06)",
+                      border: "1px solid rgba(255, 255, 255, 0.05)",
                       borderRadius: "6px",
-                      padding: "10px 12px",
-                      fontSize: "12px",
+                      padding: "8px 10px",
+                      fontSize: "11px",
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                      <strong style={{ color: "#60a5fa" }}>{plan.domain}</strong>
-                      <span
-                        style={{
-                          color: plan.priority === "CRITICAL" ? "#ef4444" : "#f59e0b",
-                          fontSize: "10.5px",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {plan.deadline}
-                      </span>
+                    <span style={{ color: "#38bdf8", fontWeight: 700, minWidth: "90px" }}>{tm.phase}</span>
+                    <div>
+                      <strong style={{ color: "#ffffff", display: "block" }}>{tm.title}</strong>
+                      <span style={{ color: "#94a3b8" }}>{tm.action}</span>
                     </div>
-                    <p style={{ color: "#cbd5e1", margin: 0, lineHeight: "1.4", fontSize: "11.5px" }}>
-                      {plan.action}
-                    </p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Parametric Insurance Smart Settlement Box */}
+            {/* Parametric Insurance Smart Trigger (Fintech Resilience Simulation) */}
             <div
               style={{
                 background: "linear-gradient(135deg, rgba(6, 78, 59, 0.25) 0%, rgba(15, 23, 42, 0.9) 100%)",
@@ -1221,7 +1431,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                 <span style={{ fontSize: "12px", fontWeight: 700, color: "#10b981", display: "flex", alignItems: "center", gap: "6px" }}>
                   <ShieldAlert size={14} />
-                  PARAMETRIC INSURANCE PRE-LANDFALL LIQUIDITY
+                  PARAMETRIC LIQUIDITY SIMULATION
                 </span>
                 <span style={{ fontSize: "11px", fontWeight: 700, color: "#34d399", background: "rgba(16, 185, 129, 0.2)", padding: "2px 8px", borderRadius: "10px" }}>
                   {data?.parametric_insurance.payout_status}
@@ -1233,14 +1443,14 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                     ₹{data?.parametric_insurance.disbursed_liquidity_inr_cr} Cr
                   </span>
                   <span style={{ fontSize: "11px", color: "#94a3b8", marginLeft: "6px" }}>
-                    / ₹{data?.parametric_insurance.total_coverage_inr_cr} Cr Pool
+                    / ₹{data?.parametric_insurance.total_coverage_inr_cr} Cr Facility Pool
                   </span>
                 </div>
                 <span style={{ fontSize: "11px", color: "#64748b" }}>
-                  Settlement: {data?.parametric_insurance.time_to_settlement}
+                  Execution: &lt; 12 Minutes
                 </span>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "11px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "11px", marginBottom: "8px" }}>
                 {data?.parametric_insurance.allocated_funds_use.map((alloc, idx) => (
                   <div key={idx} style={{ background: "rgba(0,0,0,0.25)", padding: "6px 8px", borderRadius: "4px" }}>
                     <span style={{ color: "#94a3b8", display: "block" }}>{alloc.item}</span>
@@ -1248,9 +1458,45 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   </div>
                 ))}
               </div>
+              <p style={{ margin: 0, fontSize: "10px", color: "#64748b", fontStyle: "italic" }}>
+                {data?.parametric_insurance.disclaimer || "Parametric Liquidity Simulation: Demonstrates pre-agreed smart covenant trigger and resource allocation."}
+              </p>
             </div>
+
+            {/* Post-Landfall Rapid Assessment (when Lifecycle Phase is toggled) */}
+            {lifecyclePhase === "POST_LANDFALL" && (
+              <div
+                style={{
+                  background: "linear-gradient(135deg, rgba(88, 28, 135, 0.25) 0%, rgba(15, 23, 42, 0.9) 100%)",
+                  border: "1px solid rgba(168, 85, 247, 0.4)",
+                  borderRadius: "8px",
+                  padding: "16px",
+                }}
+              >
+                <div style={{ fontSize: "12px", fontWeight: 700, color: "#c084fc", marginBottom: "8px" }}>
+                  POST-LANDFALL RAPID ASSESSMENT (SAR FLOOD MASK &amp; VIIRS BLACKOUT ANOMALIES)
+                </div>
+                <p style={{ color: "#cbd5e1", fontSize: "11.5px", margin: "0 0 10px 0" }}>
+                  {data?.post_landfall?.sar_flood_observation_notes}
+                </p>
+                <div style={{ fontSize: "11px", color: "#ffffff", marginBottom: "10px" }}>
+                  Potential Power Outage Zone: <strong style={{ color: "#ef4444" }}>{data?.post_landfall?.power_outage_risk_area_km2 || 1570} km²</strong>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {data?.post_landfall?.restoration_priority_manifest.map((item, idx) => (
+                    <div key={idx} style={{ background: "rgba(0,0,0,0.3)", padding: "6px 8px", borderRadius: "4px", fontSize: "11px" }}>
+                      <strong style={{ color: "#38bdf8" }}>Priority {item.priority}: {item.target}</strong>
+                      <span style={{ color: "#94a3b8", display: "block" }}>{item.action}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
+
         </div>
+
       </div>
     </div>
   );

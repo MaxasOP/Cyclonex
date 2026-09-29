@@ -652,6 +652,7 @@ export async function fetchAIModelsStatus(): Promise<Record<string, unknown> | n
 
 export interface InfrastructureItem {
   id: string;
+  asset_id?: string;
   name: string;
   category: "POWER_GRID" | "ARTERIAL_ROAD" | "MEDICAL_SHELTER" | string;
   lat: number;
@@ -660,6 +661,20 @@ export interface InfrastructureItem {
   design_wind_tolerance_kmh: number;
   flood_threshold_m: number;
   status: "OPERATIONAL" | "ELEVATED_VULNERABILITY" | "CRITICAL_RISK" | "SHUTDOWN_RECOMMENDED" | string;
+  overall_vulnerability?: "LOW" | "ELEVATED" | "CRITICAL" | string;
+  wind_exposure_pct?: number;
+  flood_exposure_pct?: number;
+  salt_spray_exposure_pct?: number;
+  passability_status?: string;
+  alternate_route?: { name: string; additional_km: number; passability?: string };
+  shelter_readiness?: {
+    physical_safety_score: number;
+    operational_readiness_score: number;
+    accessibility_score: number;
+    capacity_score: number;
+    overall_readiness_index: number;
+  };
+  hardening_directive?: string;
   details: Record<string, any>;
 }
 
@@ -684,6 +699,7 @@ export interface ParametricInsuranceData {
   payout_status: string;
   time_to_settlement: string;
   allocated_funds_use: Array<{ item: string; allocation_cr: number }>;
+  disclaimer?: string;
 }
 
 export interface GeminiAdvisory {
@@ -712,6 +728,67 @@ export interface GeminiAdvisory {
   reasoning_steps: string[];
 }
 
+export interface RecommendationEvidenceAction {
+  domain: string;
+  evidence: string[];
+  reasoning: string;
+  action: string;
+  deadline: string;
+  priority: "CRITICAL" | "HIGH" | "MODERATE";
+}
+
+export interface EvacuationRouteOption {
+  route_id: string;
+  name: string;
+  distance_km: number;
+  travel_time_minutes: number;
+  flood_risk_level: "LOW" | "MODERATE" | "HIGH";
+  passability: string;
+  route_type: "Fastest" | "Safest" | "Flood-avoiding" | "Capacity-aware";
+  trade_off_explanation: string;
+}
+
+export interface EvacuationAssessment {
+  recommended_routes: EvacuationRouteOption[];
+  estimated_evacuee_target: number;
+  assigned_shelter_count: number;
+  shelter_capacity_margin_pct: number;
+  bottleneck_warnings: string[];
+  transit_evacuation_window_hours: number;
+}
+
+export interface ProvenanceRecord {
+  output_domain: string;
+  data_sources: string[];
+  dataset_collection: string;
+  observation_timestamp: string;
+  model_version: string;
+  processing_latency_ms: number;
+  status: "LIVE" | "CACHED" | "SIMULATION" | "MODEL_ESTIMATE";
+}
+
+export interface SystemStatus {
+  meteorology: "LIVE" | "CACHED" | "SIMULATION";
+  gee_sentinel1: "CONNECTED" | "CACHED" | "SIMULATION";
+  gee_srtm: "CONNECTED" | "CACHED";
+  gee_dynamic_world: "CONNECTED" | "CACHED" | "SIMULATION";
+  gee_viirs: "CONNECTED" | "CACHED" | "SIMULATION";
+  ml_engine: "ACTIVE" | "STANDBY" | "FALLBACK";
+  gemini_ai: "ACTIVE" | "STANDBY" | "FALLBACK";
+  rule_engine: "ACTIVE" | "STANDBY";
+  database: "ACTIVE" | "CACHED";
+  routing_engine: "ACTIVE" | "FALLBACK";
+  tts_speech: "READY" | "UNSUPPORTED";
+}
+
+export interface PostLandfallAssessment {
+  phase: "PRE_LANDFALL" | "LANDFALL" | "POST_LANDFALL";
+  sar_flood_observation_notes: string;
+  viirs_nightlight_blackout_status: string;
+  power_outage_risk_area_km2: number;
+  restoration_priority_manifest: Array<{ priority: string; target: string; action: string }>;
+}
+
 export interface ResilienceAssessmentResult {
   status: string;
   challenge_meta: { challenge_id: string; challenge_title: string; theme: string; domain: string };
@@ -728,15 +805,35 @@ export interface ResilienceAssessmentResult {
     peak_surge_height_m: number;
     inverted_barometer_component_m: number;
     wind_stress_component_m: number;
+    astronomical_tide_phase?: string;
+    composite_peak_water_level_m?: number;
     inundation_reach_km: number;
+    max_flood_depth_m?: number;
+    total_affected_area_km2?: number;
+    affected_administrative_blocks?: string[];
     projected_24h_rainfall_mm: number;
+    soil_saturation_index?: string;
+    runoff_coefficient?: number;
     flash_flood_risk_level: string;
-    primary_drainage_pathways: Array<{ name: string; capacity_utilization: string; risk: string }>;
+    primary_drainage_pathways: Array<{
+      name: string;
+      capacity_utilization: string;
+      risk: string;
+      estimated_culvert_inundation_m?: number;
+    }>;
   };
   critical_infrastructure: InfrastructureItem[];
   parametric_insurance: ParametricInsuranceData;
   gee_satellite_feeds: GEELayer[];
-  gemini_multimodal_advisory: GeminiAdvisory;
+  gemini_multimodal_advisory: GeminiAdvisory & {
+    evidence_reasoning_actions?: RecommendationEvidenceAction[];
+  };
+  cyclone?: any;
+  evacuation?: EvacuationAssessment;
+  dynamic_timeline?: Array<{ phase: string; title: string; action: string }>;
+  provenance?: ProvenanceRecord[];
+  system_status?: SystemStatus;
+  post_landfall?: PostLandfallAssessment;
 }
 
 export async function fetchResilienceAssessment(params?: {
@@ -747,6 +844,9 @@ export async function fetchResilienceAssessment(params?: {
   central_pressure_hpa?: number;
   heading_deg?: number;
   forward_speed_kmh?: number;
+  simulate_failure_gemini?: boolean;
+  simulate_failure_gee?: boolean;
+  simulate_failure_weather?: boolean;
 }): Promise<ResilienceAssessmentResult | null> {
   try {
     const q = new URLSearchParams();
@@ -757,6 +857,9 @@ export async function fetchResilienceAssessment(params?: {
     if (params?.central_pressure_hpa != null) q.set("central_pressure_hpa", String(params.central_pressure_hpa));
     if (params?.heading_deg != null) q.set("heading_deg", String(params.heading_deg));
     if (params?.forward_speed_kmh != null) q.set("forward_speed_kmh", String(params.forward_speed_kmh));
+    if (params?.simulate_failure_gemini) q.set("simulate_failure_gemini", "true");
+    if (params?.simulate_failure_gee) q.set("simulate_failure_gee", "true");
+    if (params?.simulate_failure_weather) q.set("simulate_failure_weather", "true");
 
     const response = await fetch(`${apiBaseUrl}/api/resilience/assess?${q.toString()}`);
     if (!response.ok) return null;
