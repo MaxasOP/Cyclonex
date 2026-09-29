@@ -861,6 +861,183 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
               </p>
             </div>
 
+            {/* Gemini Data Input Pipeline — All streams Gemini connects */}
+            <div
+              style={{
+                background: "rgba(15, 23, 42, 0.85)",
+                border: "1px solid rgba(168, 85, 247, 0.25)",
+                borderRadius: "8px",
+                padding: "14px 18px",
+              }}
+            >
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "#c084fc", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px", letterSpacing: "0.05em" }}>
+                <Cpu size={12} />
+                GEMINI INPUT STREAMS CONNECTED
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "7px", fontSize: "11.5px" }}>
+                {[
+                  {
+                    icon: "🌀",
+                    label: "Real-time Meteorological Data",
+                    color: "#38bdf8",
+                    value: data?.gemini_multimodal_advisory?.input_streams_connected?.real_time_met
+                      || `${activePreset.name} (${activePreset.max_wind_kmh} km/h, ${activePreset.central_pressure_hpa} hPa, hdg ${activePreset.heading_deg}°)`,
+                  },
+                  {
+                    icon: "🛰️",
+                    label: "GEE Satellite Feeds (4 Sensors)",
+                    color: "#fbbf24",
+                    value: data?.gemini_multimodal_advisory?.input_streams_connected?.gee_satellite
+                      || "Sentinel-1 SAR + SRTM 30m DEM + Dynamic World LULC + VIIRS DNB",
+                  },
+                  {
+                    icon: "🌊",
+                    label: "Storm Surge Simulation",
+                    color: "#60a5fa",
+                    value: data?.gemini_multimodal_advisory?.input_streams_connected?.storm_surge_sim
+                      || `+${data?.surge_and_runoff.peak_surge_height_m || "—"}m crest, ${data?.surge_and_runoff.inundation_reach_km || "—"} km reach`,
+                  },
+                  {
+                    icon: "🌧️",
+                    label: "Rainfall → Damage Pathway Prediction",
+                    color: "#34d399",
+                    value: data?.gemini_multimodal_advisory?.input_streams_connected?.rainfall_damage_pathways
+                      || `${data?.surge_and_runoff.projected_24h_rainfall_mm || "—"}mm 24h runoff · drainage overtopping`,
+                  },
+                  {
+                    icon: "🏗️",
+                    label: "Critical Infrastructure Vulnerability",
+                    color: "#f87171",
+                    value: data?.gemini_multimodal_advisory?.input_streams_connected?.critical_infra_vulnerability
+                      || `${data?.critical_infrastructure.filter(i => i.status === "CRITICAL_RISK").length || "—"} critical assets (Power, Roads, Medical)`,
+                  },
+                ].map((row) => (
+                  <div
+                    key={row.label}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: "10px",
+                      background: "rgba(255, 255, 255, 0.02)",
+                      border: "1px solid rgba(255, 255, 255, 0.05)",
+                      borderRadius: "5px",
+                      padding: "6px 10px",
+                    }}
+                  >
+                    <span style={{ fontSize: "14px", flexShrink: 0 }}>{row.icon}</span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "1px", minWidth: 0 }}>
+                      <span style={{ color: row.color, fontWeight: 700, fontSize: "10.5px", letterSpacing: "0.03em" }}>{row.label}</span>
+                      <span style={{ color: "#94a3b8", fontSize: "10.5px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.value}</span>
+                    </div>
+                    <span
+                      style={{
+                        marginLeft: "auto",
+                        flexShrink: 0,
+                        background: "rgba(16, 185, 129, 0.15)",
+                        color: "#34d399",
+                        fontSize: "9px",
+                        fontWeight: 700,
+                        padding: "1px 6px",
+                        borderRadius: "10px",
+                        alignSelf: "center",
+                      }}
+                    >
+                      CONNECTED
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Gemini Action Synthesis — What Gemini decides to do */}
+            <div
+              style={{
+                background: "linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(15, 23, 42, 0.9) 100%)",
+                border: "1px solid rgba(59, 130, 246, 0.3)",
+                borderRadius: "8px",
+                padding: "14px 18px",
+              }}
+            >
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "#60a5fa", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px", letterSpacing: "0.05em" }}>
+                <Activity size={12} />
+                GEMINI ACTION SYNTHESIS (REASONING → ACTIONS)
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "7px", fontSize: "11.5px" }}>
+                {[
+                  {
+                    domain: "⚡ Power Grid",
+                    action: data?.gemini_multimodal_advisory?.action_synthesis?.power_hardening_action
+                      || "Controlled de-energization of coastal 33kV feeders; silicone insulator coating against salt-arc flashover.",
+                    urgency: "CRITICAL",
+                  },
+                  {
+                    domain: "🛣️ Arterial Roads",
+                    action: data?.gemini_multimodal_advisory?.action_synthesis?.road_diversion_action
+                      || "Pre-stage clearing equipment at 5 km intervals; divert traffic to elevated ridge bypass routes.",
+                    urgency: "HIGH",
+                  },
+                  {
+                    domain: "🏥 Medical Shelters",
+                    action: data?.gemini_multimodal_advisory?.action_synthesis?.medical_shelter_action
+                      || "Elevate oxygen concentrators above +3.0m datum; lock dual diesel generator fuel reserves.",
+                    urgency: "CRITICAL",
+                  },
+                  {
+                    domain: "📢 Early-Warning Advisories",
+                    action: data?.gemini_multimodal_advisory?.action_synthesis?.automated_advisory_action
+                      || "Automated NDMA/SDMA multilingual dispatch (EN, HI, OR, BN, GU, MR) + voice TTS broadcast.",
+                    urgency: "IMMEDIATE",
+                  },
+                  {
+                    domain: "💰 Parametric Insurance",
+                    action: data?.gemini_multimodal_advisory?.action_synthesis?.parametric_liquidity_action
+                      || `Automated sub-12-min wire payout of ₹${data?.parametric_insurance.disbursed_liquidity_inr_cr || "—"} Cr to District Relief Fund.`,
+                    urgency: "AUTO",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.domain}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: "10px",
+                      background: "rgba(255, 255, 255, 0.02)",
+                      border: "1px solid rgba(255, 255, 255, 0.05)",
+                      borderRadius: "5px",
+                      padding: "6px 10px",
+                    }}
+                  >
+                    <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1, minWidth: 0 }}>
+                      <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "10.5px" }}>{item.domain}</span>
+                      <span style={{ color: "#94a3b8", fontSize: "10.5px", lineHeight: "1.4" }}>{item.action}</span>
+                    </div>
+                    <span
+                      style={{
+                        flexShrink: 0,
+                        background:
+                          item.urgency === "CRITICAL" ? "rgba(239, 68, 68, 0.2)"
+                          : item.urgency === "IMMEDIATE" ? "rgba(245, 158, 11, 0.2)"
+                          : item.urgency === "AUTO" ? "rgba(16, 185, 129, 0.2)"
+                          : "rgba(96, 165, 250, 0.2)",
+                        color:
+                          item.urgency === "CRITICAL" ? "#f87171"
+                          : item.urgency === "IMMEDIATE" ? "#fbbf24"
+                          : item.urgency === "AUTO" ? "#34d399"
+                          : "#60a5fa",
+                        fontSize: "9px",
+                        fontWeight: 700,
+                        padding: "2px 6px",
+                        borderRadius: "10px",
+                        alignSelf: "center",
+                      }}
+                    >
+                      {item.urgency}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Official Early-Warning Advisory Dispatch Box with Multilingual Support & Voice Broadcast */}
             <div
               style={{

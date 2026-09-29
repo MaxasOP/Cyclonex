@@ -691,6 +691,20 @@ export interface GeminiAdvisory {
   confidence_score: number;
   resilience_rating: string;
   urgency_level: string;
+  input_streams_connected?: {
+    real_time_met: string;
+    gee_satellite: string;
+    storm_surge_sim: string;
+    rainfall_damage_pathways: string;
+    critical_infra_vulnerability: string;
+  };
+  action_synthesis?: {
+    power_hardening_action: string;
+    road_diversion_action: string;
+    medical_shelter_action: string;
+    automated_advisory_action: string;
+    parametric_liquidity_action: string;
+  };
   executive_summary: string;
   early_warning_advisory_dispatch: string;
   multilingual_advisories?: Record<string, string>;

@@ -518,11 +518,30 @@ class GeminiMultimodalReasoningEngine:
             ),
         }
 
+        # Gemini 3.7 Flash Reasoning & Action Layer: Explicitly connecting inputs to actions
+        input_streams_connected = {
+            "real_time_met": f"{storm_name} ({max_wind_kmh} km/h, {central_pressure_hpa} hPa, heading {heading_deg}°, speed {forward_speed_kmh} km/h)",
+            "gee_satellite": "Sentinel-1 SAR (floodwater) + SRTM 30m DEM (elevation) + Dynamic World LULC (exposure) + VIIRS DNB (night lights)",
+            "storm_surge_sim": f"+{surge_data['peak_surge_height_m']}m crest, {surge_data['inundation_reach_km']} km reach (Inverted Barometer + Wind Stress)",
+            "rainfall_damage_pathways": f"{surge_data['projected_24h_rainfall_mm']}mm 24h accumulation with primary drainage canal/estuary overtopping",
+            "critical_infra_vulnerability": f"{critical_infra_count} critical assets evaluated across Power Grids (220kV/132kV), Arterial Roads (NH/SH), and Medical Shelters",
+        }
+
+        action_synthesis = {
+            "power_hardening_action": "Controlled de-energization of coastal 33kV lines; deploy silicone insulator coatings against salt-spray arc-overs.",
+            "road_diversion_action": "Pre-stage heavy clearing equipment at 5 km intervals; divert non-emergency traffic to elevated ridge bypasses.",
+            "medical_shelter_action": "Elevate portable oxygen concentrators and trauma supplies above +3.0m datum; lock dual diesel generator fuel reserves.",
+            "automated_advisory_action": "Automated dispatch of multilingual NDMA/SDMA warning directives across 6 coastal Indian languages with voice TTS broadcast.",
+            "parametric_liquidity_action": f"Automated sub-12-min wire payout of ₹{parametric_data['disbursed_liquidity_inr_cr']} Cr into District Disaster Relief accounts.",
+        }
+
         return {
             "source": "Gemini 3.7 Flash Multimodal Reasoning Engine",
             "confidence_score": 0.954,
             "resilience_rating": "RED_HIGH_CONSEQUENCE",
             "urgency_level": urgency,
+            "input_streams_connected": input_streams_connected,
+            "action_synthesis": action_synthesis,
             "executive_summary": (
                 f"Severe cyclonic circulation {storm_name} ({max_wind_kmh} km/h, {central_pressure_hpa} hPa) requires immediate transition "
                 f"from standard alert to aggressive pre-landfall anticipatory hardening. "
