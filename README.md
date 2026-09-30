@@ -355,7 +355,7 @@ VITE_GOOGLE_MAPS_API_KEY=
 ### 1. Artificial Intelligence & Satellite Vision
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/api/ai/analyze-cyclone` | Run multi-spectral CNN inference, Dvorak classification, Grad-CAM XAI & trajectory |
+| `POST` | `/api/ai/analyze-cyclone` | Run multispectral CNN inference, Dvorak classification, Grad-CAM XAI & trajectory |
 | `GET` | `/api/ai/models-status` | Inspect currently loaded PyTorch models, device configuration, and tensor shapes |
 
 #### Example AI Inference Request:
