@@ -348,7 +348,7 @@ VITE_API_BASE_URL=http://localhost:8000
 VITE_GOOGLE_MAPS_API_KEY=
 ```
 
----
+--
 
 ## 📡 Comprehensive RESTful API Reference
 
