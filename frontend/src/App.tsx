@@ -72,6 +72,7 @@ import {
   Users,
   Building2,
   ShieldAlert,
+  Sparkles,
 } from "lucide-react";
 
 export type ActiveSection =
@@ -1312,6 +1313,21 @@ export default function App() {
                               <span>Update Hazard Screening</span>
                             </>
                           )}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="tactical-recalc-btn"
+                          style={{
+                            marginTop: "8px",
+                            background: "linear-gradient(135deg, rgba(37, 99, 235, 0.3) 0%, rgba(124, 58, 237, 0.4) 100%)",
+                            border: "1px solid rgba(168, 85, 247, 0.4)",
+                            color: "#c084fc",
+                          }}
+                          onClick={() => navigateTo("resilience")}
+                        >
+                          <Sparkles size={13} />
+                          <span>Open Resilience Forecaster (Challenge 05)</span>
                         </button>
                       </div>
 

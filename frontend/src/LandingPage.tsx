@@ -23,7 +23,8 @@ import {
   Building,
   Navigation,
   Crosshair,
-  FileText
+  FileText,
+  Sparkles,
 } from "lucide-react";
 import type { DatasetSummary, EvacuationPlan, ScenarioResult, BuildingFeature, ZoneFeature } from "./api";
 
@@ -57,6 +58,14 @@ export default function LandingPage({
   };
 
   const WORKSPACES = [
+    {
+      id: "resilience",
+      title: "Track-Based Resilience Forecaster",
+      badge: "CHALLENGE 05 · RESILIENCE",
+      desc: "Gemini 3.7 Flash Decision Intelligence connecting GEE satellites, storm surge hydrodynamics, causal rainfall pathways, infrastructure hardening, and 6-language early warnings.",
+      icon: Sparkles,
+      action: "Launch Forecaster",
+    },
     {
       id: "ai-lab",
       title: "AI Satellite & Neural Lab",
@@ -177,10 +186,23 @@ export default function LandingPage({
                 <button
                   type="button"
                   className="op-btn-primary"
+                  onClick={() => navigate("resilience")}
+                  style={{
+                    background: "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)",
+                    boxShadow: "0 0 20px rgba(124, 58, 237, 0.4)",
+                    border: "1px solid rgba(168, 85, 247, 0.5)",
+                  }}
+                >
+                  <Sparkles size={15} />
+                  <span>Launch Resilience Forecaster (Challenge 05)</span>
+                </button>
+                <button
+                  type="button"
+                  className="op-btn-secondary"
                   onClick={() => onLaunchConsole("nisarga")}
                 >
                   <Activity size={15} />
-                  <span>Launch Tactical Operations Map</span>
+                  <span>Tactical Operations Map</span>
                 </button>
                 <button
                   type="button"

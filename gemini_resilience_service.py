@@ -78,9 +78,10 @@ class StormSurgeAndRunoffModel:
         pressure_deficit = max(0.0, 1013.25 - central_pressure_hpa)
         ib_surge_m = pressure_deficit * 0.01
 
-        # 2. Wind stress surge: proportional to V^2 and shallow coastal shelf fetch
+        # 2. Wind stress surge: (C_d * rho_air / rho_water * Fetch / (g * Depth)) * V^2
+        # For Indian coastal shelf: fetch ~80 km, mean depth ~15m -> coefficient ~0.00155
         wind_ms = max_wind_kmh / 3.6
-        wind_stress_surge_m = (0.0025 * (wind_ms ** 2)) / (9.81 * 12.0) * 1.8  # coastal bathymetry factor
+        wind_stress_surge_m = round(0.00155 * (wind_ms ** 2), 2)
 
         total_peak_surge_m = round(min(7.5, ib_surge_m + wind_stress_surge_m), 2)
         surge_inundation_radius_km = round(min(65.0, 18.0 + (max_wind_kmh / 140.0) * 22.0), 1)
@@ -1192,7 +1193,7 @@ class CycloneResilienceService:
                 "forward_speed_kmh": forward_speed_kmh,
             },
             "surge_and_runoff": surge_data,
-            "critical_infrastructure": [item.dict() for item in infra_items],
+            "critical_infrastructure": [item.model_dump() for item in infra_items],
             "parametric_insurance": parametric_data,
             "gee_satellite_feeds": gee_layers,
             "gemini_multimodal_advisory": {
@@ -1205,7 +1206,7 @@ class CycloneResilienceService:
                 "multilingual_advisories": multilingual_advisories,
                 "infrastructure_hardening_plan": gemini_intel.hardening_directives,
                 "reasoning_steps": gemini_intel.reasoning_steps,
-                "evidence_reasoning_actions": [era.dict() for era in gemini_intel.evidence_reasoning_actions],
+                "evidence_reasoning_actions": [era.model_dump() for era in gemini_intel.evidence_reasoning_actions],
                 "input_streams_connected": {
                     "real_time_met": f"{storm_name} ({max_wind_kmh} km/h, {central_pressure_hpa} hPa, heading {heading_deg}°, speed {forward_speed_kmh} km/h)",
                     "gee_satellite": "Sentinel-1 SAR (floodwater) + SRTM 30m DEM (elevation) + Dynamic World LULC (exposure) + VIIRS DNB (night lights)",
@@ -1222,12 +1223,12 @@ class CycloneResilienceService:
                 },
             },
             # Canonical Unified Architecture
-            "cyclone": cyclone_state.dict(),
-            "evacuation": evacuation_data.dict(),
+            "cyclone": cyclone_state.model_dump(),
+            "evacuation": evacuation_data.model_dump(),
             "dynamic_timeline": dynamic_timeline,
-            "provenance": [p.dict() for p in provenance_records],
-            "system_status": system_status.dict(),
-            "post_landfall": post_landfall.dict(),
+            "provenance": [p.model_dump() for p in provenance_records],
+            "system_status": system_status.model_dump(),
+            "post_landfall": post_landfall.model_dump(),
         }
 
 
