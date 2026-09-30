@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Literal
+from typing import Literal, Optional, List, Dict, Any
 
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -1002,7 +1002,12 @@ def api_get_ai_models_status():
 # CHALLENGE 05: TRACK-BASED INFRASTRUCTURE VULNERABILITY FORECASTER
 # (Theme: Resilience · GEE Feeds · Gemini 3.7 Flash Multimodal Reasoning)
 # =========================================================
-from gemini_resilience_service import resilience_service
+from gemini_resilience_service import (
+    DroneDamageInspectionEngine,
+    generate_cap_alert_xml,
+    resilience_service,
+)
+from fastapi.responses import Response
 
 
 class ResilienceAssessmentRequest(BaseModel):
@@ -1016,6 +1021,13 @@ class ResilienceAssessmentRequest(BaseModel):
     simulate_failure_gemini: bool = False
     simulate_failure_gee: bool = False
     simulate_failure_weather: bool = False
+    deploy_countermeasure: bool = False
+
+
+class DroneInspectionRequest(BaseModel):
+    asset_id: str = "pwr-01"
+    sample_id: Optional[str] = "sample-substation-flood"
+    image_base64: Optional[str] = None
 
 
 @app.post("/api/resilience/assess")
@@ -1033,6 +1045,7 @@ def api_assess_resilience_post(req: ResilienceAssessmentRequest):
             simulate_failure_gemini=req.simulate_failure_gemini,
             simulate_failure_gee=req.simulate_failure_gee,
             simulate_failure_weather=req.simulate_failure_weather,
+            deploy_countermeasure=req.deploy_countermeasure,
         )
     except Exception as e:
         print(f"[RESILIENCE SERVICE ERROR] {e}", flush=True)
@@ -1051,6 +1064,7 @@ def api_assess_resilience_get(
     simulate_failure_gemini: bool = False,
     simulate_failure_gee: bool = False,
     simulate_failure_weather: bool = False,
+    deploy_countermeasure: bool = False,
 ):
     """GET endpoint for Challenge 05 Resilience Assessment."""
     try:
@@ -1065,9 +1079,47 @@ def api_assess_resilience_get(
             simulate_failure_gemini=simulate_failure_gemini,
             simulate_failure_gee=simulate_failure_gee,
             simulate_failure_weather=simulate_failure_weather,
+            deploy_countermeasure=deploy_countermeasure,
         )
     except Exception as e:
         print(f"[RESILIENCE SERVICE ERROR] {e}", flush=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/resilience/inspect-drone-damage")
+def api_inspect_drone_damage(req: DroneInspectionRequest):
+    """Execute AI Vision structural damage reconnaissance on aerial/drone imagery."""
+    try:
+        return DroneDamageInspectionEngine.inspect_drone_damage(
+            asset_id=req.asset_id,
+            sample_id=req.sample_id,
+            image_base64=req.image_base64,
+        )
+    except Exception as e:
+        print(f"[DRONE INSPECTION ERROR] {e}", flush=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/resilience/cap-alert.xml")
+def api_get_cap_alert_xml(
+    storm_name: str = "Cyclone Dana",
+    max_wind_kmh: float = 125.0,
+    peak_surge_m: float = 2.8,
+    eye_lat: float = 20.4,
+    eye_lon: float = 86.8,
+):
+    """Generate and return OASIS CAP v1.2 standard XML disaster warning alert compliant with NDMA SACHET."""
+    try:
+        xml_content = generate_cap_alert_xml(
+            storm_name=storm_name,
+            max_wind_kmh=max_wind_kmh,
+            peak_surge_m=peak_surge_m,
+            eye_lat=eye_lat,
+            eye_lon=eye_lon,
+        )
+        return Response(content=xml_content, media_type="application/xml")
+    except Exception as e:
+        print(f"[CAP XML EXPORT ERROR] {e}", flush=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

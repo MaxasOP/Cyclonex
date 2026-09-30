@@ -30,13 +30,22 @@ import {
   Server,
   Database,
   ArrowRight,
+  Camera,
+  FileDown,
+  ShieldCheck,
+  Printer,
+  X,
+  Shield,
 } from "lucide-react";
 import {
   fetchResilienceAssessment,
+  inspectDroneDamage,
+  fetchCapAlertXml,
   type ResilienceAssessmentResult,
   type InfrastructureItem,
   type RecommendationEvidenceAction,
   type EvacuationRouteOption,
+  type DroneInspectionReport,
 } from "../api";
 
 interface ResilienceForecasterPageProps {
@@ -140,6 +149,23 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
   const [selectedLang, setSelectedLang] = useState<IndianLang>("or");
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
 
+  // Virtual Countermeasure Sandbox (NH-53 Km 18.4 Mobile Barrier)
+  const [deployCountermeasure, setDeployCountermeasure] = useState<boolean>(false);
+
+  // Drone Damage Reconnaissance Inspector
+  const [showDroneModal, setShowDroneModal] = useState<boolean>(false);
+  const [selectedDroneSample, setSelectedDroneSample] = useState<string>("sample-substation-flood");
+  const [droneReport, setDroneReport] = useState<DroneInspectionReport | null>(null);
+  const [droneLoading, setDroneLoading] = useState<boolean>(false);
+
+  // NDMA Incident Action Plan (IAP) Modal
+  const [showIAPModal, setShowIAPModal] = useState<boolean>(false);
+
+  // OASIS CAP Alert XML Modal
+  const [showCAPModal, setShowCAPModal] = useState<boolean>(false);
+  const [capXml, setCapXml] = useState<string>("");
+  const [loadingCap, setLoadingCap] = useState<boolean>(false);
+
   // Failure Simulation Mode (Graceful Degradation Testing)
   const [failGemini, setFailGemini] = useState<boolean>(false);
   const [failGEE, setFailGEE] = useState<boolean>(false);
@@ -165,7 +191,8 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
     preset = activePreset,
     overrideFailGemini = failGemini,
     overrideFailGEE = failGEE,
-    overrideFailWeather = failWeather
+    overrideFailWeather = failWeather,
+    overrideDeployCountermeasure = deployCountermeasure
   ) => {
     setIsRefreshing(true);
     const res = await fetchResilienceAssessment({
@@ -179,6 +206,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
       simulate_failure_gemini: overrideFailGemini,
       simulate_failure_gee: overrideFailGEE,
       simulate_failure_weather: overrideFailWeather,
+      deploy_countermeasure: overrideDeployCountermeasure,
     });
     if (res) {
       setData(res);
@@ -193,6 +221,39 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
   useEffect(() => {
     loadAssessment();
   }, [failGemini, failGEE, failWeather]);
+
+  const handleToggleCountermeasure = () => {
+    const nextVal = !deployCountermeasure;
+    setDeployCountermeasure(nextVal);
+    loadAssessment(activePreset, failGemini, failGEE, failWeather, nextVal);
+  };
+
+  const handleOpenDroneModal = async (sampleKey = selectedDroneSample) => {
+    setSelectedDroneSample(sampleKey);
+    setShowDroneModal(true);
+    setDroneLoading(true);
+    const assetId = sampleKey.includes("substation") ? "pwr-01" : sampleKey.includes("culvert") ? "rd-01" : "med-01";
+    const report = await inspectDroneDamage({
+      asset_id: assetId,
+      sample_id: sampleKey,
+    });
+    setDroneReport(report);
+    setDroneLoading(false);
+  };
+
+  const handleOpenCapModal = async () => {
+    setShowCAPModal(true);
+    setLoadingCap(true);
+    const xml = await fetchCapAlertXml({
+      storm_name: activePreset.name,
+      max_wind_kmh: activePreset.max_wind_kmh,
+      peak_surge_m: data?.surge_and_runoff.peak_surge_height_m || 2.8,
+      eye_lat: activePreset.lat,
+      eye_lon: activePreset.lon,
+    });
+    setCapXml(xml);
+    setLoadingCap(false);
+  };
 
   const handleSelectPreset = (preset: StormPreset) => {
     setSelectedPresetId(preset.id);
@@ -525,7 +586,93 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={handleToggleCountermeasure}
+                style={{
+                  background: deployCountermeasure ? "rgba(16, 185, 129, 0.25)" : "rgba(255, 255, 255, 0.05)",
+                  border: `1px solid ${deployCountermeasure ? "#34d399" : "rgba(255, 255, 255, 0.12)"}`,
+                  color: deployCountermeasure ? "#34d399" : "#e2e8f0",
+                  fontSize: "12px",
+                  padding: "8px 13px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontWeight: 600,
+                  boxShadow: deployCountermeasure ? "0 0 12px rgba(52, 211, 153, 0.35)" : "none",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <ShieldCheck size={14} color={deployCountermeasure ? "#34d399" : "#94a3b8"} />
+                <span>{deployCountermeasure ? "🛡️ Countermeasure Active" : "🛡️ Deploy Countermeasure"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleOpenDroneModal()}
+                style={{
+                  background: "rgba(168, 85, 247, 0.15)",
+                  border: "1px solid rgba(168, 85, 247, 0.35)",
+                  color: "#d8b4fe",
+                  fontSize: "12px",
+                  padding: "8px 13px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontWeight: 600,
+                }}
+              >
+                <Camera size={14} />
+                <span>Drone Vision Inspector</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowIAPModal(true)}
+                style={{
+                  background: "rgba(59, 130, 246, 0.15)",
+                  border: "1px solid rgba(59, 130, 246, 0.35)",
+                  color: "#93c5fd",
+                  fontSize: "12px",
+                  padding: "8px 13px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontWeight: 600,
+                }}
+              >
+                <FileDown size={14} />
+                <span>NDMA IAP (Form 201/202)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenCapModal}
+                style={{
+                  background: "rgba(245, 158, 11, 0.15)",
+                  border: "1px solid rgba(245, 158, 11, 0.35)",
+                  color: "#fde68a",
+                  fontSize: "12px",
+                  padding: "8px 13px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontWeight: 600,
+                }}
+              >
+                <Radio size={14} />
+                <span>OASIS CAP XML</span>
+              </button>
+
               <button
                 type="button"
                 className="op-btn-secondary"
@@ -534,7 +681,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 style={{ fontSize: "12px", padding: "8px 14px", display: "flex", alignItems: "center", gap: "6px" }}
               >
                 <RefreshCw size={13} className={isRefreshing ? "animate-spin" : ""} />
-                <span>Recalibrate Forecaster</span>
+                <span>Recalibrate</span>
               </button>
               <button
                 type="button"
@@ -645,6 +792,53 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
             </button>
           </div>
         </div>
+
+        {/* Virtual Flood Countermeasure Active Banner */}
+        {deployCountermeasure && (
+          <div
+            style={{
+              background: "linear-gradient(90deg, rgba(16, 185, 129, 0.22) 0%, rgba(6, 78, 59, 0.35) 100%)",
+              border: "1px solid rgba(52, 211, 153, 0.6)",
+              borderRadius: "8px",
+              padding: "12px 18px",
+              marginBottom: "20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "12px",
+              boxShadow: "0 0 20px rgba(16, 185, 129, 0.2)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <ShieldCheck size={24} color="#34d399" />
+              <div>
+                <div style={{ color: "#34d399", fontWeight: 800, fontSize: "13px", letterSpacing: "0.02em" }}>
+                  🛡️ VIRTUAL FLOOD COUNTERMEASURE DEPLOYED: INFLATABLE BARRIERS &amp; SANDBAG REVETMENTS
+                </div>
+                <div style={{ color: "#cbd5e1", fontSize: "11.5px", marginTop: "2px" }}>
+                  Active at NH-53 Km 18.4 Culvert &amp; Substation Perimeter. Surge reach suppressed by 30% ({data?.surge_and_runoff.inundation_reach_km} km) · Overland flood depth reduced to +{data?.surge_and_runoff.max_flood_depth_m}m · NH-53 corridor status upgraded to <strong style={{ color: "#34d399" }}>PASSABLE_PROTECTED</strong>.
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleToggleCountermeasure}
+              style={{
+                background: "rgba(239, 68, 68, 0.2)",
+                border: "1px solid rgba(239, 68, 68, 0.5)",
+                color: "#fca5a5",
+                padding: "6px 12px",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontSize: "11px",
+                fontWeight: 700,
+              }}
+            >
+              Deactivate Sandbox
+            </button>
+          </div>
+        )}
 
         {/* Anticipatory Action Live KPI Strip */}
         <div className="saas-landing-live-strip" style={{ marginBottom: "24px" }}>
@@ -1496,6 +1690,582 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
           </div>
 
         </div>
+
+        {/* --------------------------------------------------------------- */}
+        {/* MODAL 1: Drone Aerial Damage Reconnaissance (Gemini Vision)    */}
+        {/* --------------------------------------------------------------- */}
+        {showDroneModal && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 1000,
+              background: "rgba(3, 7, 18, 0.88)",
+              backdropFilter: "blur(6px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px",
+            }}
+          >
+            <div
+              style={{
+                background: "#090d16",
+                border: "1px solid rgba(168, 85, 247, 0.4)",
+                borderRadius: "12px",
+                width: "100%",
+                maxWidth: "960px",
+                maxHeight: "90vh",
+                overflowY: "auto",
+                boxShadow: "0 20px 50px rgba(0,0,0,0.8)",
+                padding: "24px",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <Camera size={20} color="#c084fc" />
+                  <div>
+                    <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#ffffff", margin: 0 }}>
+                      AERIAL DRONE DAMAGE RECONNAISSANCE · MULTIMODAL AI INSPECTION
+                    </h2>
+                    <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                      Autonomous UAV low-altitude damage verification cross-referenced with Gemini 3.7 Flash Vision
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowDroneModal(false)}
+                  style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer" }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Sample Preset Selector */}
+              <div style={{ display: "flex", gap: "8px", marginBottom: "18px", flexWrap: "wrap" }}>
+                {[
+                  { id: "sample-substation-flood", label: "⚡ 220kV Main Substation Switchyard", assetId: "pwr-01" },
+                  { id: "sample-culvert-breach", label: "🛣️ NH-53 Km 18.4 Culvert Breach", assetId: "rd-01" },
+                  { id: "sample-hospital-roof", label: "🏥 District Central Hospital Rooftop", assetId: "med-01" },
+                ].map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => handleOpenDroneModal(s.id)}
+                    style={{
+                      background: selectedDroneSample === s.id ? "rgba(168, 85, 247, 0.25)" : "rgba(255,255,255,0.04)",
+                      border: `1px solid ${selectedDroneSample === s.id ? "#c084fc" : "rgba(255,255,255,0.1)"}`,
+                      color: selectedDroneSample === s.id ? "#ffffff" : "#94a3b8",
+                      padding: "6px 12px",
+                      borderRadius: "6px",
+                      fontSize: "11.5px",
+                      fontWeight: selectedDroneSample === s.id ? 700 : 500,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
+              {droneLoading ? (
+                <div style={{ padding: "40px", textAlign: "center", color: "#c084fc" }}>
+                  <RefreshCw size={24} className="animate-spin" style={{ margin: "0 auto 10px auto" }} />
+                  <div>Running Computer Vision Inundation &amp; Structural Defect Extraction...</div>
+                </div>
+              ) : droneReport ? (
+                <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: "20px" }}>
+                  {/* Left Column: Drone Camera HUD Simulation */}
+                  <div
+                    style={{
+                      background: "#020408",
+                      border: "1px solid rgba(59, 130, 246, 0.3)",
+                      borderRadius: "8px",
+                      position: "relative",
+                      minHeight: "320px",
+                      padding: "16px",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {/* Drone Telemetry HUD */}
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", fontFamily: "'JetBrains Mono', monospace", color: "#38bdf8", marginBottom: "12px" }}>
+                      <span>ALT: {droneReport.drone_telemetry.altitude_agl_m}m AGL</span>
+                      <span>GIMBAL: {droneReport.drone_telemetry.gimbal_pitch_deg}°</span>
+                      <span>FIX: {droneReport.drone_telemetry.gps_fix}</span>
+                    </div>
+
+                    {/* Synthetic Diagnostic Viewport */}
+                    <div
+                      style={{
+                        height: "220px",
+                        background: "radial-gradient(circle, rgba(30,58,138,0.2) 0%, rgba(2,6,23,0.95) 100%)",
+                        border: "1px dashed rgba(255,255,255,0.15)",
+                        borderRadius: "6px",
+                        position: "relative",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "12px",
+                      }}
+                    >
+                      {/* Reticle / Crosshair */}
+                      <div style={{ position: "absolute", top: "50%", left: "50%", width: "40px", height: "40px", transform: "translate(-50%, -50%)", border: "1px solid rgba(56, 189, 248, 0.4)", borderRadius: "50%" }} />
+                      <div style={{ position: "absolute", top: "50%", left: "50%", width: "6px", height: "6px", transform: "translate(-50%, -50%)", background: "#38bdf8", borderRadius: "50%" }} />
+
+                      {/* Bounding Box Callout */}
+                      <div
+                        style={{
+                          border: "2px solid #ef4444",
+                          background: "rgba(239, 68, 68, 0.15)",
+                          padding: "8px 12px",
+                          borderRadius: "4px",
+                          textAlign: "center",
+                        }}
+                      >
+                        <span style={{ fontSize: "10px", fontWeight: 700, color: "#f87171", display: "block" }}>
+                          [TARGET DEFECT DETECTED]
+                        </span>
+                        <strong style={{ fontSize: "12px", color: "#ffffff" }}>
+                          {droneReport.detected_defects[0]}
+                        </strong>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: "12px", fontSize: "11px", color: "#94a3b8", fontStyle: "italic" }}>
+                      📸 {droneReport.image_caption}
+                    </div>
+                  </div>
+
+                  {/* Right Column: AI Analysis Report */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span
+                        style={{
+                          background: droneReport.damage_severity === "CRITICAL" ? "rgba(239, 68, 68, 0.2)" : "rgba(245, 158, 11, 0.2)",
+                          color: droneReport.damage_severity === "CRITICAL" ? "#f87171" : "#fbbf24",
+                          border: `1px solid ${droneReport.damage_severity === "CRITICAL" ? "#ef4444" : "#f59e0b"}`,
+                          padding: "3px 10px",
+                          borderRadius: "12px",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                        }}
+                      >
+                        DAMAGE SEVERITY: {droneReport.damage_severity}
+                      </span>
+                      <span style={{ fontSize: "10.5px", color: "#94a3b8" }}>
+                        ENGINE: <strong style={{ color: "#c084fc" }}>{droneReport.engine}</strong>
+                      </span>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", fontSize: "11px" }}>
+                      <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px", borderRadius: "4px" }}>
+                        <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>INTEGRITY</span>
+                        <strong style={{ color: "#ffffff", fontSize: "13px" }}>{droneReport.structural_integrity_pct}%</strong>
+                      </div>
+                      <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px", borderRadius: "4px" }}>
+                        <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>FAIL PROB</span>
+                        <strong style={{ color: "#ef4444", fontSize: "13px" }}>{Math.round(droneReport.critical_failure_probability * 100)}%</strong>
+                      </div>
+                      <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px", borderRadius: "4px" }}>
+                        <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>EST. REPAIR</span>
+                        <strong style={{ color: "#38bdf8", fontSize: "13px" }}>{droneReport.estimated_repair_hours} hrs</strong>
+                      </div>
+                    </div>
+
+                    <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "6px", padding: "10px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: "#cbd5e1", marginBottom: "6px" }}>
+                        DETECTED STRUCTURAL DEFECTS:
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: "16px", fontSize: "11px", color: "#94a3b8", lineHeight: "1.5" }}>
+                        {droneReport.detected_defects.map((d, idx) => (
+                          <li key={idx} style={{ marginBottom: "3px" }}>{d}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div style={{ background: "rgba(37, 99, 235, 0.12)", border: "1px solid rgba(59, 130, 246, 0.3)", borderRadius: "6px", padding: "10px", fontSize: "11px" }}>
+                      <div style={{ color: "#60a5fa", fontWeight: 700, marginBottom: "4px" }}>
+                        EMERGENCY CREW DISPATCH:
+                      </div>
+                      <div style={{ color: "#ffffff" }}>{droneReport.emergency_dispatch_crew}</div>
+                      <div style={{ color: "#94a3b8", marginTop: "4px", fontSize: "10.5px" }}>
+                        Directive: {droneReport.mitigation_recommendation}
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedInfraId(droneReport.inspected_asset_id);
+                          setShowDroneModal(false);
+                        }}
+                        style={{
+                          flex: 1,
+                          background: "#2563eb",
+                          color: "#ffffff",
+                          border: "none",
+                          padding: "8px 14px",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Highlight Asset on Tactical Canvas
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowDroneModal(false)}
+                        style={{
+                          background: "rgba(255,255,255,0.08)",
+                          color: "#e2e8f0",
+                          border: "none",
+                          padding: "8px 14px",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        )}
+
+        {/* --------------------------------------------------------------- */}
+        {/* MODAL 2: NDMA Incident Action Plan (IAP Form 201/202)          */}
+        {/* --------------------------------------------------------------- */}
+        {showIAPModal && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 1000,
+              background: "rgba(3, 7, 18, 0.88)",
+              backdropFilter: "blur(6px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px",
+            }}
+          >
+            <div
+              style={{
+                background: "#ffffff",
+                color: "#0f172a",
+                borderRadius: "8px",
+                width: "100%",
+                maxWidth: "880px",
+                maxHeight: "92vh",
+                overflowY: "auto",
+                boxShadow: "0 25px 60px rgba(0,0,0,0.9)",
+                padding: "32px",
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #0f172a", paddingBottom: "14px", marginBottom: "18px" }}>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: 800, letterSpacing: "0.1em", color: "#dc2626" }}>
+                    GOVERNMENT OF INDIA · NATIONAL DISASTER MANAGEMENT AUTHORITY (NDMA)
+                  </div>
+                  <h1 style={{ fontSize: "20px", fontWeight: 800, margin: "4px 0", color: "#0f172a" }}>
+                    INCIDENT ACTION PLAN (IAP) · FORM 201 &amp; 202
+                  </h1>
+                  <div style={{ fontSize: "12px", color: "#475569" }}>
+                    Operational Period: Landfall Anticipatory Window (T-24h to Landfall) · Cyclone {activePreset.name.toUpperCase()}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    style={{
+                      background: "#2563eb",
+                      color: "#ffffff",
+                      border: "none",
+                      padding: "6px 12px",
+                      borderRadius: "4px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "5px",
+                    }}
+                  >
+                    <Printer size={13} />
+                    <span>Print / Save PDF</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowIAPModal(false)}
+                    style={{ background: "#e2e8f0", border: "none", color: "#334155", padding: "6px 10px", borderRadius: "4px", cursor: "pointer" }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Command Staff Overview */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px", marginBottom: "18px", fontSize: "11.5px", background: "#f8fafc", padding: "12px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+                <div>
+                  <span style={{ color: "#64748b", display: "block", fontSize: "10px", fontWeight: 600 }}>INCIDENT COMMANDER</span>
+                  <strong>District Collector / DDMA</strong>
+                </div>
+                <div>
+                  <span style={{ color: "#64748b", display: "block", fontSize: "10px", fontWeight: 600 }}>OPERATIONS CHIEF</span>
+                  <strong>NDRF 4th Battalion Commandant</strong>
+                </div>
+                <div>
+                  <span style={{ color: "#64748b", display: "block", fontSize: "10px", fontWeight: 600 }}>PLANNING SECTION</span>
+                  <strong>CycloneX Resilience Forecaster</strong>
+                </div>
+                <div>
+                  <span style={{ color: "#64748b", display: "block", fontSize: "10px", fontWeight: 600 }}>LOGISTICS / FINTECH</span>
+                  <strong>Parametric Payout (₹{data?.parametric_insurance.disbursed_liquidity_inr_cr} Cr)</strong>
+                </div>
+              </div>
+
+              {/* General Incident Objectives */}
+              <div style={{ marginBottom: "18px" }}>
+                <h3 style={{ fontSize: "13px", fontWeight: 700, margin: "0 0 8px 0", color: "#0f172a", textTransform: "uppercase" }}>
+                  1. Incident Objectives (Form 202)
+                </h3>
+                <ol style={{ margin: 0, paddingLeft: "18px", fontSize: "12px", color: "#334155", lineHeight: "1.6" }}>
+                  <li><strong>Zero Life Casualty Mandate:</strong> Evacuate all human settlements within 5 km of coast before storm surge overtopping reaches +{data?.surge_and_runoff.peak_surge_height_m}m MSL.</li>
+                  <li><strong>Grid Flashover Prevention:</strong> Controlled 33kV/220kV power de-energization 2 hours prior to landfall gale winds to protect substation transformers.</li>
+                  <li><strong>Highway Corridor Resilience:</strong> Maintain NH-53 emergency vehicle passability; execute elevated ridge bypass diversions for civilian traffic.</li>
+                  <li><strong>Hospital Power Continuity:</strong> Secure 14-day diesel generator fuel reserve at District Hospital and elevate medical oxygen inventory.</li>
+                  {deployCountermeasure && (
+                    <li><strong>Active Flood Defense:</strong> Inflatable flood barriers and mobile coffer dams actively defending Km 18.4 culvert.</li>
+                  )}
+                </ol>
+              </div>
+
+              {/* Hazard & Impact Summary */}
+              <div style={{ marginBottom: "18px" }}>
+                <h3 style={{ fontSize: "13px", fontWeight: 700, margin: "0 0 8px 0", color: "#0f172a", textTransform: "uppercase" }}>
+                  2. Weather &amp; Storm Surge Inundation Summary
+                </h3>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "8px", fontSize: "11.5px" }}>
+                  <div style={{ background: "#f1f5f9", padding: "8px", borderRadius: "4px" }}>
+                    <span style={{ color: "#64748b", display: "block", fontSize: "10px" }}>MAX WINDS</span>
+                    <strong>{activePreset.max_wind_kmh} km/h</strong>
+                  </div>
+                  <div style={{ background: "#f1f5f9", padding: "8px", borderRadius: "4px" }}>
+                    <span style={{ color: "#64748b", display: "block", fontSize: "10px" }}>PEAK SURGE</span>
+                    <strong>+{data?.surge_and_runoff.peak_surge_height_m} m</strong>
+                  </div>
+                  <div style={{ background: "#f1f5f9", padding: "8px", borderRadius: "4px" }}>
+                    <span style={{ color: "#64748b", display: "block", fontSize: "10px" }}>INUNDATION REACH</span>
+                    <strong>{data?.surge_and_runoff.inundation_reach_km} km</strong>
+                  </div>
+                  <div style={{ background: "#f1f5f9", padding: "8px", borderRadius: "4px" }}>
+                    <span style={{ color: "#64748b", display: "block", fontSize: "10px" }}>24H RAINFALL</span>
+                    <strong>{data?.surge_and_runoff.projected_24h_rainfall_mm} mm</strong>
+                  </div>
+                  <div style={{ background: "#f1f5f9", padding: "8px", borderRadius: "4px" }}>
+                    <span style={{ color: "#64748b", display: "block", fontSize: "10px" }}>DRAINAGE OVERTOPPING</span>
+                    <strong style={{ color: "#dc2626" }}>142% Over Capacity</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Critical Infrastructure Registry Status Table */}
+              <div style={{ marginBottom: "18px" }}>
+                <h3 style={{ fontSize: "13px", fontWeight: 700, margin: "0 0 8px 0", color: "#0f172a", textTransform: "uppercase" }}>
+                  3. Critical Asset Vulnerability &amp; Operational Directives
+                </h3>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", textAlign: "left" }}>
+                  <thead>
+                    <tr style={{ background: "#f1f5f9", borderBottom: "2px solid #cbd5e1", color: "#475569" }}>
+                      <th style={{ padding: "6px 8px" }}>ASSET</th>
+                      <th style={{ padding: "6px 8px" }}>CATEGORY</th>
+                      <th style={{ padding: "6px 8px" }}>RISK LEVEL</th>
+                      <th style={{ padding: "6px 8px" }}>PASSABILITY / STATUS</th>
+                      <th style={{ padding: "6px 8px" }}>DIRECTIVE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data?.critical_infrastructure.map((item: any, idx: number) => (
+                      <tr key={idx} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                        <td style={{ padding: "6px 8px", fontWeight: 700 }}>{item.name}</td>
+                        <td style={{ padding: "6px 8px", color: "#64748b" }}>{item.category}</td>
+                        <td style={{ padding: "6px 8px" }}>
+                          <span style={{ color: item.overall_vulnerability === "CRITICAL" ? "#dc2626" : "#d97706", fontWeight: 700 }}>
+                            {item.overall_vulnerability}
+                          </span>
+                        </td>
+                        <td style={{ padding: "6px 8px" }}>{item.passability_status || "OPERATIONAL"}</td>
+                        <td style={{ padding: "6px 8px", color: "#334155" }}>{item.hardening_directive}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Resource & Financing */}
+              <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", padding: "12px", borderRadius: "6px", fontSize: "11.5px", marginBottom: "16px" }}>
+                <strong style={{ color: "#065f46" }}>PARAMETRIC SMART COVENANT DISBURSAL CONFIRMATION:</strong>
+                <span style={{ color: "#047857", marginLeft: "6px" }}>
+                  ₹{data?.parametric_insurance.disbursed_liquidity_inr_cr} Crores auto-disbursed for diesel generators, dry rations, and mobile water pumps.
+                </span>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowIAPModal(false)}
+                  style={{
+                    background: "#0f172a",
+                    color: "#ffffff",
+                    border: "none",
+                    padding: "8px 16px",
+                    borderRadius: "4px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Close Plan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* --------------------------------------------------------------- */}
+        {/* MODAL 3: OASIS Common Alerting Protocol (CAP v1.2) XML Modal   */}
+        {/* --------------------------------------------------------------- */}
+        {showCAPModal && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 1000,
+              background: "rgba(3, 7, 18, 0.88)",
+              backdropFilter: "blur(6px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px",
+            }}
+          >
+            <div
+              style={{
+                background: "#0a0f1d",
+                border: "1px solid rgba(245, 158, 11, 0.4)",
+                borderRadius: "12px",
+                width: "100%",
+                maxWidth: "800px",
+                maxHeight: "88vh",
+                overflowY: "auto",
+                boxShadow: "0 20px 50px rgba(0,0,0,0.8)",
+                padding: "24px",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <Radio size={20} color="#fbbf24" />
+                  <div>
+                    <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#ffffff", margin: 0 }}>
+                      OASIS COMMON ALERTING PROTOCOL (CAP v1.2) XML
+                    </h2>
+                    <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                      Interoperable disaster alert schema compliant with ITU-T X.1303 &amp; NDMA SACHET
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCAPModal(false)}
+                  style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer" }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {loadingCap ? (
+                <div style={{ padding: "40px", textAlign: "center", color: "#fbbf24" }}>
+                  <RefreshCw size={24} className="animate-spin" style={{ margin: "0 auto 10px auto" }} />
+                  <div>Generating SACHET-compliant XML Alert...</div>
+                </div>
+              ) : (
+                <>
+                  <pre
+                    style={{
+                      background: "#03060f",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: "6px",
+                      padding: "16px",
+                      fontSize: "11px",
+                      fontFamily: "'JetBrains Mono', monospace",
+                      color: "#38bdf8",
+                      overflowX: "auto",
+                      maxHeight: "420px",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    {capXml}
+                  </pre>
+
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "16px" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(capXml);
+                        alert("OASIS CAP v1.2 XML copied to clipboard!");
+                      }}
+                      style={{
+                        background: "rgba(245, 158, 11, 0.2)",
+                        border: "1px solid #fbbf24",
+                        color: "#fbbf24",
+                        padding: "8px 14px",
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <Copy size={13} />
+                      <span>Copy XML</span>
+                    </button>
+                    <a
+                      href={`data:text/xml;charset=utf-8,${encodeURIComponent(capXml)}`}
+                      download={`cyclonex-alert-${activePreset.id}.cap.xml`}
+                      style={{
+                        background: "#2563eb",
+                        color: "#ffffff",
+                        padding: "8px 14px",
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        textDecoration: "none",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <FileDown size={13} />
+                      <span>Download .cap.xml</span>
+                    </a>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

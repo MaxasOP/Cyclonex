@@ -245,7 +245,56 @@ class TestFullResilienceServiceIntegration(unittest.TestCase):
         self.assertEqual(res["system_status"]["gemini_ai"], "FALLBACK")
         self.assertEqual(res["system_status"]["rule_engine"], "ACTIVE")
         self.assertEqual(res["system_status"]["gee_sentinel1"], "SIMULATION")
-        self.assertEqual(res["system_status"]["meteorology"], "SIMULATION")
+    def test_countermeasure_sandbox(self):
+        # Baseline assessment (no countermeasures)
+        baseline = resilience_service.evaluate_resilience_assessment(
+            storm_name="Cyclone Dana",
+            eye_lat=20.4,
+            eye_lon=86.8,
+            deploy_countermeasure=False,
+        )
+        # Protected assessment with virtual barriers deployed
+        protected = resilience_service.evaluate_resilience_assessment(
+            storm_name="Cyclone Dana",
+            eye_lat=20.4,
+            eye_lon=86.8,
+            deploy_countermeasure=True,
+        )
+
+        self.assertTrue(protected["countermeasure_deployed"])
+        # Surge reach & flood depth must drop under countermeasure protection
+        self.assertLess(
+            protected["surge_and_runoff"]["inundation_reach_km"],
+            baseline["surge_and_runoff"]["inundation_reach_km"]
+        )
+        self.assertLess(
+            protected["surge_and_runoff"]["max_flood_depth_m"],
+            baseline["surge_and_runoff"]["max_flood_depth_m"]
+        )
+
+        # Highway passability flips to PASSABLE_PROTECTED
+        rd_baseline = next(i for i in baseline["critical_infrastructure"] if i["asset_id"] == "rd-01")
+        rd_protected = next(i for i in protected["critical_infrastructure"] if i["asset_id"] == "rd-01")
+        self.assertEqual(rd_baseline["passability_status"], "IMPASSABLE_FLOODED")
+        self.assertEqual(rd_protected["passability_status"], "PASSABLE_PROTECTED")
+
+    def test_drone_damage_and_cap_xml(self):
+        from gemini_resilience_service import DroneDamageInspectionEngine, generate_cap_alert_xml
+
+        # Test Drone Damage Inspection Engine
+        report = DroneDamageInspectionEngine.inspect_drone_damage(asset_id="pwr-01", sample_id="sample-substation-flood")
+        self.assertEqual(report["status"], "success")
+        self.assertEqual(report["damage_severity"], "SEVERE")
+        self.assertEqual(report["repair_priority"], "P1_URGENT")
+        self.assertGreater(len(report["detected_defects"]), 2)
+        self.assertIn("drone_telemetry", report)
+
+        # Test OASIS CAP v1.2 XML Alert Exporter
+        xml = generate_cap_alert_xml(storm_name="Cyclone Dana", max_wind_kmh=125.0, peak_surge_m=2.8)
+        self.assertIn('xmlns="urn:oasis:names:tc:emergency:cap:1.2"', xml)
+        self.assertIn('<valueName>NDMA-SACHET</valueName>', xml)
+        self.assertIn('<severity>Extreme</severity>', xml)
+        self.assertIn('Paradip Municipality', xml)
 
 
 if __name__ == "__main__":

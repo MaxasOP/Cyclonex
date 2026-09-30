@@ -834,6 +834,31 @@ export interface ResilienceAssessmentResult {
   provenance?: ProvenanceRecord[];
   system_status?: SystemStatus;
   post_landfall?: PostLandfallAssessment;
+  countermeasure_deployed?: boolean;
+}
+
+export interface DroneInspectionReport {
+  status: string;
+  engine: string;
+  inspected_asset_id: string;
+  asset_name: string;
+  image_caption: string;
+  damage_severity: "CRITICAL" | "SEVERE" | "MODERATE" | "MINOR";
+  structural_integrity_pct: number;
+  detected_defects: string[];
+  critical_failure_probability: number;
+  repair_priority: string;
+  estimated_repair_hours: number;
+  emergency_dispatch_crew: string;
+  mitigation_recommendation: string;
+  inspection_timestamp: string;
+  drone_telemetry: {
+    altitude_agl_m: number;
+    sensor: string;
+    gimbal_pitch_deg: number;
+    gps_fix: string;
+    survey_flight_speed_ms?: number;
+  };
 }
 
 export async function fetchResilienceAssessment(params?: {
@@ -847,6 +872,7 @@ export async function fetchResilienceAssessment(params?: {
   simulate_failure_gemini?: boolean;
   simulate_failure_gee?: boolean;
   simulate_failure_weather?: boolean;
+  deploy_countermeasure?: boolean;
 }): Promise<ResilienceAssessmentResult | null> {
   try {
     const q = new URLSearchParams();
@@ -860,12 +886,54 @@ export async function fetchResilienceAssessment(params?: {
     if (params?.simulate_failure_gemini) q.set("simulate_failure_gemini", "true");
     if (params?.simulate_failure_gee) q.set("simulate_failure_gee", "true");
     if (params?.simulate_failure_weather) q.set("simulate_failure_weather", "true");
+    if (params?.deploy_countermeasure) q.set("deploy_countermeasure", "true");
 
     const response = await fetch(`${apiBaseUrl}/api/resilience/assess?${q.toString()}`);
     if (!response.ok) return null;
     return response.json() as Promise<ResilienceAssessmentResult>;
   } catch {
     return null;
+  }
+}
+
+export async function inspectDroneDamage(params: {
+  asset_id: string;
+  sample_id?: string;
+  image_base64?: string;
+}): Promise<DroneInspectionReport | null> {
+  try {
+    const res = await fetch(`${apiBaseUrl}/api/resilience/inspect-drone-damage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) return null;
+    return res.json() as Promise<DroneInspectionReport>;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchCapAlertXml(params?: {
+  storm_name?: string;
+  max_wind_kmh?: number;
+  peak_surge_m?: number;
+  eye_lat?: number;
+  eye_lon?: number;
+}): Promise<string> {
+  try {
+    const q = new URLSearchParams();
+    if (params?.storm_name) q.set("storm_name", params.storm_name);
+    if (params?.max_wind_kmh != null) q.set("max_wind_kmh", String(params.max_wind_kmh));
+    if (params?.peak_surge_m != null) q.set("peak_surge_m", String(params.peak_surge_m));
+    if (params?.eye_lat != null) q.set("eye_lat", String(params.eye_lat));
+    if (params?.eye_lon != null) q.set("eye_lon", String(params.eye_lon));
+
+    const res = await fetch(`${apiBaseUrl}/api/resilience/cap-alert.xml?${q.toString()}`);
+    if (!res.ok) return "";
+    return res.text();
+  } catch {
+    return "";
   }
 }
 
