@@ -140,7 +140,6 @@ To provide an exhaustive reference, every feature in CYCLONEX is documented belo
 
 | Micro-Feature | Location | Technical Function & Behavior |
 | :--- | :--- | :--- |
-| **SIH 2024 Finalist Badge** | Top App Header | Displays `SIH 2024 · Problem Statement ID: 1736` indicating student research provenance. |
 | **Satellite Stream Status Pill** | Top App Header | Live pulse indicator reading `● INSAT-3D Online` (green) showing active meteorological ingestion. |
 | **Theme Toggle Button** | Top App Header | Instant toggle switching entire application between Tactical Dark (`[data-theme="dark"]`) and Minimal Light (`[data-theme="light"]`) modes. |
 | **Export SITREP Button** | Top App Header | Generates and exports an operational Disaster Situation Report (SITREP) in structured format. |

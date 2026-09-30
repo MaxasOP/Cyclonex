@@ -964,9 +964,6 @@ export default function App() {
                currentView === "docs" ? "Methodology & NDMA SOPs" :
                currentView === "resilience" ? "Track-Based Infrastructure Vulnerability Forecaster (Challenge 05)" : "Port Warnings & Bulletins"}
             </span>
-            <span className="sih-student-badge" style={{ marginLeft: "12px" }}>
-              SIH 2024 · Problem Statement ID: 1736
-            </span>
           </div>
 
           {/* Search Box */}
@@ -1892,8 +1889,7 @@ export default function App() {
                       {/* Student Project & Research Provenance Card */}
                       <div className="student-project-card">
                         <div className="student-project-header">
-                          <span className="student-badge">SIH 2024 · Problem Statement ID: 1736</span>
-                          <span className="student-team">Engineering Student Project</span>
+                          <span className="student-team">Operational Intelligence System</span>
                         </div>
                         <div className="student-project-title">
                           CYCLONEX · AI Multi-Source Satellite &amp; Physics Hazard System
