@@ -824,7 +824,7 @@ export default function App() {
     if (windNum >= 118) return { code: "VSCS", name: "Very Severe Cyclonic Storm (Cat 3)", tier: "SEVERE RED", color: "#ea580c" };
     if (windNum >= 88) return { code: "SCS", name: "Severe Cyclonic Storm (Cat 2)", tier: "HIGH ORANGE", color: "#f59e0b" };
     if (windNum >= 62) return { code: "CS", name: "Cyclonic Storm (Cat 1)", tier: "ELEVATED AMBER", color: "#eab308" };
-    return { code: "DD", name: "Deep Depression", tier: "MODERATE BLUE", color: "#38bdf8" };
+    return { code: "DD", name: "Deep Depression", tier: "MODERATE BLUE", color: "#8b5cf6" };
   }, [windNum]);
 
   const estPopulation = useMemo(() => {
@@ -1503,7 +1503,7 @@ export default function App() {
                         <div>
                           <div className="tactical-panel-title">HAZARD SIMULATION DOSSIER</div>
                           <div className="tactical-panel-sub">
-                            Mode: <strong style={{ color: "#38bdf8" }}>{analysisMode}</strong> &middot; Multi-Sensor Spatial Output
+                            Mode: <strong style={{ color: "#8b5cf6" }}>{analysisMode}</strong> &middot; Multi-Sensor Spatial Output
                           </div>
                         </div>
                       </div>

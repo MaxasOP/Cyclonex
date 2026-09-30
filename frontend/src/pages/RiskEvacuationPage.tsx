@@ -592,7 +592,7 @@ export default function RiskEvacuationPage({
           </div>
           <div className="saas-live-stat">
             <span className="saas-live-label">Current Intake (Utilization)</span>
-            <span className="saas-live-val" style={{ color: "#38bdf8" }}>
+            <span className="saas-live-val" style={{ color: "#8b5cf6" }}>
               {totalOccupancy.toLocaleString()} ({totalCapacity > 0 ? ((totalOccupancy / totalCapacity) * 100).toFixed(1) : "0.0"}%)
             </span>
           </div>
@@ -638,7 +638,7 @@ export default function RiskEvacuationPage({
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "'Space Mono', monospace",
                 fontSize: "10.5px",
                 color: "#64748b",
                 zIndex: 10
@@ -662,7 +662,7 @@ export default function RiskEvacuationPage({
 
                 {/* Ocean Area (Left Side) */}
                 <rect x="0" y="0" width="190" height="440" fill="rgba(15, 23, 42, 0.5)" />
-                <text x="30" y="220" fill="#334155" fontSize="13" fontFamily="'JetBrains Mono', monospace" letterSpacing="4">{basinName}</text>
+                <text x="30" y="220" fill="#334155" fontSize="13" fontFamily="'Space Mono', monospace" letterSpacing="4">{basinName}</text>
 
                 {/* Coastline Polygon */}
                 <path
@@ -676,11 +676,11 @@ export default function RiskEvacuationPage({
                 <path
                   d="M 194,10 Q 184,95 204,165 T 214,265 Q 224,335 254,430"
                   fill="none"
-                  stroke="#38bdf8"
+                  stroke="#8b5cf6"
                   strokeWidth="2"
                   strokeDasharray="4 2"
                 />
-                <text x="130" y="50" fill="#38bdf8" fontSize="8.5" fontFamily="'JetBrains Mono', monospace">SEAWALL (14.2 km)</text>
+                <text x="130" y="50" fill="#8b5cf6" fontSize="8.5" fontFamily="'Space Mono', monospace">SEAWALL (14.2 km)</text>
 
                 {/* Mangrove Bioshield Zone */}
                 <path
@@ -689,12 +689,12 @@ export default function RiskEvacuationPage({
                   stroke="#10b981"
                   strokeWidth="1"
                 />
-                <text x="110" y="210" fill="#10b981" fontSize="8" fontFamily="'JetBrains Mono', monospace">BIOSHIELD (180 HA)</text>
+                <text x="110" y="210" fill="#10b981" fontSize="8" fontFamily="'Space Mono', monospace">BIOSHIELD (180 HA)</text>
 
                 {/* Ward Polygons */}
                 {WARDS.map(w => {
                   const isSelected = w.id === selectedWardId;
-                  const strokeColor = w.evacPriority === "CRITICAL" ? "#ef4444" : w.evacPriority === "HIGH" ? "#f59e0b" : "#38bdf8";
+                  const strokeColor = w.evacPriority === "CRITICAL" ? "#ef4444" : w.evacPriority === "HIGH" ? "#f59e0b" : "#8b5cf6";
                   const fillColor = isSelected
                     ? (w.evacPriority === "CRITICAL" ? "rgba(239, 68, 68, 0.35)" : "rgba(245, 158, 11, 0.3)")
                     : (w.evacPriority === "CRITICAL" ? "rgba(239, 68, 68, 0.12)" : "rgba(255, 255, 255, 0.03)");
@@ -713,7 +713,7 @@ export default function RiskEvacuationPage({
                         y={w.center.y + 3}
                         fill={isSelected ? "#ffffff" : "#94a3b8"}
                         fontSize="9"
-                        fontFamily="'JetBrains Mono', monospace"
+                        fontFamily="'Space Mono', monospace"
                         fontWeight={isSelected ? "bold" : "normal"}
                       >
                         {w.name.split("·")[0].trim()}
@@ -728,7 +728,7 @@ export default function RiskEvacuationPage({
                   y1={activeWard.center.y}
                   x2={assignedShelter.x}
                   y2={assignedShelter.y}
-                  stroke="#38bdf8"
+                  stroke="#8b5cf6"
                   strokeWidth="2.5"
                   className="op-stream-flow-line"
                 />
@@ -767,7 +767,7 @@ export default function RiskEvacuationPage({
                         y={s.y + 4}
                         fill={isInspected ? "#ffffff" : "#64748b"}
                         fontSize="9"
-                        fontFamily="'JetBrains Mono', monospace"
+                        fontFamily="'Space Mono', monospace"
                         fontWeight={isInspected ? "bold" : "normal"}
                       >
                         {s.id.toUpperCase()} ({Math.round((s.occupancy / s.capacity) * 100)}%)
@@ -790,14 +790,14 @@ export default function RiskEvacuationPage({
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "'Space Mono', monospace",
                 fontSize: "11px",
                 zIndex: 10
               }}>
                 <div>
                   <span style={{ color: "#ef4444", fontWeight: 700 }}>SELECTED: {activeWard.name.toUpperCase()}</span>
                   <div style={{ color: "#94a3b8", fontSize: "10px", marginTop: "2px" }}>
-                    ROUTE: <strong style={{ color: "#ffffff" }}>{activeWard.evacRoute}</strong> &middot; DISTANCE: <strong style={{ color: "#38bdf8" }}>{activeWard.routeDistanceKm} km</strong> &middot; EST. TIME: <strong style={{ color: "#10b981" }}>{activeWard.estEvacTimeMin} min</strong>
+                    ROUTE: <strong style={{ color: "#ffffff" }}>{activeWard.evacRoute}</strong> &middot; DISTANCE: <strong style={{ color: "#8b5cf6" }}>{activeWard.routeDistanceKm} km</strong> &middot; EST. TIME: <strong style={{ color: "#10b981" }}>{activeWard.estEvacTimeMin} min</strong>
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
@@ -810,7 +810,7 @@ export default function RiskEvacuationPage({
 
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#64748b", padding: "0 4px" }}>
               <span>Click any ward or shelter on map to inspect evacuation logistics</span>
-              <span style={{ color: "#38bdf8" }}>Shortest Corridor Algorithm: Dijkstra Elevation-Weighted</span>
+              <span style={{ color: "#8b5cf6" }}>Shortest Corridor Algorithm: Dijkstra Elevation-Weighted</span>
             </div>
           </div>
 
@@ -838,7 +838,7 @@ export default function RiskEvacuationPage({
 
               {/* Capacity Load Meter */}
               <div style={{ marginBottom: "14px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10.5px", fontFamily: "'JetBrains Mono', monospace", marginBottom: "4px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10.5px", fontFamily: "'Space Mono', monospace", marginBottom: "4px" }}>
                   <span style={{ color: "#64748b" }}>CURRENT OCCUPANCY LOAD:</span>
                   <span style={{ color: inspectedShelter.occupancy / inspectedShelter.capacity > 0.85 ? "#f59e0b" : "#10b981", fontWeight: 700 }}>
                     {inspectedShelter.occupancy} / {inspectedShelter.capacity} ({Math.round((inspectedShelter.occupancy / inspectedShelter.capacity) * 100)}%)
@@ -862,7 +862,7 @@ export default function RiskEvacuationPage({
                 </div>
                 <div style={{ padding: "8px", background: "#03060a", border: "1px solid rgba(255,255,255,0.05)" }}>
                   <div style={{ fontSize: "9.5px", color: "#64748b" }}>POTABLE WATER</div>
-                  <div style={{ color: "#38bdf8", fontWeight: 700 }}>{inspectedShelter.potableWater}</div>
+                  <div style={{ color: "#8b5cf6", fontWeight: 700 }}>{inspectedShelter.potableWater}</div>
                 </div>
               </div>
             </div>
@@ -880,7 +880,7 @@ export default function RiskEvacuationPage({
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {filteredWards.map(w => {
                   const isSelected = w.id === selectedWardId;
-                  const priorityColor = w.evacPriority === "CRITICAL" ? "#ef4444" : w.evacPriority === "HIGH" ? "#f59e0b" : "#38bdf8";
+                  const priorityColor = w.evacPriority === "CRITICAL" ? "#ef4444" : w.evacPriority === "HIGH" ? "#f59e0b" : "#8b5cf6";
 
                   return (
                     <div
@@ -890,7 +890,7 @@ export default function RiskEvacuationPage({
                         padding: "10px 12px",
                         background: isSelected ? "rgba(56, 189, 248, 0.08)" : "rgba(255, 255, 255, 0.02)",
                         border: "1px solid",
-                        borderColor: isSelected ? "#38bdf8" : "rgba(255, 255, 255, 0.06)",
+                        borderColor: isSelected ? "#8b5cf6" : "rgba(255, 255, 255, 0.06)",
                         borderRadius: "3px",
                         cursor: "pointer",
                         transition: "all 0.15s ease"
@@ -900,7 +900,7 @@ export default function RiskEvacuationPage({
                         <span style={{ fontSize: "11.5px", fontWeight: 700, color: isSelected ? "#ffffff" : "#cbd5e1" }}>
                           {w.name}
                         </span>
-                        <span style={{ fontSize: "9.5px", fontFamily: "'JetBrains Mono', monospace", color: priorityColor, fontWeight: 700 }}>
+                        <span style={{ fontSize: "9.5px", fontFamily: "'Space Mono', monospace", color: priorityColor, fontWeight: 700 }}>
                           {w.evacPriority}
                         </span>
                       </div>

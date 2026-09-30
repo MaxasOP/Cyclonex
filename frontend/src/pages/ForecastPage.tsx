@@ -220,13 +220,13 @@ export default function ForecastPage({
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "'Space Mono', monospace",
                 fontSize: "10.5px",
                 color: "#64748b",
                 zIndex: 10
               }}>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                  <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#38bdf8" }} />
+                  <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#8b5cf6" }} />
                   <span style={{ color: "#ffffff", fontWeight: 700 }}>TRAJECTORY SIMULATION · {stormName.toUpperCase()}</span>
                 </div>
                 <div>FORWARD SPEED: {speedKph} km/h · HEADING: {headingDeg}° (NW)</div>
@@ -249,8 +249,8 @@ export default function ForecastPage({
                   stroke="rgba(148, 163, 184, 0.25)"
                   strokeWidth="1.5"
                 />
-                <text x="410" y="50" fill="#64748b" fontSize="10" fontFamily="'JetBrains Mono', monospace">MAHARASHTRA</text>
-                <text x="395" y="100" fill="#f43f5e" fontSize="9" fontWeight="bold" fontFamily="'JetBrains Mono', monospace">LANDFALL POINT</text>
+                <text x="410" y="50" fill="#64748b" fontSize="10" fontFamily="'Space Mono', monospace">MAHARASHTRA</text>
+                <text x="395" y="100" fill="#f43f5e" fontSize="9" fontWeight="bold" fontFamily="'Space Mono', monospace">LANDFALL POINT</text>
 
                 {/* Uncertainty Cone Polygon */}
                 <polygon
@@ -265,7 +265,7 @@ export default function ForecastPage({
                 <path
                   d="M 140,260 L 210,205 L 290,150 L 390,110"
                   fill="none"
-                  stroke="#38bdf8"
+                  stroke="#8b5cf6"
                   strokeWidth="2.5"
                   className="op-stream-flow-line"
                 />
@@ -279,7 +279,7 @@ export default function ForecastPage({
                         cx={w.x}
                         cy={w.y}
                         r={isActive ? 8 : 4}
-                        fill={isActive ? "#38bdf8" : "#64748b"}
+                        fill={isActive ? "#8b5cf6" : "#64748b"}
                         stroke="#ffffff"
                         strokeWidth={isActive ? 2 : 1}
                       />
@@ -288,7 +288,7 @@ export default function ForecastPage({
                         y={w.y + 4}
                         fill={isActive ? "#ffffff" : "#94a3b8"}
                         fontSize="10"
-                        fontFamily="'JetBrains Mono', monospace"
+                        fontFamily="'Space Mono', monospace"
                         fontWeight={isActive ? "bold" : "normal"}
                       >
                         {w.label}
@@ -300,7 +300,7 @@ export default function ForecastPage({
                 {/* Active Storm Cyclone Center with Concentric Wind Rings */}
                 <g transform={`translate(${currentWp.x}, ${currentWp.y})`}>
                   {/* Outer R34 Gale Radius Ring (60px) */}
-                  <circle cx="0" cy="0" r="60" fill="none" stroke="#38bdf8" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
+                  <circle cx="0" cy="0" r="60" fill="none" stroke="#8b5cf6" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
                   {/* R50 Storm Radius Ring (38px) */}
                   <circle cx="0" cy="0" r="38" fill="none" stroke="#f59e0b" strokeWidth="1.2" opacity="0.8" />
                   {/* Rmax Ring (18px) */}
@@ -328,15 +328,15 @@ export default function ForecastPage({
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "'Space Mono', monospace",
                 fontSize: "11px",
                 zIndex: 10
               }}>
                 <div>
-                  TIMESTEP: <strong style={{ color: "#38bdf8" }}>{currentWp.label}</strong> &middot; COORD: <strong style={{ color: "#ffffff" }}>{currentWp.lat}°N, {currentWp.lon}°E</strong>
+                  TIMESTEP: <strong style={{ color: "#8b5cf6" }}>{currentWp.label}</strong> &middot; COORD: <strong style={{ color: "#ffffff" }}>{currentWp.lat}°N, {currentWp.lon}°E</strong>
                 </div>
                 <div>
-                  VMAX: <strong style={{ color: "#38bdf8" }}>{currentWp.wind} km/h</strong> &middot; PC: <strong style={{ color: "#f59e0b" }}>{currentWp.pressure} hPa</strong>
+                  VMAX: <strong style={{ color: "#8b5cf6" }}>{currentWp.wind} km/h</strong> &middot; PC: <strong style={{ color: "#f59e0b" }}>{currentWp.pressure} hPa</strong>
                 </div>
               </div>
 
@@ -344,7 +344,7 @@ export default function ForecastPage({
 
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#64748b", padding: "0 4px" }}>
               <span>Use Play button or click waypoints to observe forecast track evolution</span>
-              <span style={{ color: "#38bdf8" }}>Ensemble Model: ECMWF IFS + GFS Blended Track</span>
+              <span style={{ color: "#8b5cf6" }}>Ensemble Model: ECMWF IFS + GFS Blended Track</span>
             </div>
           </div>
 
@@ -354,7 +354,7 @@ export default function ForecastPage({
             <div className="op-technical-panel">
               <div className="op-tech-panel-header">
                 <div className="op-tech-panel-title">
-                  <Wind size={14} style={{ color: "#38bdf8" }} />
+                  <Wind size={14} style={{ color: "#8b5cf6" }} />
                   <span>HOLLAND 1980 RADIAL VELOCITY CURVE</span>
                 </div>
                 <span className="op-tech-panel-badge">B = 1.25</span>
@@ -367,9 +367,9 @@ export default function ForecastPage({
 
               {/* Radial Distance Slider */}
               <div style={{ marginBottom: "14px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", marginBottom: "4px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontFamily: "'Space Mono', monospace", marginBottom: "4px" }}>
                   <span style={{ color: "#64748b" }}>RADIAL DISTANCE (r):</span>
-                  <span style={{ color: "#38bdf8", fontWeight: 700 }}>{hoveredRadius} km</span>
+                  <span style={{ color: "#8b5cf6", fontWeight: 700 }}>{hoveredRadius} km</span>
                 </div>
                 <input
                   type="range"
@@ -377,7 +377,7 @@ export default function ForecastPage({
                   max="160"
                   value={hoveredRadius}
                   onChange={(e) => setHoveredRadius(Number(e.target.value))}
-                  style={{ width: "100%", accentColor: "#38bdf8", cursor: "pointer" }}
+                  style={{ width: "100%", accentColor: "#8b5cf6", cursor: "pointer" }}
                 />
               </div>
 
@@ -385,14 +385,14 @@ export default function ForecastPage({
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", padding: "12px", background: "#03060a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "3px", marginBottom: "14px" }}>
                 <div>
                   <div style={{ fontSize: "9.5px", color: "#64748b", textTransform: "uppercase" }}>Wind Velocity V(r)</div>
-                  <div style={{ fontSize: "22px", fontWeight: 800, color: "#38bdf8", fontFamily: "'JetBrains Mono', monospace" }}>
+                  <div style={{ fontSize: "22px", fontWeight: 800, color: "#8b5cf6", fontFamily: "'Space Mono', monospace" }}>
                     {calculatedWindAtHover} <span style={{ fontSize: "12px" }}>km/h</span>
                   </div>
                   <div style={{ fontSize: "10px", color: "#94a3b8" }}>{hoveredRadius === 28 ? "Peak Vmax (Eyewall)" : "Outer Radial Isotach"}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: "9.5px", color: "#64748b", textTransform: "uppercase" }}>Wind Pressure (pz)</div>
-                  <div style={{ fontSize: "22px", fontWeight: 800, color: "#f59e0b", fontFamily: "'JetBrains Mono', monospace" }}>
+                  <div style={{ fontSize: "22px", fontWeight: 800, color: "#f59e0b", fontFamily: "'Space Mono', monospace" }}>
                     {calculatedPressureAtHover} <span style={{ fontSize: "12px" }}>kPa</span>
                   </div>
                   <div style={{ fontSize: "10px", color: "#94a3b8" }}>IS:875 Facade Load</div>
@@ -401,7 +401,7 @@ export default function ForecastPage({
 
               {/* SVG Radial Velocity Curve */}
               <div style={{ background: "#020408", border: "1px solid rgba(255,255,255,0.05)", padding: "12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace", marginBottom: "4px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#64748b", fontFamily: "'Space Mono', monospace", marginBottom: "4px" }}>
                   <span>RADIAL VELOCITY PROFILE V(r)</span>
                   <span style={{ color: "#ef4444" }}>RMAX: 28 km</span>
                 </div>
@@ -414,13 +414,13 @@ export default function ForecastPage({
                   <path
                     d="M 25,73 Q 55,70 75,18 Q 120,40 180,56 T 290,68"
                     fill="none"
-                    stroke="#38bdf8"
+                    stroke="#8b5cf6"
                     strokeWidth="2.5"
                   />
 
                   {/* Peak Point */}
                   <circle cx="75" cy="18" r="3.5" fill="#ef4444" />
-                  <text x="80" y="24" fill="#ef4444" fontSize="8.5" fontFamily="'JetBrains Mono', monospace">Vmax: {currentWp.wind} km/h</text>
+                  <text x="80" y="24" fill="#ef4444" fontSize="8.5" fontFamily="'Space Mono', monospace">Vmax: {currentWp.wind} km/h</text>
 
                   {/* Dynamic Hover Point on Curve */}
                   {(() => {
@@ -466,10 +466,10 @@ export default function ForecastPage({
         <div className="op-technical-panel" style={{ padding: "16px 20px" }}>
           <div className="op-tech-panel-header" style={{ marginBottom: "10px" }}>
             <div className="op-tech-panel-title">
-              <Clock size={13} style={{ color: "#38bdf8" }} />
+              <Clock size={13} style={{ color: "#8b5cf6" }} />
               <span>ENSEMBLE WAYPOINTS SCHEDULE</span>
             </div>
-            <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
+            <span style={{ fontSize: "11px", fontFamily: "'Space Mono', monospace", color: "#64748b" }}>
               BASIN: ARABIAN SEA (NIO)
             </span>
           </div>
@@ -495,13 +495,13 @@ export default function ForecastPage({
                   }}
                   onClick={() => { setSelectedHorizon(w.horizon); setIsPlaying(false); }}
                 >
-                  <td style={{ fontWeight: 700, color: w.horizon === selectedHorizon ? "#38bdf8" : "#ffffff" }}>
+                  <td style={{ fontWeight: 700, color: w.horizon === selectedHorizon ? "#8b5cf6" : "#ffffff" }}>
                     {w.label}
                   </td>
-                  <td style={{ fontFamily: "'JetBrains Mono', monospace" }}>{w.lat}°N, {w.lon}°E</td>
-                  <td style={{ fontFamily: "'JetBrains Mono', monospace", color: "#38bdf8" }}>{w.wind} km/h</td>
-                  <td style={{ fontFamily: "'JetBrains Mono', monospace", color: "#f59e0b" }}>{w.pressure} hPa</td>
-                  <td style={{ fontFamily: "'JetBrains Mono', monospace" }}>± {w.uncertaintyKm} km</td>
+                  <td style={{ fontFamily: "'Space Mono', monospace" }}>{w.lat}°N, {w.lon}°E</td>
+                  <td style={{ fontFamily: "'Space Mono', monospace", color: "#8b5cf6" }}>{w.wind} km/h</td>
+                  <td style={{ fontFamily: "'Space Mono', monospace", color: "#f59e0b" }}>{w.pressure} hPa</td>
+                  <td style={{ fontFamily: "'Space Mono', monospace" }}>± {w.uncertaintyKm} km</td>
                   <td style={{ color: w.horizon === 24 ? "#f43f5e" : "#cbd5e1", fontWeight: w.horizon === 24 ? 700 : "normal" }}>
                     {w.stage}
                   </td>

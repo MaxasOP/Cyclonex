@@ -1198,8 +1198,8 @@ export default function RiskMap({
               const isBuildingsMode = analysisMode === "BUILDINGS";
               const isTaller = props.is_locally_taller;
               const dmg = props.damage_score ?? 0.2;
-              let strokeColor = "#38bdf8";
-              let fillColor = "#0284c7";
+              let strokeColor = "#8b5cf6";
+              let fillColor = "#7c3aed";
               if (dmg >= 0.55) {
                 strokeColor = "#ef4444";
                 fillColor = "#dc2626";
@@ -1239,7 +1239,7 @@ export default function RiskMap({
                   <div style="background: rgba(255,255,255,0.04); padding: 6px 10px; border-radius: 4px; margin-bottom: 4px;">
                     <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 2px;">
                       <span style="color: #8fa4bf;">Structure Type</span>
-                      <strong style="color: #38bdf8;">${props.building_type || "RESIDENTIAL"}</strong>
+                      <strong style="color: #8b5cf6;">${props.building_type || "RESIDENTIAL"}</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 2px;">
                       <span style="color: #8fa4bf;">Height</span>
@@ -1336,7 +1336,7 @@ export default function RiskMap({
                     <div style={{ fontSize: "0.8rem", color: "#cbd5e1", lineHeight: "1.6" }}>
                       <div style={{ color: "#94a3b8", fontSize: "0.74rem" }}>{s.facilityType}</div>
                       <div>District: <strong style={{ color: "#ffffff" }}>{s.district || "Coastal"}, {s.state || "India"}</strong></div>
-                      {s.distanceKm != null && <div>Distance from Cyclone Eye: <strong style={{ color: "#38bdf8" }}>{s.distanceKm} km</strong></div>}
+                      {s.distanceKm != null && <div>Distance from Cyclone Eye: <strong style={{ color: "#8b5cf6" }}>{s.distanceKm} km</strong></div>}
                       
                       {/* Occupancy Progress Bar */}
                       <div style={{ marginTop: "8px", marginBottom: "8px", background: "rgba(0,0,0,0.35)", padding: "6px 8px", borderRadius: "6px" }}>

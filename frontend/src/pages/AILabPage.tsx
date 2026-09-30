@@ -225,8 +225,8 @@ export default function AILabPage({
                   </button>
                 ))}
               </div>
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "10.5px", color: "#64748b" }}>
-                SENSOR: <strong style={{ color: "#38bdf8" }}>{currentChannelObj.sensor}</strong>
+              <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "10.5px", color: "#64748b" }}>
+                SENSOR: <strong style={{ color: "#8b5cf6" }}>{currentChannelObj.sensor}</strong>
               </div>
             </div>
 
@@ -293,10 +293,10 @@ export default function AILabPage({
                   <circle cx="250" cy="215" r="12" fill="#020408" />
 
                   {/* Stage 1 Raw Metadata */}
-                  <text x="20" y="32" fill="#64748b" fontSize="10" fontFamily="'JetBrains Mono', monospace" fontWeight="700">
+                  <text x="20" y="32" fill="#64748b" fontSize="10" fontFamily="'Space Mono', monospace" fontWeight="700">
                     RAW DIGITAL COUNTS · 10-BIT {selectedChannel}
                   </text>
-                  <text x="20" y="47" fill="#475569" fontSize="9" fontFamily="'JetBrains Mono', monospace">
+                  <text x="20" y="47" fill="#475569" fontSize="9" fontFamily="'Space Mono', monospace">
                     HDF5 GEOSTATIONARY ARRAY: 256 × 256 · 15-MIN INGEST
                   </text>
                 </svg>
@@ -323,7 +323,7 @@ export default function AILabPage({
                       <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.9" />
                       <stop offset="8%" stopColor="#ef4444" stopOpacity="0.95" />
                       <stop offset="28%" stopColor="#7c3aed" stopOpacity="0.85" />
-                      <stop offset="55%" stopColor="#0284c7" stopOpacity="0.6" />
+                      <stop offset="55%" stopColor="#7c3aed" stopOpacity="0.6" />
                       <stop offset="85%" stopColor="#0f172a" stopOpacity="0.2" />
                       <stop offset="100%" stopColor="#020408" stopOpacity="0" />
                     </radialGradient>
@@ -331,7 +331,7 @@ export default function AILabPage({
                     {/* 2. Water Vapor Gradient */}
                     <radialGradient id="wvGradient" cx="50%" cy="50%" r="50%">
                       <stop offset="0%" stopColor="#082f49" stopOpacity="0.9" />
-                      <stop offset="12%" stopColor="#0284c7" stopOpacity="0.85" />
+                      <stop offset="12%" stopColor="#7c3aed" stopOpacity="0.85" />
                       <stop offset="35%" stopColor="#06b6d4" stopOpacity="0.9" />
                       <stop offset="65%" stopColor="#1e3a8a" stopOpacity="0.6" />
                       <stop offset="100%" stopColor="#020408" stopOpacity="0" />
@@ -391,7 +391,7 @@ export default function AILabPage({
                     <>
                       <circle cx="250" cy="215" r="65" fill="none" stroke="#ec4899" strokeWidth="2" strokeDasharray="3 3" />
                       <rect x="20" y="360" width="160" height="10" fill="url(#irGradient)" rx="2" />
-                      <text x="20" y="354" fill="#94a3b8" fontSize="8.5" fontFamily="'JetBrains Mono', monospace">
+                      <text x="20" y="354" fill="#94a3b8" fontSize="8.5" fontFamily="'Space Mono', monospace">
                         Tb SCALE: -85°C (WHITE) TO +20°C (BLACK)
                       </text>
                     </>
@@ -403,21 +403,21 @@ export default function AILabPage({
                       <path
                         d="M 250,215 Q 170,115 90,165 Q 50,235 80,315"
                         fill="none"
-                        stroke="#38bdf8"
+                        stroke="#8b5cf6"
                         strokeWidth="2.5"
                         strokeDasharray="5 3"
                       />
                       <path
                         d="M 250,215 Q 330,315 410,275 Q 450,195 410,125"
                         fill="none"
-                        stroke="#38bdf8"
+                        stroke="#8b5cf6"
                         strokeWidth="2.5"
                         strokeDasharray="5 3"
                       />
-                      <text x="310" y="48" fill="#38bdf8" fontSize="10" fontFamily="'JetBrains Mono', monospace" fontWeight="700">
+                      <text x="310" y="48" fill="#8b5cf6" fontSize="10" fontFamily="'Space Mono', monospace" fontWeight="700">
                         SPIRAL FIT: r = a · e^(bθ)
                       </text>
-                      <text x="310" y="63" fill="#94a3b8" fontSize="9" fontFamily="'JetBrains Mono', monospace">
+                      <text x="310" y="63" fill="#94a3b8" fontSize="9" fontFamily="'Space Mono', monospace">
                         CONVECTIVE WRAP: 1.35 TURNS
                       </text>
                     </>
@@ -430,13 +430,13 @@ export default function AILabPage({
                       <circle cx="250" cy="215" r="14" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="2 2" />
                       <line x1="220" y1="215" x2="280" y2="215" stroke="#ef4444" strokeWidth="1" strokeDasharray="3 3" />
                       <line x1="250" y1="185" x2="250" y2="245" stroke="#ef4444" strokeWidth="1" strokeDasharray="3 3" />
-                      <text x="272" y="206" fill="#ef4444" fontSize="9" fontFamily="'JetBrains Mono', monospace" fontWeight="bold">
+                      <text x="272" y="206" fill="#ef4444" fontSize="9" fontFamily="'Space Mono', monospace" fontWeight="bold">
                         EYE: -38.2°C
                       </text>
-                      <text x="272" y="219" fill="#38bdf8" fontSize="9" fontFamily="'JetBrains Mono', monospace">
+                      <text x="272" y="219" fill="#8b5cf6" fontSize="9" fontFamily="'Space Mono', monospace">
                         CDO: -74.8°C
                       </text>
-                      <text x="272" y="232" fill="#10b981" fontSize="9" fontFamily="'JetBrains Mono', monospace" fontWeight="bold">
+                      <text x="272" y="232" fill="#10b981" fontSize="9" fontFamily="'Space Mono', monospace" fontWeight="bold">
                         ΔT: +36.6 K ({dvorakCI})
                       </text>
                     </>
@@ -448,10 +448,10 @@ export default function AILabPage({
                       <circle cx="250" cy="215" r="55" fill="#ef4444" opacity="0.35" filter="blur(14px)" />
                       <circle cx="280" cy="200" r="35" fill="#f59e0b" opacity="0.4" filter="blur(10px)" />
                       <circle cx="220" cy="230" r="30" fill="#f59e0b" opacity="0.4" filter="blur(10px)" />
-                      <text x="310" y="48" fill="#ec4899" fontSize="10" fontFamily="'JetBrains Mono', monospace" fontWeight="700">
+                      <text x="310" y="48" fill="#ec4899" fontSize="10" fontFamily="'Space Mono', monospace" fontWeight="700">
                         RESNET-50 LAYER 4 ATTENTION
                       </text>
-                      <text x="310" y="63" fill="#94a3b8" fontSize="9" fontFamily="'JetBrains Mono', monospace">
+                      <text x="310" y="63" fill="#94a3b8" fontSize="9" fontFamily="'Space Mono', monospace">
                         GRAD-CAM FOCUS: EYEWALL TENSOR
                       </text>
                     </>
@@ -461,16 +461,16 @@ export default function AILabPage({
                   {activeStage === 6 && (
                     <>
                       <rect x="290" y="40" width="180" height="90" fill="rgba(2,6,23,0.85)" stroke="rgba(255,255,255,0.1)" rx="4" />
-                      <text x="300" y="58" fill="#38bdf8" fontSize="10" fontFamily="'JetBrains Mono', monospace" fontWeight="700">
+                      <text x="300" y="58" fill="#8b5cf6" fontSize="10" fontFamily="'Space Mono', monospace" fontWeight="700">
                         ENSEMBLE POSTERIOR PROB
                       </text>
-                      <text x="300" y="78" fill="#10b981" fontSize="9.5" fontFamily="'JetBrains Mono', monospace">
+                      <text x="300" y="78" fill="#10b981" fontSize="9.5" fontFamily="'Space Mono', monospace">
                         VSCS / ESCS: 94.7%
                       </text>
-                      <text x="300" y="93" fill="#64748b" fontSize="9" fontFamily="'JetBrains Mono', monospace">
+                      <text x="300" y="93" fill="#64748b" fontSize="9" fontFamily="'Space Mono', monospace">
                         SCS (Cat 2): 4.2%
                       </text>
-                      <text x="300" y="108" fill="#64748b" fontSize="9" fontFamily="'JetBrains Mono', monospace">
+                      <text x="300" y="108" fill="#64748b" fontSize="9" fontFamily="'Space Mono', monospace">
                         SUCS (Cat 5): 1.1%
                       </text>
                     </>
@@ -480,20 +480,20 @@ export default function AILabPage({
                   {activeStage === 7 && (
                     <>
                       <rect x="290" y="40" width="190" height="75" fill="rgba(239,68,68,0.15)" stroke="#ef4444" rx="4" />
-                      <text x="300" y="60" fill="#ef4444" fontSize="10.5" fontFamily="'JetBrains Mono', monospace" fontWeight="800">
+                      <text x="300" y="60" fill="#ef4444" fontSize="10.5" fontFamily="'Space Mono', monospace" fontWeight="800">
                         🚨 NDMA STAGE 4: RED ALERT
                       </text>
-                      <text x="300" y="76" fill="#f8fafc" fontSize="9.5" fontFamily="'JetBrains Mono', monospace">
+                      <text x="300" y="76" fill="#f8fafc" fontSize="9.5" fontFamily="'Space Mono', monospace">
                         DIRECTIVE: MANDATORY EVACUATION
                       </text>
-                      <text x="300" y="92" fill="#94a3b8" fontSize="9" fontFamily="'JetBrains Mono', monospace">
+                      <text x="300" y="92" fill="#94a3b8" fontSize="9" fontFamily="'Space Mono', monospace">
                         LANDFALL SECTOR: {currentLat.toFixed(2)}°N, {currentLon.toFixed(2)}°E
                       </text>
                     </>
                   )}
                 </svg>
 
-                <div className="op-diff-badge" style={{ top: "14px", right: "14px", borderColor: "#38bdf8", color: "#38bdf8" }}>
+                <div className="op-diff-badge" style={{ top: "14px", right: "14px", borderColor: "#8b5cf6", color: "#8b5cf6" }}>
                   STAGE 0{activeStage}: {PIPELINE_STAGES[activeStage - 1].title.toUpperCase()}
                 </div>
               </div>
@@ -521,7 +521,7 @@ export default function AILabPage({
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  fontFamily: "'JetBrains Mono', monospace",
+                  fontFamily: "'Space Mono', monospace",
                   fontSize: "11px",
                   zIndex: 15,
                   borderRadius: "4px",
@@ -532,13 +532,13 @@ export default function AILabPage({
                     TARGET: <strong style={{ color: "#ffffff" }}>{stormName.split("(")[0].trim().toUpperCase()}</strong>
                   </span>
                   <span>
-                    CENTER: <strong style={{ color: "#38bdf8" }}>{currentLat.toFixed(2)}°N, {currentLon.toFixed(2)}°E</strong>
+                    CENTER: <strong style={{ color: "#8b5cf6" }}>{currentLat.toFixed(2)}°N, {currentLon.toFixed(2)}°E</strong>
                   </span>
                   <span>
                     DVORAK: <strong style={{ color: "#f59e0b" }}>{dvorakCI}</strong>
                   </span>
                   <span>
-                    VMAX: <strong style={{ color: "#38bdf8" }}>{currentWind} km/h</strong>
+                    VMAX: <strong style={{ color: "#8b5cf6" }}>{currentWind} km/h</strong>
                   </span>
                 </div>
                 <div style={{ color: "#10b981", fontWeight: 700 }}>
@@ -554,7 +554,7 @@ export default function AILabPage({
                   ? "← Drag slider left/right to contrast raw radiometry against extracted isotherms"
                   : `Viewing Step 0${activeStage}: ${PIPELINE_STAGES[activeStage - 1].desc}`}
               </span>
-              <span style={{ color: "#38bdf8" }}>{currentChannelObj.bandInfo}</span>
+              <span style={{ color: "#8b5cf6" }}>{currentChannelObj.bandInfo}</span>
             </div>
           </div>
 
@@ -564,7 +564,7 @@ export default function AILabPage({
             <div className="op-technical-panel">
               <div className="op-tech-panel-header">
                 <div className="op-tech-panel-title">
-                  <Activity size={14} style={{ color: "#38bdf8" }} />
+                  <Activity size={14} style={{ color: "#8b5cf6" }} />
                   <span>OBJECTIVE ADT INFERENCE</span>
                 </div>
                 <span className="op-tech-panel-badge">RESNET-50</span>
@@ -573,28 +573,28 @@ export default function AILabPage({
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
                 <div>
                   <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase" }}>Dvorak T-Number</div>
-                  <div style={{ fontSize: "28px", fontWeight: 800, color: "#ffffff", fontFamily: "'JetBrains Mono', monospace" }}>
+                  <div style={{ fontSize: "28px", fontWeight: 800, color: "#ffffff", fontFamily: "'Space Mono', monospace" }}>
                     {dvorakCI}
                   </div>
                   <div style={{ fontSize: "10.5px", color: "#94a3b8" }}>Current Intensity (CI)</div>
                 </div>
                 <div>
                   <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase" }}>Estimated Vmax</div>
-                  <div style={{ fontSize: "28px", fontWeight: 800, color: "#38bdf8", fontFamily: "'JetBrains Mono', monospace" }}>
+                  <div style={{ fontSize: "28px", fontWeight: 800, color: "#8b5cf6", fontFamily: "'Space Mono', monospace" }}>
                     {currentWind} <span style={{ fontSize: "13px" }}>km/h</span>
                   </div>
                   <div style={{ fontSize: "10.5px", color: "#94a3b8" }}>{dvorakKnots} kt Sustained Wind</div>
                 </div>
                 <div>
                   <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase" }}>Min Central Pressure</div>
-                  <div style={{ fontSize: "20px", fontWeight: 700, color: "#f59e0b", fontFamily: "'JetBrains Mono', monospace" }}>
+                  <div style={{ fontSize: "20px", fontWeight: 700, color: "#f59e0b", fontFamily: "'Space Mono', monospace" }}>
                     {currentPressure} <span style={{ fontSize: "12px" }}>hPa</span>
                   </div>
                   <div style={{ fontSize: "10.5px", color: "#94a3b8" }}>ΔP: {deltaP} hPa deficit</div>
                 </div>
                 <div>
                   <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase" }}>Model Confidence</div>
-                  <div style={{ fontSize: "20px", fontWeight: 700, color: "#10b981", fontFamily: "'JetBrains Mono', monospace" }}>
+                  <div style={{ fontSize: "20px", fontWeight: 700, color: "#10b981", fontFamily: "'Space Mono', monospace" }}>
                     {confidenceScore}%
                   </div>
                   <div style={{ fontSize: "10.5px", color: "#94a3b8" }}>High Convective Fit</div>
@@ -629,7 +629,7 @@ export default function AILabPage({
             <div className="op-technical-panel">
               <div className="op-tech-panel-header">
                 <div className="op-tech-panel-title">
-                  <Sliders size={14} style={{ color: "#38bdf8" }} />
+                  <Sliders size={14} style={{ color: "#8b5cf6" }} />
                   <span>MANUAL PARAMETER OVERRIDE</span>
                 </div>
                 <span className="op-tech-panel-badge">TEST BENCH</span>
@@ -651,7 +651,7 @@ export default function AILabPage({
                       border: "1px solid rgba(255,255,255,0.1)",
                       color: "#ffffff",
                       padding: "6px 8px",
-                      fontFamily: "'JetBrains Mono', monospace",
+                      fontFamily: "'Space Mono', monospace",
                       fontSize: "12px",
                       borderRadius: "3px",
                     }}
@@ -672,7 +672,7 @@ export default function AILabPage({
                       border: "1px solid rgba(255,255,255,0.1)",
                       color: "#ffffff",
                       padding: "6px 8px",
-                      fontFamily: "'JetBrains Mono', monospace",
+                      fontFamily: "'Space Mono', monospace",
                       fontSize: "12px",
                       borderRadius: "3px",
                     }}
@@ -692,7 +692,7 @@ export default function AILabPage({
                       border: "1px solid rgba(255,255,255,0.1)",
                       color: "#ffffff",
                       padding: "6px 8px",
-                      fontFamily: "'JetBrains Mono', monospace",
+                      fontFamily: "'Space Mono', monospace",
                       fontSize: "12px",
                       borderRadius: "3px",
                     }}
@@ -712,7 +712,7 @@ export default function AILabPage({
                       border: "1px solid rgba(255,255,255,0.1)",
                       color: "#ffffff",
                       padding: "6px 8px",
-                      fontFamily: "'JetBrains Mono', monospace",
+                      fontFamily: "'Space Mono', monospace",
                       fontSize: "12px",
                       borderRadius: "3px",
                     }}

@@ -50,7 +50,7 @@ const DATA_SOURCES: DataSource[] = [
     coverage: "North Indian Ocean (0°N–35°N, 45°E–105°E)",
     description: "Primary multispectral thermal infrared feed utilized for Automated Dvorak eye/CDO temperature contrast and deep convective cloud-top tracking.",
     dataPoints: 14400,
-    flowColor: "#38bdf8",
+    flowColor: "#8b5cf6",
   },
   {
     id: "imd-dwr",
@@ -182,7 +182,7 @@ export default function DataSourcesPage() {
           </div>
 
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#10b981", display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ fontSize: "11px", fontFamily: "'Space Mono', monospace", color: "#10b981", display: "flex", alignItems: "center", gap: "6px" }}>
               <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#10b981" }} />
               INGESTION BUS ACTIVE (99.98% UPTIME)
             </span>
@@ -200,10 +200,10 @@ export default function DataSourcesPage() {
           overflow: "hidden"
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "10px" }}>
-            <span style={{ fontSize: "11px", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#38bdf8" }}>
+            <span style={{ fontSize: "11px", fontWeight: 700, fontFamily: "'Space Mono', monospace", color: "#8b5cf6" }}>
               DATA INGESTION BUS ARCHITECTURE
             </span>
-            <span style={{ fontSize: "10.5px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
+            <span style={{ fontSize: "10.5px", color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
               CLICK ANY SOURCE TO INSPECT PACKET SPECIFICATION
             </span>
           </div>
@@ -214,8 +214,8 @@ export default function DataSourcesPage() {
             <svg width="100%" height="280" viewBox="0 0 480 280" style={{ display: "block" }}>
               <defs>
                 <linearGradient id="busGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.2" />
-                  <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.8" />
+                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.2" />
+                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.8" />
                 </linearGradient>
               </defs>
 
@@ -238,10 +238,10 @@ export default function DataSourcesPage() {
                       strokeWidth={isSelected ? 1.8 : 1}
                     />
                     <circle cx="24" cy={y + 1} r="4" fill={s.flowColor} />
-                    <text x="36" y={y - 3} fill={isSelected ? "#ffffff" : "#cbd5e1"} fontSize="9.5" fontWeight="bold" fontFamily="'JetBrains Mono', monospace">
+                    <text x="36" y={y - 3} fill={isSelected ? "#ffffff" : "#cbd5e1"} fontSize="9.5" fontWeight="bold" fontFamily="'Space Mono', monospace">
                       {s.name.split(" ")[0]}
                     </text>
-                    <text x="36" y={y + 10} fill="#64748b" fontSize="8" fontFamily="'JetBrains Mono', monospace">
+                    <text x="36" y={y + 10} fill="#64748b" fontSize="8" fontFamily="'Space Mono', monospace">
                       {s.provider} &middot; {s.cadence.split(" ")[0]}
                     </text>
 
@@ -267,17 +267,17 @@ export default function DataSourcesPage() {
                   height="120"
                   rx="4"
                   fill="#06090e"
-                  stroke="#38bdf8"
+                  stroke="#8b5cf6"
                   strokeWidth="2"
                   filter="drop-shadow(0 0 16px rgba(56, 189, 248, 0.25))"
                 />
-                <circle cx="70" cy="35" r="14" fill="rgba(56, 189, 248, 0.1)" stroke="#38bdf8" strokeWidth="1.5" />
-                <text x="70" y="39" textAnchor="middle" fill="#38bdf8" fontSize="10" fontWeight="bold" fontFamily="'JetBrains Mono', monospace">X</text>
+                <circle cx="70" cy="35" r="14" fill="rgba(56, 189, 248, 0.1)" stroke="#8b5cf6" strokeWidth="1.5" />
+                <text x="70" y="39" textAnchor="middle" fill="#8b5cf6" fontSize="10" fontWeight="bold" fontFamily="'Space Mono', monospace">X</text>
                 
-                <text x="70" y="65" textAnchor="middle" fill="#ffffff" fontSize="11" fontWeight="bold" fontFamily="'JetBrains Mono', monospace">CYCLONEX</text>
-                <text x="70" y="80" textAnchor="middle" fill="#94a3b8" fontSize="8" fontFamily="'JetBrains Mono', monospace">NORMALIZATION</text>
-                <text x="70" y="93" textAnchor="middle" fill="#10b981" fontSize="8" fontWeight="bold" fontFamily="'JetBrains Mono', monospace">200m GRID ENGINE</text>
-                <text x="70" y="106" textAnchor="middle" fill="#64748b" fontSize="7.5" fontFamily="'JetBrains Mono', monospace">LATENCY: &lt; 1.8s</text>
+                <text x="70" y="65" textAnchor="middle" fill="#ffffff" fontSize="11" fontWeight="bold" fontFamily="'Space Mono', monospace">CYCLONEX</text>
+                <text x="70" y="80" textAnchor="middle" fill="#94a3b8" fontSize="8" fontFamily="'Space Mono', monospace">NORMALIZATION</text>
+                <text x="70" y="93" textAnchor="middle" fill="#10b981" fontSize="8" fontWeight="bold" fontFamily="'Space Mono', monospace">200m GRID ENGINE</text>
+                <text x="70" y="106" textAnchor="middle" fill="#64748b" fontSize="7.5" fontFamily="'Space Mono', monospace">LATENCY: &lt; 1.8s</text>
               </g>
             </svg>
 
@@ -285,7 +285,7 @@ export default function DataSourcesPage() {
             <div style={{ background: "#05080e", border: "1px solid rgba(255, 255, 255, 0.08)", padding: "16px", borderRadius: "3px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                 <span style={{ fontSize: "13px", fontWeight: 700, color: "#ffffff" }}>{activeSource.name}</span>
-                <span style={{ fontSize: "10px", fontFamily: "'JetBrains Mono', monospace", color: activeSource.flowColor, border: `1px solid ${activeSource.flowColor}`, padding: "1px 6px", borderRadius: "2px" }}>
+                <span style={{ fontSize: "10px", fontFamily: "'Space Mono', monospace", color: activeSource.flowColor, border: `1px solid ${activeSource.flowColor}`, padding: "1px 6px", borderRadius: "2px" }}>
                   {activeSource.status}
                 </span>
               </div>
@@ -297,14 +297,14 @@ export default function DataSourcesPage() {
                 {activeSource.description}
               </p>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "10.5px", fontFamily: "'JetBrains Mono', monospace" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "10.5px", fontFamily: "'Space Mono', monospace" }}>
                 <div style={{ padding: "6px 8px", background: "#020407", border: "1px solid rgba(255,255,255,0.05)" }}>
                   <div style={{ color: "#64748b", fontSize: "9px" }}>RESOLUTION</div>
                   <div style={{ color: "#cbd5e1" }}>{activeSource.resolution}</div>
                 </div>
                 <div style={{ padding: "6px 8px", background: "#020407", border: "1px solid rgba(255,255,255,0.05)" }}>
                   <div style={{ color: "#64748b", fontSize: "9px" }}>CADENCE</div>
-                  <div style={{ color: "#38bdf8" }}>{activeSource.cadence}</div>
+                  <div style={{ color: "#8b5cf6" }}>{activeSource.cadence}</div>
                 </div>
                 <div style={{ padding: "6px 8px", background: "#020407", border: "1px solid rgba(255,255,255,0.05)" }}>
                   <div style={{ color: "#64748b", fontSize: "9px" }}>INGEST LATENCY</div>
@@ -324,10 +324,10 @@ export default function DataSourcesPage() {
         <div className="op-technical-panel" style={{ padding: "16px 20px", marginBottom: "28px" }}>
           <div className="op-tech-panel-header" style={{ marginBottom: "10px" }}>
             <div className="op-tech-panel-title">
-              <Database size={13} style={{ color: "#38bdf8" }} />
+              <Database size={13} style={{ color: "#8b5cf6" }} />
               <span>EARTH OBSERVATION DATA FEEDS SPECIFICATION</span>
             </div>
-            <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
+            <span style={{ fontSize: "11px", fontFamily: "'Space Mono', monospace", color: "#64748b" }}>
               5 FEDERATED STREAMS
             </span>
           </div>
@@ -354,16 +354,16 @@ export default function DataSourcesPage() {
                   }}
                   onClick={() => setSelectedSourceId(s.id)}
                 >
-                  <td style={{ fontWeight: 700, color: s.id === selectedSourceId ? "#38bdf8" : "#ffffff" }}>
+                  <td style={{ fontWeight: 700, color: s.id === selectedSourceId ? "#8b5cf6" : "#ffffff" }}>
                     {s.name}
                   </td>
                   <td>{s.provider}</td>
-                  <td style={{ fontFamily: "'JetBrains Mono', monospace" }}>{s.spectrum}</td>
-                  <td style={{ fontFamily: "'JetBrains Mono', monospace" }}>{s.resolution}</td>
-                  <td style={{ fontFamily: "'JetBrains Mono', monospace", color: "#38bdf8" }}>{s.cadence}</td>
-                  <td style={{ fontFamily: "'JetBrains Mono', monospace", color: "#10b981" }}>{s.latency}</td>
+                  <td style={{ fontFamily: "'Space Mono', monospace" }}>{s.spectrum}</td>
+                  <td style={{ fontFamily: "'Space Mono', monospace" }}>{s.resolution}</td>
+                  <td style={{ fontFamily: "'Space Mono', monospace", color: "#8b5cf6" }}>{s.cadence}</td>
+                  <td style={{ fontFamily: "'Space Mono', monospace", color: "#10b981" }}>{s.latency}</td>
                   <td>
-                    <span style={{ color: "#10b981", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", fontSize: "10.5px" }}>
+                    <span style={{ color: "#10b981", fontWeight: 700, fontFamily: "'Space Mono', monospace", fontSize: "10.5px" }}>
                       {s.status}
                     </span>
                   </td>
@@ -377,7 +377,7 @@ export default function DataSourcesPage() {
         <div className="op-technical-panel">
           <div className="op-tech-panel-header">
             <div className="op-tech-panel-title">
-              <Terminal size={14} style={{ color: "#38bdf8" }} />
+              <Terminal size={14} style={{ color: "#8b5cf6" }} />
               <span>INTERACTIVE DEVELOPER REST API CONSOLE</span>
             </div>
             <span className="op-tech-panel-badge">FASTAPI BACKEND :8000</span>
@@ -395,7 +395,7 @@ export default function DataSourcesPage() {
                 }}
                 style={{ padding: "6px 12px", fontSize: "11px" }}
               >
-                <span style={{ color: ep.method === "GET" ? "#10b981" : "#38bdf8", marginRight: "6px", fontWeight: 800 }}>
+                <span style={{ color: ep.method === "GET" ? "#10b981" : "#8b5cf6", marginRight: "6px", fontWeight: 800 }}>
                   {ep.method}
                 </span>
                 {ep.path}
@@ -411,10 +411,10 @@ export default function DataSourcesPage() {
 
               {activeEndpoint.samplePayload && (
                 <div style={{ marginBottom: "12px" }}>
-                  <div style={{ fontSize: "10px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace", marginBottom: "4px" }}>
+                  <div style={{ fontSize: "10px", color: "#64748b", fontFamily: "'Space Mono', monospace", marginBottom: "4px" }}>
                     REQUEST BODY (JSON):
                   </div>
-                  <pre style={{ margin: 0, padding: "10px", background: "#020408", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "3px", fontSize: "11px", color: "#38bdf8", fontFamily: "'JetBrains Mono', monospace" }}>
+                  <pre style={{ margin: 0, padding: "10px", background: "#020408", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "3px", fontSize: "11px", color: "#8b5cf6", fontFamily: "'Space Mono', monospace" }}>
                     {activeEndpoint.samplePayload}
                   </pre>
                 </div>
@@ -434,7 +434,7 @@ export default function DataSourcesPage() {
 
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                <span style={{ fontSize: "10px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
+                <span style={{ fontSize: "10px", color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
                   RESPONSE PAYLOAD (200 OK):
                 </span>
                 <button
@@ -453,7 +453,7 @@ export default function DataSourcesPage() {
                 borderRadius: "3px",
                 fontSize: "11px",
                 color: "#10b981",
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "'Space Mono', monospace",
                 minHeight: "140px",
                 overflowX: "auto"
               }}>

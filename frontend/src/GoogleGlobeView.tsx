@@ -131,11 +131,11 @@ export default function GoogleGlobeView({
         new google.maps.Polyline({
           map,
           path,
-          strokeColor:   "#38bdf8",
+          strokeColor:   "#8b5cf6",
           strokeOpacity: 0.9,
           strokeWeight:  3,
           icons: [{
-            icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, strokeColor: "#38bdf8", scale: 3 },
+            icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, strokeColor: "#8b5cf6", scale: 3 },
             repeat: "80px",
           }],
         });
@@ -149,7 +149,7 @@ export default function GoogleGlobeView({
             icon: {
               path:         google.maps.SymbolPath.CIRCLE,
               scale:        7,
-              fillColor:    i === trajectory.length - 1 ? "#f59e0b" : "#38bdf8",
+              fillColor:    i === trajectory.length - 1 ? "#f59e0b" : "#8b5cf6",
               fillOpacity:  1,
               strokeColor:  "#ffffff",
               strokeWeight: 1.5,
@@ -253,7 +253,7 @@ export default function GoogleGlobeView({
           ) : (
             <>
               <div style={{ fontSize: "2rem", marginBottom: "10px" }}>{"🌍"}</div>
-              <div style={{ fontWeight: 800, color: "#38bdf8", marginBottom: "8px" }}>Loading Google Satellite Globe</div>
+              <div style={{ fontWeight: 800, color: "#8b5cf6", marginBottom: "8px" }}>Loading Google Satellite Globe</div>
               <div style={{ fontSize: "0.78rem", color: "#94a3b8" }}>{loadStatus}</div>
             </>
           )}
@@ -270,11 +270,11 @@ export default function GoogleGlobeView({
         zIndex: 1100, boxShadow: "0 12px 32px rgba(0,0,0,0.6)",
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 800, color: "#38bdf8", letterSpacing: "0.04em" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 800, color: "#8b5cf6", letterSpacing: "0.04em" }}>
             <span style={{ width: "9px", height: "9px", borderRadius: "50%", background: isReady ? "#10b981" : "#f59e0b", boxShadow: isReady ? "0 0 10px #10b981" : "0 0 10px #f59e0b", display: "inline-block" }} />
             <span>GOOGLE MAPS SATELLITE GLOBE</span>
           </div>
-          <span style={{ fontSize: "0.65rem", padding: "2px 6px", background: "rgba(56,189,248,0.15)", border: "1px solid rgba(56,189,248,0.3)", borderRadius: "4px", color: "#38bdf8", fontWeight: 700 }}>
+          <span style={{ fontSize: "0.65rem", padding: "2px 6px", background: "rgba(56,189,248,0.15)", border: "1px solid rgba(56,189,248,0.3)", borderRadius: "4px", color: "#8b5cf6", fontWeight: 700 }}>
             {isReady ? "LIVE" : "LOADING"}
           </span>
         </div>
@@ -287,7 +287,7 @@ export default function GoogleGlobeView({
 
         <div style={{ display: "flex", gap: "8px", marginTop: "2px", flexWrap: "wrap" }}>
           <button type="button" onClick={focusOnCyclone}
-            style={{ padding: "5px 10px", background: "rgba(56,189,248,0.15)", border: "1px solid rgba(56,189,248,0.3)", borderRadius: "6px", color: "#38bdf8", cursor: "pointer", fontSize: "0.72rem", fontWeight: 700 }}>
+            style={{ padding: "5px 10px", background: "rgba(56,189,248,0.15)", border: "1px solid rgba(56,189,248,0.3)", borderRadius: "6px", color: "#8b5cf6", cursor: "pointer", fontSize: "0.72rem", fontWeight: 700 }}>
             {"🎯"} Focus Cyclone Eye
           </button>
           <button type="button" onClick={() => setIsAutoRotating(r => !r)}
@@ -296,7 +296,7 @@ export default function GoogleGlobeView({
           </button>
           {onExit3DGlobe && (
             <button type="button" onClick={onExit3DGlobe}
-              style={{ padding: "5px 12px", background: "#38bdf8", color: "#050b14", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: 800, fontSize: "0.72rem" }}>
+              style={{ padding: "5px 12px", background: "#8b5cf6", color: "#050b14", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: 800, fontSize: "0.72rem" }}>
               Back to 3D Tactical Map →
             </button>
           )}

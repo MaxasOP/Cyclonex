@@ -77,7 +77,7 @@ export default function SatelliteLab({
       case "IR":
         return "radial-gradient(circle at 50% 50%, #ffffff 0%, #ff4500 15%, #ffd700 30%, #00ced1 55%, #00008b 75%, #050814 100%)";
       case "WV":
-        return "radial-gradient(circle at 50% 50%, #e0f2fe 0%, #38bdf8 25%, #0284c7 50%, #1e1b4b 80%, #030712 100%)";
+        return "radial-gradient(circle at 50% 50%, #e0f2fe 0%, #8b5cf6 25%, #7c3aed 50%, #1e1b4b 80%, #030712 100%)";
       case "MW":
         return "radial-gradient(circle at 50% 50%, #ffffff 0%, #22c55e 20%, #eab308 45%, #ef4444 70%, #020617 100%)";
       case "RADAR":
@@ -249,7 +249,7 @@ export default function SatelliteLab({
                 <g stroke="rgba(56, 189, 248, 0.7)" strokeWidth="1" strokeDasharray="3, 3">
                   <line x1="400" y1="280" x2="400" y2="520" />
                   <line x1="280" y1="400" x2="520" y2="400" />
-                  <circle cx="400" cy="400" r="8" fill="none" stroke="#38bdf8" strokeWidth="1.5" />
+                  <circle cx="400" cy="400" r="8" fill="none" stroke="#8b5cf6" strokeWidth="1.5" />
                 </g>
               )}
             </svg>

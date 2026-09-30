@@ -52,7 +52,7 @@ export default function DocumentationPage() {
           
           {/* Sticky Left TOC */}
           <aside style={{ position: "sticky", top: "24px" }}>
-            <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#475569", marginBottom: "12px", fontFamily: "'JetBrains Mono', monospace" }}>
+            <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#475569", marginBottom: "12px", fontFamily: "'Space Mono', monospace" }}>
               TABLE OF CONTENTS
             </div>
 
@@ -68,11 +68,11 @@ export default function DocumentationPage() {
                   background: "transparent",
                   border: "none",
                   fontSize: "11.5px",
-                  color: activeSection === "holland" ? "#38bdf8" : "#64748b",
+                  color: activeSection === "holland" ? "#8b5cf6" : "#64748b",
                   fontWeight: activeSection === "holland" ? 600 : 400,
                   padding: "4px 8px",
                   cursor: "pointer",
-                  borderLeft: activeSection === "holland" ? "2px solid #38bdf8" : "2px solid transparent",
+                  borderLeft: activeSection === "holland" ? "2px solid #8b5cf6" : "2px solid transparent",
                 }}
               >
                 Holland (1980) Wind Field
@@ -85,11 +85,11 @@ export default function DocumentationPage() {
                   background: "transparent",
                   border: "none",
                   fontSize: "11.5px",
-                  color: activeSection === "is875" ? "#38bdf8" : "#64748b",
+                  color: activeSection === "is875" ? "#8b5cf6" : "#64748b",
                   fontWeight: activeSection === "is875" ? 600 : 400,
                   padding: "4px 8px",
                   cursor: "pointer",
-                  borderLeft: activeSection === "is875" ? "2px solid #38bdf8" : "2px solid transparent",
+                  borderLeft: activeSection === "is875" ? "2px solid #8b5cf6" : "2px solid transparent",
                 }}
               >
                 IS 875 Part 3 Facade Load
@@ -102,11 +102,11 @@ export default function DocumentationPage() {
                   background: "transparent",
                   border: "none",
                   fontSize: "11.5px",
-                  color: activeSection === "surge" ? "#38bdf8" : "#64748b",
+                  color: activeSection === "surge" ? "#8b5cf6" : "#64748b",
                   fontWeight: activeSection === "surge" ? 600 : 400,
                   padding: "4px 8px",
                   cursor: "pointer",
-                  borderLeft: activeSection === "surge" ? "2px solid #38bdf8" : "2px solid transparent",
+                  borderLeft: activeSection === "surge" ? "2px solid #8b5cf6" : "2px solid transparent",
                 }}
               >
                 IIT-D Hydrodynamic Surge
@@ -123,11 +123,11 @@ export default function DocumentationPage() {
                   background: "transparent",
                   border: "none",
                   fontSize: "11.5px",
-                  color: activeSection === "dvorak" ? "#38bdf8" : "#64748b",
+                  color: activeSection === "dvorak" ? "#8b5cf6" : "#64748b",
                   fontWeight: activeSection === "dvorak" ? 600 : 400,
                   padding: "4px 8px",
                   cursor: "pointer",
-                  borderLeft: activeSection === "dvorak" ? "2px solid #38bdf8" : "2px solid transparent",
+                  borderLeft: activeSection === "dvorak" ? "2px solid #8b5cf6" : "2px solid transparent",
                 }}
               >
                 Automated Dvorak (ADT)
@@ -140,11 +140,11 @@ export default function DocumentationPage() {
                   background: "transparent",
                   border: "none",
                   fontSize: "11.5px",
-                  color: activeSection === "risk-scoring" ? "#38bdf8" : "#64748b",
+                  color: activeSection === "risk-scoring" ? "#8b5cf6" : "#64748b",
                   fontWeight: activeSection === "risk-scoring" ? 600 : 400,
                   padding: "4px 8px",
                   cursor: "pointer",
-                  borderLeft: activeSection === "risk-scoring" ? "2px solid #38bdf8" : "2px solid transparent",
+                  borderLeft: activeSection === "risk-scoring" ? "2px solid #8b5cf6" : "2px solid transparent",
                 }}
               >
                 200m Spatial Vulnerability
@@ -161,11 +161,11 @@ export default function DocumentationPage() {
                   background: "transparent",
                   border: "none",
                   fontSize: "11.5px",
-                  color: activeSection === "ndma-sops" ? "#38bdf8" : "#64748b",
+                  color: activeSection === "ndma-sops" ? "#8b5cf6" : "#64748b",
                   fontWeight: activeSection === "ndma-sops" ? 600 : 400,
                   padding: "4px 8px",
                   cursor: "pointer",
-                  borderLeft: activeSection === "ndma-sops" ? "2px solid #38bdf8" : "2px solid transparent",
+                  borderLeft: activeSection === "ndma-sops" ? "2px solid #8b5cf6" : "2px solid transparent",
                 }}
               >
                 NDMA 4-Stage Directives

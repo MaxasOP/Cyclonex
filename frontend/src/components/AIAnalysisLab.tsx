@@ -170,7 +170,7 @@ export default function AIAnalysisLab({
                 <radialGradient id="eyewall-grad" cx="50%" cy="50%" r="50%">
                   <stop offset="0%" stopColor="#ef4444" stopOpacity="0.9" />
                   <stop offset="70%" stopColor="#f59e0b" stopOpacity="0.6" />
-                  <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.1" />
+                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.1" />
                 </radialGradient>
               </defs>
 
@@ -205,7 +205,7 @@ export default function AIAnalysisLab({
               />
 
               {/* Tightly Defined Eye Pinhole */}
-              <circle cx="250" cy="250" r="14" fill="#020408" stroke="#38bdf8" strokeWidth="1.5" />
+              <circle cx="250" cy="250" r="14" fill="#020408" stroke="#8b5cf6" strokeWidth="1.5" />
 
               {/* Detected Bounding Box */}
               <rect
@@ -275,8 +275,8 @@ export default function AIAnalysisLab({
                   <span style={{ fontSize: "0.7rem", color: "#8fa4bf", textTransform: "uppercase" }}>Model Class Probabilities</span>
                   {Object.entries(analysis.classification.probabilities).map(([cls, prob]) => (
                     <div key={cls} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "0.72rem" }}>
-                      <span style={{ color: cls === analysis.classification.pattern ? "#38bdf8" : "#94a3b8" }}>{cls.replace(/_/g, " ")}</span>
-                      <strong style={{ color: cls === analysis.classification.pattern ? "#38bdf8" : "#cbd5e1" }}>{(prob * 100).toFixed(1)}%</strong>
+                      <span style={{ color: cls === analysis.classification.pattern ? "#8b5cf6" : "#94a3b8" }}>{cls.replace(/_/g, " ")}</span>
+                      <strong style={{ color: cls === analysis.classification.pattern ? "#8b5cf6" : "#cbd5e1" }}>{(prob * 100).toFixed(1)}%</strong>
                     </div>
                   ))}
                 </div>

@@ -48,7 +48,7 @@ export default function HistoricalAnalyticsPage({
         { label: "Landfall (T-0h)", x: 205, y: 145, wind: 110, pressure: 988 },
         { label: "Inland Decay (+12h)", x: 230, y: 125, wind: 60, pressure: 998 },
       ],
-      color: "#38bdf8",
+      color: "#8b5cf6",
     },
     {
       key: "biparjoy",
@@ -200,7 +200,7 @@ export default function HistoricalAnalyticsPage({
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "'Space Mono', monospace",
                 fontSize: "10.5px",
                 color: "#64748b",
                 zIndex: 10
@@ -231,9 +231,9 @@ export default function HistoricalAnalyticsPage({
                 />
 
                 {/* Sea Region Watermark Labels */}
-                <text x="50" y="240" fill="#1e293b" fontSize="12" fontFamily="'JetBrains Mono', monospace" letterSpacing="3">ARABIAN SEA</text>
-                <text x="360" y="240" fill="#1e293b" fontSize="12" fontFamily="'JetBrains Mono', monospace" letterSpacing="3">BAY OF BENGAL</text>
-                <text x="220" y="160" fill="#475569" fontSize="11" fontFamily="'JetBrains Mono', monospace">INDIA</text>
+                <text x="50" y="240" fill="#1e293b" fontSize="12" fontFamily="'Space Mono', monospace" letterSpacing="3">ARABIAN SEA</text>
+                <text x="360" y="240" fill="#1e293b" fontSize="12" fontFamily="'Space Mono', monospace" letterSpacing="3">BAY OF BENGAL</text>
+                <text x="220" y="160" fill="#475569" fontSize="11" fontFamily="'Space Mono', monospace">INDIA</text>
 
                 {/* All Storm Tracks in Background */}
                 {HISTORICAL_STORMS.map(s => {
@@ -273,7 +273,7 @@ export default function HistoricalAnalyticsPage({
                         y={n.y + 4}
                         fill={isNodeActive ? "#ffffff" : "#64748b"}
                         fontSize="9"
-                        fontFamily="'JetBrains Mono', monospace"
+                        fontFamily="'Space Mono', monospace"
                         fontWeight={isNodeActive ? "bold" : "normal"}
                       >
                         {n.label.split("(")[0].trim()}
@@ -296,7 +296,7 @@ export default function HistoricalAnalyticsPage({
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "'Space Mono', monospace",
                 fontSize: "11px",
                 zIndex: 10
               }}>
@@ -341,9 +341,9 @@ export default function HistoricalAnalyticsPage({
                   {/* Axis */}
                   <line x1="30" y1="90" x2="310" y2="90" stroke="#334155" strokeWidth="1" />
                   <line x1="30" y1="15" x2="30" y2="90" stroke="#334155" strokeWidth="1" />
-                  <text x="30" y="102" fill="#475569" fontSize="8" fontFamily="'JetBrains Mono', monospace">T-72h</text>
-                  <text x="170" y="102" fill="#475569" fontSize="8" fontFamily="'JetBrains Mono', monospace">PEAK</text>
-                  <text x="270" y="102" fill="#475569" fontSize="8" fontFamily="'JetBrains Mono', monospace">LANDFALL</text>
+                  <text x="30" y="102" fill="#475569" fontSize="8" fontFamily="'Space Mono', monospace">T-72h</text>
+                  <text x="170" y="102" fill="#475569" fontSize="8" fontFamily="'Space Mono', monospace">PEAK</text>
+                  <text x="270" y="102" fill="#475569" fontSize="8" fontFamily="'Space Mono', monospace">LANDFALL</text>
 
                   {/* Intensity Curve Line */}
                   <path
@@ -370,7 +370,7 @@ export default function HistoricalAnalyticsPage({
                           strokeWidth={isActive ? 2 : 1}
                         />
                         {isActive && (
-                          <text x={cx - 10} y={cy - 10} fill="#ffffff" fontSize="9" fontWeight="bold" fontFamily="'JetBrains Mono', monospace">
+                          <text x={cx - 10} y={cy - 10} fill="#ffffff" fontSize="9" fontWeight="bold" fontFamily="'Space Mono', monospace">
                             {n.wind} km/h
                           </text>
                         )}
@@ -384,7 +384,7 @@ export default function HistoricalAnalyticsPage({
               <div style={{ padding: "10px", background: "#03060a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "3px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
                   <span style={{ fontSize: "11px", fontWeight: 700, color: "#ffffff" }}>{activeNode.label}</span>
-                  <span style={{ fontSize: "10.5px", fontFamily: "'JetBrains Mono', monospace", color: "#38bdf8" }}>{activeNode.wind} km/h &middot; {activeNode.pressure} hPa</span>
+                  <span style={{ fontSize: "10.5px", fontFamily: "'Space Mono', monospace", color: "#8b5cf6" }}>{activeNode.wind} km/h &middot; {activeNode.pressure} hPa</span>
                 </div>
                 <div style={{ fontSize: "10.5px", color: "#64748b" }}>
                   {currentStorm.notes}
@@ -396,7 +396,7 @@ export default function HistoricalAnalyticsPage({
             <div className="op-technical-panel">
               <div className="op-tech-panel-header">
                 <div className="op-tech-panel-title">
-                  <Archive size={14} style={{ color: "#38bdf8" }} />
+                  <Archive size={14} style={{ color: "#8b5cf6" }} />
                   <span>HISTORICAL BENCHMARK SELECTION</span>
                 </div>
               </div>
@@ -430,7 +430,7 @@ export default function HistoricalAnalyticsPage({
               <CheckCircle2 size={13} style={{ color: "#10b981" }} />
               <span>HINDCAST ERROR VERIFICATION MATRIX</span>
             </div>
-            <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
+            <span style={{ fontSize: "11px", fontFamily: "'Space Mono', monospace", color: "#64748b" }}>
               10 BENCHMARK CYCLONES (2014–2023)
             </span>
           </div>
@@ -457,14 +457,14 @@ export default function HistoricalAnalyticsPage({
                   }}
                   onClick={() => setSelectedStormKey(s.key)}
                 >
-                  <td style={{ fontWeight: 700, color: s.key === selectedStormKey ? "#38bdf8" : "#ffffff" }}>
+                  <td style={{ fontWeight: 700, color: s.key === selectedStormKey ? "#8b5cf6" : "#ffffff" }}>
                     {s.name}
                   </td>
                   <td>{s.basin} · {s.year}</td>
                   <td>{s.landfall}</td>
-                  <td style={{ fontFamily: "'JetBrains Mono', monospace", color: "#38bdf8" }}>{s.peakWind}</td>
-                  <td style={{ fontFamily: "'JetBrains Mono', monospace" }}>{s.trackError24h}</td>
-                  <td style={{ fontFamily: "'JetBrains Mono', monospace", color: "#10b981" }}>{s.modelAccuracy}</td>
+                  <td style={{ fontFamily: "'Space Mono', monospace", color: "#8b5cf6" }}>{s.peakWind}</td>
+                  <td style={{ fontFamily: "'Space Mono', monospace" }}>{s.trackError24h}</td>
+                  <td style={{ fontFamily: "'Space Mono', monospace", color: "#10b981" }}>{s.modelAccuracy}</td>
                   <td style={{ textAlign: "right" }}>
                     <button
                       type="button"

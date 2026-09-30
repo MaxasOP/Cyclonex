@@ -206,7 +206,7 @@ export default function ForecastWorkspace({
           </div>
           <div className="detail-item">
             <span className="item-label">Uncertainty Envelope Radius:</span>
-            <strong style={{ color: "#38bdf8" }}>±{currentH.uncertaintyKm} km</strong>
+            <strong style={{ color: "#8b5cf6" }}>±{currentH.uncertaintyKm} km</strong>
           </div>
           <div className="detail-item">
             <span className="item-label">IMD Stage:</span>

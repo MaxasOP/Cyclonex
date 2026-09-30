@@ -155,7 +155,7 @@ export default function LandingPage({
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
                 marginBottom: "16px",
-                fontFamily: "'JetBrains Mono', monospace"
+                fontFamily: "'Space Mono', monospace"
               }}>
                 AI-DRIVEN TROPICAL CYCLONE INTELLIGENCE &amp; INFRASTRUCTURE RISK
               </div>
@@ -188,7 +188,7 @@ export default function LandingPage({
                   className="op-btn-primary"
                   onClick={() => navigate("resilience")}
                   style={{
-                    background: "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)",
+                    background: "linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%)",
                     boxShadow: "0 0 20px rgba(124, 58, 237, 0.4)",
                     border: "1px solid rgba(168, 85, 247, 0.5)",
                   }}
@@ -235,7 +235,7 @@ export default function LandingPage({
               </div>
 
               <div className="op-preview-hud">
-                <div style={{ color: "#38bdf8", fontWeight: 800 }}>TARGET: NISARGA (VSCS · T4.5)</div>
+                <div style={{ color: "#8b5cf6", fontWeight: 800 }}>TARGET: NISARGA (VSCS · T4.5)</div>
                 <div style={{ color: "#94a3b8", fontSize: "10.5px", marginTop: "2px" }}>
                   Vmax: <strong style={{ color: "#ffffff" }}>120 km/h</strong> · Pc: <strong style={{ color: "#ffffff" }}>984 hPa</strong>
                 </div>
@@ -251,7 +251,7 @@ export default function LandingPage({
                     <radialGradient id="stormGrad" cx="55%" cy="48%" r="45%">
                       <stop offset="0%" stopColor="#ef4444" stopOpacity="0.45" />
                       <stop offset="25%" stopColor="#f59e0b" stopOpacity="0.30" />
-                      <stop offset="55%" stopColor="#38bdf8" stopOpacity="0.15" />
+                      <stop offset="55%" stopColor="#8b5cf6" stopOpacity="0.15" />
                       <stop offset="90%" stopColor="#0f172a" stopOpacity="0" />
                     </radialGradient>
                     <pattern id="tacticalGrid" width="25" height="25" patternUnits="userSpaceOnUse">
@@ -270,8 +270,8 @@ export default function LandingPage({
                     strokeWidth="1.5"
                     strokeDasharray="4 2"
                   />
-                  <text x="430" y="40" fill="#64748b" fontSize="10" fontFamily="'JetBrains Mono', monospace">MAHARASHTRA</text>
-                  <text x="390" y="160" fill="#38bdf8" fontSize="10" fontFamily="'JetBrains Mono', monospace">ALIBAG (LANDFALL)</text>
+                  <text x="430" y="40" fill="#64748b" fontSize="10" fontFamily="'Space Mono', monospace">MAHARASHTRA</text>
+                  <text x="390" y="160" fill="#8b5cf6" fontSize="10" fontFamily="'Space Mono', monospace">ALIBAG (LANDFALL)</text>
 
                   {/* Storm Eye Intensity Thermal Mask */}
                   <circle cx="260" cy="155" r="140" fill="url(#stormGrad)" />
@@ -279,17 +279,17 @@ export default function LandingPage({
                   {/* Concentric Holland Pressure Isobars */}
                   <circle cx="260" cy="155" r="28" fill="none" stroke="#ef4444" strokeWidth="1.8" strokeDasharray="2 2" />
                   <circle cx="260" cy="155" r="60" fill="none" stroke="#f59e0b" strokeWidth="1.2" />
-                  <circle cx="260" cy="155" r="100" fill="none" stroke="#38bdf8" strokeWidth="1" opacity="0.7" />
+                  <circle cx="260" cy="155" r="100" fill="none" stroke="#8b5cf6" strokeWidth="1" opacity="0.7" />
                   <circle cx="260" cy="155" r="150" fill="none" stroke="#64748b" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.5" />
 
                   {/* Isobar Labels */}
-                  <text x="292" y="152" fill="#ef4444" fontSize="9" fontFamily="'JetBrains Mono', monospace">984 hPa (Rmax 28km)</text>
-                  <text x="325" y="152" fill="#f59e0b" fontSize="9" fontFamily="'JetBrains Mono', monospace">992 hPa</text>
-                  <text x="365" y="152" fill="#38bdf8" fontSize="9" fontFamily="'JetBrains Mono', monospace">1000 hPa</text>
+                  <text x="292" y="152" fill="#ef4444" fontSize="9" fontFamily="'Space Mono', monospace">984 hPa (Rmax 28km)</text>
+                  <text x="325" y="152" fill="#f59e0b" fontSize="9" fontFamily="'Space Mono', monospace">992 hPa</text>
+                  <text x="365" y="152" fill="#8b5cf6" fontSize="9" fontFamily="'Space Mono', monospace">1000 hPa</text>
 
                   {/* Spiral Inflow Wind Streamlines */}
-                  <path d="M 120,70 Q 200,90 250,140" fill="none" stroke="#38bdf8" strokeWidth="1.5" opacity="0.8" />
-                  <path d="M 380,80 Q 320,110 270,145" fill="none" stroke="#38bdf8" strokeWidth="1.5" opacity="0.8" />
+                  <path d="M 120,70 Q 200,90 250,140" fill="none" stroke="#8b5cf6" strokeWidth="1.5" opacity="0.8" />
+                  <path d="M 380,80 Q 320,110 270,145" fill="none" stroke="#8b5cf6" strokeWidth="1.5" opacity="0.8" />
                   <path d="M 340,240 Q 280,210 265,170" fill="none" stroke="#ef4444" strokeWidth="1.8" opacity="0.8" />
                   <path d="M 140,230 Q 190,200 245,165" fill="none" stroke="#f59e0b" strokeWidth="1.5" opacity="0.8" />
 
@@ -305,15 +305,15 @@ export default function LandingPage({
                     <rect x="375" y="152" width="8" height="8" fill="#f59e0b" stroke="#000" strokeWidth="0.5" />
                     <rect x="390" y="150" width="8" height="8" fill="#f59e0b" stroke="#000" strokeWidth="0.5" />
                     <rect x="372" y="165" width="8" height="8" fill="#f59e0b" stroke="#000" strokeWidth="0.5" />
-                    <rect x="388" y="168" width="8" height="8" fill="#38bdf8" stroke="#000" strokeWidth="0.5" />
-                    <rect x="405" y="145" width="8" height="8" fill="#38bdf8" stroke="#000" strokeWidth="0.5" />
+                    <rect x="388" y="168" width="8" height="8" fill="#8b5cf6" stroke="#000" strokeWidth="0.5" />
+                    <rect x="405" y="145" width="8" height="8" fill="#8b5cf6" stroke="#000" strokeWidth="0.5" />
                     <rect x="402" y="160" width="8" height="8" fill="#10b981" stroke="#000" strokeWidth="0.5" />
                   </g>
 
                   {/* Projected Landfall Vector */}
                   <line x1="260" y1="155" x2="360" y2="175" stroke="#f43f5e" strokeWidth="2" strokeDasharray="4 2" />
                   <circle cx="360" cy="175" r="4" fill="#f43f5e" />
-                  <text x="370" y="188" fill="#f43f5e" fontSize="9" fontWeight="bold" fontFamily="'JetBrains Mono', monospace">LANDFALL POINT T-0H</text>
+                  <text x="370" y="188" fill="#f43f5e" fontSize="9" fontWeight="bold" fontFamily="'Space Mono', monospace">LANDFALL POINT T-0H</text>
                 </svg>
 
                 <div style={{
@@ -321,7 +321,7 @@ export default function LandingPage({
                   bottom: "8px",
                   right: "12px",
                   fontSize: "10px",
-                  fontFamily: "'JetBrains Mono', monospace",
+                  fontFamily: "'Space Mono', monospace",
                   color: "#64748b"
                 }}>
                   HOLLAND 1980 RADIAL INTEGRATOR · PEAK PRESSURE: 1.82 kPa
@@ -342,7 +342,7 @@ export default function LandingPage({
             </div>
             <div className="saas-live-stat">
               <span className="saas-live-label">Sustained Wind (Vmax)</span>
-              <span className="saas-live-val" style={{ color: "#38bdf8" }}>120 km/h (65 kt)</span>
+              <span className="saas-live-val" style={{ color: "#8b5cf6" }}>120 km/h (65 kt)</span>
             </div>
             <div className="saas-live-stat">
               <span className="saas-live-label">Min Central Pressure</span>
@@ -436,7 +436,7 @@ export default function LandingPage({
             </thead>
             <tbody>
               <tr>
-                <td><span style={{ color: "#38bdf8", fontWeight: 700 }}>01 · OBSERVE</span></td>
+                <td><span style={{ color: "#8b5cf6", fontWeight: 700 }}>01 · OBSERVE</span></td>
                 <td><strong>Multi-Spectral Earth Feeds</strong></td>
                 <td>ISRO INSAT-3D/3DR (TIR-1, WV), IMD Doppler radar reflectivity (Z), ECMWF synoptic grids</td>
                 <td>Calibrated 4km cloud-top brightness temperature matrices</td>
@@ -445,7 +445,7 @@ export default function LandingPage({
                 </td>
               </tr>
               <tr>
-                <td><span style={{ color: "#38bdf8", fontWeight: 700 }}>02 · ANALYZE</span></td>
+                <td><span style={{ color: "#8b5cf6", fontWeight: 700 }}>02 · ANALYZE</span></td>
                 <td><strong>AI Satellite &amp; Neural Lab</strong></td>
                 <td>Automated Dvorak Technique (ADT), cloud-top gradient analysis, convolutional regression</td>
                 <td>Current Intensity (T-Number), central pressure deficit (ΔP), 94.7% confidence</td>
@@ -454,7 +454,7 @@ export default function LandingPage({
                 </td>
               </tr>
               <tr>
-                <td><span style={{ color: "#38bdf8", fontWeight: 700 }}>03 · MODEL</span></td>
+                <td><span style={{ color: "#8b5cf6", fontWeight: 700 }}>03 · MODEL</span></td>
                 <td><strong>Holland 1980 Wind Physics</strong></td>
                 <td>Parametric radial pressure profile with empirical Holland B peaking &amp; forward motion vectoring</td>
                 <td>Continuous 2D surface wind velocity field with R34, R50, and R64 radii</td>
@@ -463,7 +463,7 @@ export default function LandingPage({
                 </td>
               </tr>
               <tr>
-                <td><span style={{ color: "#38bdf8", fontWeight: 700 }}>04 · MAP</span></td>
+                <td><span style={{ color: "#8b5cf6", fontWeight: 700 }}>04 · MAP</span></td>
                 <td><strong>200m Structural Fragility</strong></td>
                 <td>IS:875 Part 3 aerodynamic coefficients (k1, k2, k3, k4) mapped to building GIS footprints</td>
                 <td>Parcel-level damage probability, facade detachment risk &amp; economic loss</td>
@@ -472,7 +472,7 @@ export default function LandingPage({
                 </td>
               </tr>
               <tr>
-                <td><span style={{ color: "#38bdf8", fontWeight: 700 }}>05 · RESPOND</span></td>
+                <td><span style={{ color: "#8b5cf6", fontWeight: 700 }}>05 · RESPOND</span></td>
                 <td><strong>Shelters &amp; Evacuation Logistics</strong></td>
                 <td>28 MPCS cyclone shelters, road elevation profiles, seawall defenses &amp; NDRF staging depots</td>
                 <td>Shelter intake allocation, road flood advisories &amp; NDMA SITREP export</td>
@@ -563,42 +563,42 @@ export default function LandingPage({
                     <td>ISRO</td>
                     <td>TIR-1 (10.8µm) &amp; WV (6.8µm)</td>
                     <td>15 Min</td>
-                    <td><span style={{ color: "#10b981", fontFamily: "'JetBrains Mono', monospace", fontSize: "11px" }}>ACTIVE</span></td>
+                    <td><span style={{ color: "#10b981", fontFamily: "'Space Mono', monospace", fontSize: "11px" }}>ACTIVE</span></td>
                   </tr>
                   <tr>
                     <td><strong>Doppler Radar</strong></td>
                     <td>IMD Mumbai</td>
                     <td>S-Band Reflectivity &amp; Velocity</td>
                     <td>10 Min</td>
-                    <td><span style={{ color: "#10b981", fontFamily: "'JetBrains Mono', monospace", fontSize: "11px" }}>ACTIVE</span></td>
+                    <td><span style={{ color: "#10b981", fontFamily: "'Space Mono', monospace", fontSize: "11px" }}>ACTIVE</span></td>
                   </tr>
                   <tr>
                     <td><strong>ECMWF IFS / GFS</strong></td>
                     <td>ECMWF / NOAA</td>
                     <td>Synoptic Pressure &amp; 500 hPa</td>
                     <td>6 Hours</td>
-                    <td><span style={{ color: "#10b981", fontFamily: "'JetBrains Mono', monospace", fontSize: "11px" }}>ACTIVE</span></td>
+                    <td><span style={{ color: "#10b981", fontFamily: "'Space Mono', monospace", fontSize: "11px" }}>ACTIVE</span></td>
                   </tr>
                   <tr>
                     <td><strong>NOAA IBTrACS v04</strong></td>
                     <td>NOAA NCEI</td>
                     <td>1848–Present Historical Tracks</td>
                     <td>Best-Track</td>
-                    <td><span style={{ color: "#38bdf8", fontFamily: "'JetBrains Mono', monospace", fontSize: "11px" }}>VALIDATED</span></td>
+                    <td><span style={{ color: "#8b5cf6", fontFamily: "'Space Mono', monospace", fontSize: "11px" }}>VALIDATED</span></td>
                   </tr>
                   <tr>
                     <td><strong>Building Cadastre</strong></td>
                     <td>OpenStreetMap</td>
                     <td>Parcel GIS Polygons (200m)</td>
                     <td>Dynamic</td>
-                    <td><span style={{ color: "#10b981", fontFamily: "'JetBrains Mono', monospace", fontSize: "11px" }}>INGESTED</span></td>
+                    <td><span style={{ color: "#10b981", fontFamily: "'Space Mono', monospace", fontSize: "11px" }}>INGESTED</span></td>
                   </tr>
                   <tr>
                     <td><strong>MPCS Shelters</strong></td>
                     <td>NDMA / SDMA</td>
                     <td>28 Coastal Shelters &amp; Capacities</td>
                     <td>Live</td>
-                    <td><span style={{ color: "#10b981", fontFamily: "'JetBrains Mono', monospace", fontSize: "11px" }}>OPERATIONAL</span></td>
+                    <td><span style={{ color: "#10b981", fontFamily: "'Space Mono', monospace", fontSize: "11px" }}>OPERATIONAL</span></td>
                   </tr>
                 </tbody>
               </table>
@@ -608,7 +608,7 @@ export default function LandingPage({
               <div className="op-technical-panel">
                 <div className="op-tech-panel-header">
                   <div className="op-tech-panel-title">
-                    <Database size={14} style={{ color: "#38bdf8" }} />
+                    <Database size={14} style={{ color: "#8b5cf6" }} />
                     <span>INGESTION PROTOCOLS &amp; RELIABILITY</span>
                   </div>
                   <span className="op-tech-panel-badge">99.98% UPTIME</span>
@@ -620,7 +620,7 @@ export default function LandingPage({
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <div style={{ padding: "10px", background: "rgba(255, 255, 255, 0.02)", borderLeft: "2px solid #38bdf8" }}>
+                  <div style={{ padding: "10px", background: "rgba(255, 255, 255, 0.02)", borderLeft: "2px solid #8b5cf6" }}>
                     <div style={{ fontSize: "11px", fontWeight: 700, color: "#ffffff", marginBottom: "2px" }}>
                       Zero-Data Fallback Protocol
                     </div>
@@ -667,7 +667,7 @@ export default function LandingPage({
               <div className="op-technical-panel">
                 <div className="op-tech-panel-header">
                   <div className="op-tech-panel-title">
-                    <Brain size={14} style={{ color: "#38bdf8" }} />
+                    <Brain size={14} style={{ color: "#8b5cf6" }} />
                     <span>NEURAL INFERENCE ARCHITECTURE</span>
                   </div>
                   <span className="op-tech-panel-badge">RESNET-50 BACKBONE</span>
@@ -675,22 +675,22 @@ export default function LandingPage({
 
                 <div className="op-flow-progression" style={{ flexDirection: "column", gap: "12px", padding: "16px" }}>
                   <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#38bdf8" }}>INPUT: 128x128 TIR-1 TENSOR</span>
+                    <span style={{ fontSize: "11px", fontFamily: "'Space Mono', monospace", color: "#8b5cf6" }}>INPUT: 128x128 TIR-1 TENSOR</span>
                     <span style={{ fontSize: "10px", color: "#64748b" }}>4km resolution</span>
                   </div>
                   <div style={{ width: "100%", height: "1px", background: "rgba(255,255,255,0.06)" }} />
                   <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#cbd5e1" }}>SPECTRAL THRESHOLDING</span>
+                    <span style={{ fontSize: "11px", fontFamily: "'Space Mono', monospace", color: "#cbd5e1" }}>SPECTRAL THRESHOLDING</span>
                     <span style={{ fontSize: "10px", color: "#64748b" }}>Tb &lt; -70°C cloud tops</span>
                   </div>
                   <div style={{ width: "100%", height: "1px", background: "rgba(255,255,255,0.06)" }} />
                   <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#cbd5e1" }}>CURVATURE GRADIENT POOLING</span>
+                    <span style={{ fontSize: "11px", fontFamily: "'Space Mono', monospace", color: "#cbd5e1" }}>CURVATURE GRADIENT POOLING</span>
                     <span style={{ fontSize: "10px", color: "#64748b" }}>Spiral band fitting</span>
                   </div>
                   <div style={{ width: "100%", height: "1px", background: "rgba(255,255,255,0.06)" }} />
                   <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#38bdf8" }}>ADT INTENSITY REGRESSION</span>
+                    <span style={{ fontSize: "11px", fontFamily: "'Space Mono', monospace", color: "#8b5cf6" }}>ADT INTENSITY REGRESSION</span>
                     <span style={{ fontSize: "10px", color: "#10b981", fontWeight: 700 }}>CI: 4.5 ± 0.2</span>
                   </div>
                 </div>
@@ -706,7 +706,7 @@ export default function LandingPage({
               <div className="op-technical-panel">
                 <div className="op-tech-panel-header">
                   <div className="op-tech-panel-title">
-                    <Sliders size={14} style={{ color: "#38bdf8" }} />
+                    <Sliders size={14} style={{ color: "#8b5cf6" }} />
                     <span>ACTIVE INFERENCE TELEMETRY: NISARGA</span>
                   </div>
                   <span className="op-tech-panel-badge" style={{ background: "rgba(16, 185, 129, 0.1)", color: "#10b981", borderColor: "#10b981" }}>
@@ -717,22 +717,22 @@ export default function LandingPage({
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
                   <div>
                     <div style={{ fontSize: "10.5px", color: "#64748b", textTransform: "uppercase" }}>Dvorak T-Number</div>
-                    <div style={{ fontSize: "22px", fontWeight: 800, color: "#ffffff", fontFamily: "'JetBrains Mono', monospace" }}>T4.5</div>
+                    <div style={{ fontSize: "22px", fontWeight: 800, color: "#ffffff", fontFamily: "'Space Mono', monospace" }}>T4.5</div>
                     <div style={{ fontSize: "10.5px", color: "#94a3b8" }}>Raw ADT: 4.38 · Final CI: 4.5</div>
                   </div>
                   <div>
                     <div style={{ fontSize: "10.5px", color: "#64748b", textTransform: "uppercase" }}>Estimated Vmax</div>
-                    <div style={{ fontSize: "22px", fontWeight: 800, color: "#38bdf8", fontFamily: "'JetBrains Mono', monospace" }}>120 km/h</div>
+                    <div style={{ fontSize: "22px", fontWeight: 800, color: "#8b5cf6", fontFamily: "'Space Mono', monospace" }}>120 km/h</div>
                     <div style={{ fontSize: "10.5px", color: "#94a3b8" }}>IMD Observed: 120 km/h (0.0 bias)</div>
                   </div>
                   <div>
                     <div style={{ fontSize: "10.5px", color: "#64748b", textTransform: "uppercase" }}>Eye Temperature</div>
-                    <div style={{ fontSize: "18px", fontWeight: 700, color: "#f59e0b", fontFamily: "'JetBrains Mono', monospace" }}>-38.2°C</div>
+                    <div style={{ fontSize: "18px", fontWeight: 700, color: "#f59e0b", fontFamily: "'Space Mono', monospace" }}>-38.2°C</div>
                     <div style={{ fontSize: "10.5px", color: "#94a3b8" }}>Cloud Top: -74.8°C</div>
                   </div>
                   <div>
                     <div style={{ fontSize: "10.5px", color: "#64748b", textTransform: "uppercase" }}>Thermal Anomaly (ΔT)</div>
-                    <div style={{ fontSize: "18px", fontWeight: 700, color: "#10b981", fontFamily: "'JetBrains Mono', monospace" }}>+36.6 K</div>
+                    <div style={{ fontSize: "18px", fontWeight: 700, color: "#10b981", fontFamily: "'Space Mono', monospace" }}>+36.6 K</div>
                     <div style={{ fontSize: "10.5px", color: "#94a3b8" }}>Pronounced Eye Warming</div>
                   </div>
                 </div>
@@ -765,7 +765,7 @@ export default function LandingPage({
             <div className="op-technical-panel">
               <div className="op-tech-panel-header">
                 <div className="op-tech-panel-title">
-                  <Wind size={14} style={{ color: "#38bdf8" }} />
+                  <Wind size={14} style={{ color: "#8b5cf6" }} />
                   <span>ATMOSPHERIC PHYSICS: HOLLAND 1980</span>
                 </div>
                 <span className="op-tech-panel-badge">RADIAL WIND PROFILE</span>
@@ -785,9 +785,9 @@ export default function LandingPage({
 
               {/* Mini SVG Velocity Profile Curve */}
               <div style={{ marginTop: "16px", background: "#06090e", padding: "12px", border: "1px solid rgba(255, 255, 255, 0.05)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace", marginBottom: "4px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#64748b", fontFamily: "'Space Mono', monospace", marginBottom: "4px" }}>
                   <span>RADIAL PROFILE V(r)</span>
-                  <span style={{ color: "#38bdf8" }}>PEAK: 120 km/h @ 28 km</span>
+                  <span style={{ color: "#8b5cf6" }}>PEAK: 120 km/h @ 28 km</span>
                 </div>
                 <svg width="100%" height="80" viewBox="0 0 300 80" style={{ display: "block" }}>
                   <line x1="20" y1="70" x2="290" y2="70" stroke="#334155" strokeWidth="1" />
@@ -796,14 +796,14 @@ export default function LandingPage({
                   <path
                     d="M 20,68 Q 50,65 70,15 Q 120,40 180,55 T 290,65"
                     fill="none"
-                    stroke="#38bdf8"
+                    stroke="#8b5cf6"
                     strokeWidth="2"
                   />
                   {/* Peak Marker */}
                   <circle cx="70" cy="15" r="3" fill="#ef4444" />
                   <line x1="70" y1="15" x2="70" y2="70" stroke="#ef4444" strokeWidth="1" strokeDasharray="2 2" />
-                  <text x="75" y="24" fill="#ef4444" fontSize="8" fontFamily="'JetBrains Mono', monospace">Rmax 28km</text>
-                  <text x="210" y="50" fill="#64748b" fontSize="8" fontFamily="'JetBrains Mono', monospace">R34 142km</text>
+                  <text x="75" y="24" fill="#ef4444" fontSize="8" fontFamily="'Space Mono', monospace">Rmax 28km</text>
+                  <text x="210" y="50" fill="#64748b" fontSize="8" fontFamily="'Space Mono', monospace">R34 142km</text>
                 </svg>
               </div>
             </div>
@@ -812,7 +812,7 @@ export default function LandingPage({
             <div className="op-technical-panel">
               <div className="op-tech-panel-header">
                 <div className="op-tech-panel-title">
-                  <Building size={14} style={{ color: "#38bdf8" }} />
+                  <Building size={14} style={{ color: "#8b5cf6" }} />
                   <span>STRUCTURAL ENGINEERING: IS:875 PART 3</span>
                 </div>
                 <span className="op-tech-panel-badge">AERODYNAMIC PRESSURE</span>
@@ -852,7 +852,7 @@ export default function LandingPage({
                       <td>Facade gable collapse</td>
                     </tr>
                     <tr>
-                      <td style={{ color: "#38bdf8" }}>Industrial Sheeting</td>
+                      <td style={{ color: "#8b5cf6" }}>Industrial Sheeting</td>
                       <td>1.80 kPa (118 km/h)</td>
                       <td>Fastener shear pull-out</td>
                     </tr>
@@ -924,7 +924,7 @@ export default function LandingPage({
               <div>
                 <div className="op-tech-panel-header">
                   <div className="op-tech-panel-title">
-                    <Layers size={14} style={{ color: "#38bdf8" }} />
+                    <Layers size={14} style={{ color: "#8b5cf6" }} />
                     <span>200-METER UNIFORM RISK GRID SCREENING</span>
                   </div>
                   <span className="op-tech-panel-badge">PARCEL RESOLUTION</span>
@@ -941,7 +941,7 @@ export default function LandingPage({
                     <div className="op-val-sub">Unreinforced masonry facade cracking</div>
                   </div>
                   <div className="op-val-stat-box">
-                    <div className="op-val-num" style={{ color: "#38bdf8" }}>₹4.8 Cr</div>
+                    <div className="op-val-num" style={{ color: "#8b5cf6" }}>₹4.8 Cr</div>
                     <div className="op-val-lbl">Simulated Asset Loss</div>
                     <div className="op-val-sub">Direct structural damage estimation</div>
                   </div>
@@ -974,7 +974,7 @@ export default function LandingPage({
                     <div className="op-val-sub">Design capacity across 28 facilities</div>
                   </div>
                   <div className="op-val-stat-box">
-                    <div className="op-val-num" style={{ color: "#38bdf8" }}>4,200</div>
+                    <div className="op-val-num" style={{ color: "#8b5cf6" }}>4,200</div>
                     <div className="op-val-lbl">Current Intake</div>
                     <div className="op-val-sub">Pre-evacuated coastal residents</div>
                   </div>
@@ -1030,13 +1030,13 @@ export default function LandingPage({
               <div>
                 <div className="op-tech-panel-header">
                   <div className="op-tech-panel-title">
-                    <Shield size={14} style={{ color: "#38bdf8" }} />
+                    <Shield size={14} style={{ color: "#8b5cf6" }} />
                     <span>COASTAL DEFENSE ASSETS &amp; NATURAL BIOSHIELDS</span>
                   </div>
                   <span className="op-tech-panel-badge">SURGE DAMPENING</span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
-                  <div style={{ padding: "12px", background: "rgba(255,255,255,0.02)", borderLeft: "3px solid #38bdf8" }}>
+                  <div style={{ padding: "12px", background: "rgba(255,255,255,0.02)", borderLeft: "3px solid #8b5cf6" }}>
                     <div style={{ fontSize: "12px", fontWeight: 700, color: "#ffffff" }}>Revetment Sea Wall (14.2 km)</div>
                     <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "4px" }}>
                       Crest Elevation: +4.5m &middot; Attenuates incoming wave energy by <strong>42%</strong> &middot; Reinforced rip-rap armor.
@@ -1071,7 +1071,7 @@ export default function LandingPage({
                     <div className="op-val-sub">5th Battalion NDRF (Pune Depot)</div>
                   </div>
                   <div className="op-val-stat-box">
-                    <div className="op-val-num" style={{ color: "#38bdf8" }}>12</div>
+                    <div className="op-val-num" style={{ color: "#8b5cf6" }}>12</div>
                     <div className="op-val-lbl">Motorized Inflatable Boats</div>
                     <div className="op-val-sub">Pre-positioned at Alibag creek</div>
                   </div>
@@ -1113,7 +1113,7 @@ export default function LandingPage({
           {/* Primary Featured Workspace: Tactical Map */}
           <div className="op-featured-workspace">
             <div>
-              <div style={{ fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#38bdf8", marginBottom: "8px", fontFamily: "'JetBrains Mono', monospace" }}>
+              <div style={{ fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#8b5cf6", marginBottom: "8px", fontFamily: "'Space Mono', monospace" }}>
                 CORE OPERATIONAL ENVIRONMENT
               </div>
               <h3 style={{ fontSize: "24px", fontWeight: 800, color: "#ffffff", margin: "0 0 12px" }}>
@@ -1133,14 +1133,14 @@ export default function LandingPage({
                   <Activity size={15} />
                   <span>Launch Tactical Map Console</span>
                 </button>
-                <span style={{ fontSize: "11px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
+                <span style={{ fontSize: "11px", color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
                   ROUTE: #app
                 </span>
               </div>
             </div>
 
             <div style={{ background: "#05070a", border: "1px solid rgba(255, 255, 255, 0.08)", padding: "16px", borderRadius: "4px" }}>
-              <div style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b", marginBottom: "12px", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "6px" }}>
+              <div style={{ fontSize: "11px", fontFamily: "'Space Mono', monospace", color: "#64748b", marginBottom: "12px", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "6px" }}>
                 TACTICAL CAPABILITIES
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "12px", color: "#cbd5e1" }}>
@@ -1182,9 +1182,9 @@ export default function LandingPage({
                   onKeyDown={(e) => e.key === "Enter" && navigate(ws.id)}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <Icon size={14} style={{ color: "#38bdf8", flexShrink: 0 }} />
+                    <Icon size={14} style={{ color: "#8b5cf6", flexShrink: 0 }} />
                     <span className="op-workspace-name">{ws.title}</span>
-                    <span style={{ fontSize: "10px", padding: "1px 6px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#64748b", fontFamily: "'JetBrains Mono', monospace", borderRadius: "2px" }}>
+                    <span style={{ fontSize: "10px", padding: "1px 6px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#64748b", fontFamily: "'Space Mono', monospace", borderRadius: "2px" }}>
                       {ws.badge}
                     </span>
                   </div>
@@ -1279,7 +1279,7 @@ export default function LandingPage({
               <div className="op-val-sub">Versus official IMD average of 68.4 km</div>
             </div>
             <div className="op-val-stat-box">
-              <div className="op-val-num" style={{ color: "#38bdf8" }}>± 4.2 km/h</div>
+              <div className="op-val-num" style={{ color: "#8b5cf6" }}>± 4.2 km/h</div>
               <div className="op-val-lbl">Intensity Bias</div>
               <div className="op-val-sub">Sustained 1-minute wind speed residual</div>
             </div>
@@ -1373,7 +1373,7 @@ export default function LandingPage({
           <span>·</span>
           <span>Autonomous Satellite-to-Grid Intelligence Platform</span>
         </div>
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "10.5px" }}>
+        <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "10.5px" }}>
           NDMA SOP Certified &middot; IS-875 Part 3 Standard &middot; NOAA IBTrACS v04 &middot; IMD Port Signals 1–11
         </div>
       </footer>

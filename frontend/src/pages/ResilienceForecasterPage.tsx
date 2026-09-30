@@ -330,18 +330,18 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
             flexWrap: "wrap",
             gap: "10px",
             fontSize: "11px",
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: "'Space Mono', monospace",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
             <span style={{ color: "#94a3b8", display: "flex", alignItems: "center", gap: "5px" }}>
-              <Server size={12} color="#38bdf8" />
+              <Server size={12} color="#8b5cf6" />
               SYSTEM HEALTH:
             </span>
             <span style={{ color: data?.system_status?.meteorology === "LIVE" ? "#34d399" : "#fbbf24" }}>
               ● MET: {data?.system_status?.meteorology || "LIVE"}
             </span>
-            <span style={{ color: data?.system_status?.gee_sentinel1 === "CONNECTED" ? "#34d399" : "#60a5fa" }}>
+            <span style={{ color: data?.system_status?.gee_sentinel1 === "CONNECTED" ? "#34d399" : "#a78bfa" }}>
               ● GEE SATELLITE: {data?.system_status?.gee_sentinel1 || "CACHED"}
             </span>
             <span style={{ color: "#34d399" }}>
@@ -440,7 +440,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
               fontSize: "11.5px",
             }}
           >
-            <div style={{ color: "#60a5fa", fontWeight: 700, marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px" }}>
+            <div style={{ color: "#a78bfa", fontWeight: 700, marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px" }}>
               <Database size={13} />
               DATA PROVENANCE &amp; TRACEABILITY AUDIT
             </div>
@@ -461,7 +461,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                     <tr key={idx} style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
                       <td style={{ padding: "6px 8px", fontWeight: 700, color: "#ffffff" }}>{p.output_domain}</td>
                       <td style={{ padding: "6px 8px", color: "#94a3b8" }}>{p.data_sources.join(", ")}</td>
-                      <td style={{ padding: "6px 8px", fontFamily: "'JetBrains Mono', monospace", color: "#60a5fa" }}>{p.dataset_collection}</td>
+                      <td style={{ padding: "6px 8px", fontFamily: "'Space Mono', monospace", color: "#a78bfa" }}>{p.dataset_collection}</td>
                       <td style={{ padding: "6px 8px" }}>{p.model_version}</td>
                       <td style={{ padding: "6px 8px" }}>{p.processing_latency_ms}ms</td>
                       <td style={{ padding: "6px 8px" }}>
@@ -502,7 +502,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   width: "50px",
                   height: "50px",
                   borderRadius: "50%",
-                  background: "#2563eb",
+                  background: "#6d28d9",
                   color: "#ffffff",
                   display: "flex",
                   alignItems: "center",
@@ -520,7 +520,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   <span
                     style={{
                       background: "rgba(59, 130, 246, 0.2)",
-                      color: "#60a5fa",
+                      color: "#a78bfa",
                       border: "1px solid rgba(59, 130, 246, 0.45)",
                       fontSize: "11px",
                       fontWeight: 700,
@@ -637,7 +637,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 style={{
                   background: "rgba(59, 130, 246, 0.15)",
                   border: "1px solid rgba(59, 130, 246, 0.35)",
-                  color: "#93c5fd",
+                  color: "#c4b5fd",
                   fontSize: "12px",
                   padding: "8px 13px",
                   borderRadius: "6px",
@@ -712,7 +712,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Compass size={16} color="#60a5fa" />
+            <Compass size={16} color="#a78bfa" />
             <span style={{ fontSize: "12px", fontWeight: 700, color: "#ffffff", letterSpacing: "0.03em" }}>
               SELECT BASIN &amp; REGIONAL IMPACT ZONE:
             </span>
@@ -728,7 +728,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   onClick={() => handleSelectPreset(p)}
                   style={{
                     background: isSelected ? "rgba(37, 99, 235, 0.3)" : "rgba(255, 255, 255, 0.04)",
-                    border: `1px solid ${isSelected ? "#3b82f6" : "rgba(255, 255, 255, 0.1)"}`,
+                    border: `1px solid ${isSelected ? "#7c3aed" : "rgba(255, 255, 255, 0.1)"}`,
                     color: isSelected ? "#ffffff" : "#94a3b8",
                     padding: "6px 14px",
                     borderRadius: "6px",
@@ -746,7 +746,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                       width: "6px",
                       height: "6px",
                       borderRadius: "50%",
-                      background: isSelected ? "#3b82f6" : "#64748b",
+                      background: isSelected ? "#7c3aed" : "#64748b",
                     }}
                   />
                   <strong>{p.name}</strong>
@@ -762,7 +762,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
               type="button"
               onClick={() => setLifecyclePhase("PRE_LANDFALL")}
               style={{
-                background: lifecyclePhase === "PRE_LANDFALL" ? "#2563eb" : "transparent",
+                background: lifecyclePhase === "PRE_LANDFALL" ? "#6d28d9" : "transparent",
                 color: lifecyclePhase === "PRE_LANDFALL" ? "#ffffff" : "#94a3b8",
                 border: "none",
                 borderRadius: "4px",
@@ -844,7 +844,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
         <div className="saas-landing-live-strip" style={{ marginBottom: "24px" }}>
           <div className="saas-live-stat">
             <span className="saas-live-label">Anticipatory Action Window</span>
-            <span className="saas-live-val" style={{ color: "#38bdf8" }}>T - 18h Pre-Landfall</span>
+            <span className="saas-live-val" style={{ color: "#8b5cf6" }}>T - 18h Pre-Landfall</span>
           </div>
           <div className="saas-live-stat">
             <span className="saas-live-label">Critical Infrastructure at Risk</span>
@@ -883,11 +883,11 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-            <span style={{ fontSize: "12px", fontWeight: 700, color: "#60a5fa", display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ fontSize: "12px", fontWeight: 700, color: "#a78bfa", display: "flex", alignItems: "center", gap: "6px" }}>
               <Droplets size={14} />
               COMPLETE CAUSAL RAINFALL DAMAGE PATHWAY (RAINFALL → RUNOFF → INUNDATION → ROAD IMPACT)
             </span>
-            <span style={{ fontSize: "11px", color: "#38bdf8", background: "rgba(56, 189, 248, 0.15)", padding: "2px 8px", borderRadius: "10px" }}>
+            <span style={{ fontSize: "11px", color: "#8b5cf6", background: "rgba(56, 189, 248, 0.15)", padding: "2px 8px", borderRadius: "10px" }}>
               Physics-Informed Causal Model
             </span>
           </div>
@@ -900,7 +900,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
             </div>
             <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.06)" }}>
               <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>2. 24H ACCUMULATION</span>
-              <strong style={{ color: "#38bdf8", fontSize: "13px" }}>{data?.surge_and_runoff.projected_24h_rainfall_mm || 280} mm</strong>
+              <strong style={{ color: "#8b5cf6", fontSize: "13px" }}>{data?.surge_and_runoff.projected_24h_rainfall_mm || 280} mm</strong>
               <span style={{ color: "#64748b", display: "block", fontSize: "10px", marginTop: "2px" }}>Basin Watershed</span>
             </div>
             <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.06)" }}>
@@ -959,7 +959,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   alignItems: "center",
                   zIndex: 10,
                   fontSize: "11px",
-                  fontFamily: "'JetBrains Mono', monospace",
+                  fontFamily: "'Space Mono', monospace",
                   color: "#94a3b8",
                 }}
               >
@@ -1039,7 +1039,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
 
                 {/* Ocean Area */}
                 <rect x="0" y="0" width="200" height="460" fill="rgba(15, 23, 42, 0.65)" />
-                <text x="30" y="240" fill="#334155" fontSize="13" fontFamily="'JetBrains Mono', monospace" letterSpacing="4">
+                <text x="30" y="240" fill="#334155" fontSize="13" fontFamily="'Space Mono', monospace" letterSpacing="4">
                   {activePreset.basin.toUpperCase()}
                 </text>
 
@@ -1049,11 +1049,11 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                     <path
                       d="M 195,0 Q 225,120 235,220 T 245,360 Q 255,410 270,460 L 195,460 Z"
                       fill="url(#surgeGrad)"
-                      stroke="#38bdf8"
+                      stroke="#8b5cf6"
                       strokeWidth="1.5"
                       strokeDasharray="4 3"
                     />
-                    <text x="210" y="55" fill="#38bdf8" fontSize="9" fontFamily="'JetBrains Mono', monospace">
+                    <text x="210" y="55" fill="#8b5cf6" fontSize="9" fontFamily="'Space Mono', monospace">
                       SURGE CONTOUR (+{data?.surge_and_runoff.peak_surge_height_m || 2.8}m MSL)
                     </text>
                   </g>
@@ -1071,11 +1071,11 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 <path
                   d="M 450,110 Q 340,140 260,150 T 205,170"
                   fill="none"
-                  stroke="#60a5fa"
+                  stroke="#a78bfa"
                   strokeWidth="2.5"
                   strokeDasharray="6 3"
                 />
-                <text x="310" y="135" fill="#60a5fa" fontSize="8.5" fontFamily="'JetBrains Mono', monospace">
+                <text x="310" y="135" fill="#a78bfa" fontSize="8.5" fontFamily="'Space Mono', monospace">
                   DRAINAGE OVERTOPPING (+1.45m FLOOD)
                 </text>
 
@@ -1089,7 +1089,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                       strokeWidth="3.5"
                       strokeOpacity="0.8"
                     />
-                    <text x="290" y="270" fill="#f59e0b" fontSize="8.5" fontFamily="'JetBrains Mono', monospace">
+                    <text x="290" y="270" fill="#f59e0b" fontSize="8.5" fontFamily="'Space Mono', monospace">
                       {activePreset.id === "dana" ? "NH-53 EVAC CORRIDOR" : "COASTAL ARTERIAL (SH-47)"}
                     </text>
                   </g>
@@ -1106,7 +1106,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                       strokeDasharray="5 3"
                       strokeOpacity="0.75"
                     />
-                    <text x="340" y="190" fill="#a855f7" fontSize="8.5" fontFamily="'JetBrains Mono', monospace">
+                    <text x="340" y="190" fill="#a855f7" fontSize="8.5" fontFamily="'Space Mono', monospace">
                       220kV TRANSMISSION LINE
                     </text>
                   </g>
@@ -1135,7 +1135,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                       style={{ cursor: "pointer" }}
                     >
                       {isSelected && (
-                        <circle cx={posX} cy={posY} r="16" fill="none" stroke="#2563eb" strokeWidth="2" className="op-pulse-ring" />
+                        <circle cx={posX} cy={posY} r="16" fill="none" stroke="#6d28d9" strokeWidth="2" className="op-pulse-ring" />
                       )}
                       <circle
                         cx={posX}
@@ -1151,7 +1151,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                         fill={isSelected ? "#ffffff" : "#94a3b8"}
                         fontSize="9.5"
                         fontWeight={isSelected ? 700 : 500}
-                        fontFamily="'JetBrains Mono', monospace"
+                        fontFamily="'Space Mono', monospace"
                       >
                         {item.name.split("·")[0].split("220kV")[0].trim()}
                       </text>
@@ -1162,7 +1162,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 {/* Storm Eye Coordinate */}
                 <circle cx="120" cy="180" r="14" fill="rgba(239, 68, 68, 0.3)" stroke="#ef4444" strokeWidth="2" />
                 <circle cx="120" cy="180" r="4" fill="#ffffff" />
-                <text x="140" y="185" fill="#ef4444" fontSize="10" fontWeight="bold" fontFamily="'JetBrains Mono', monospace">
+                <text x="140" y="185" fill="#ef4444" fontSize="10" fontWeight="bold" fontFamily="'Space Mono', monospace">
                   CYCLONE EYE ({activePreset.max_wind_kmh} km/h)
                 </text>
               </svg>
@@ -1230,7 +1230,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   </div>
                   <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 10px", borderRadius: "4px" }}>
                     <div style={{ color: "#64748b", fontSize: "10.5px" }}>FLOOD EXPOSURE</div>
-                    <strong style={{ color: "#38bdf8" }}>{selectedInfra.flood_exposure_pct || 78}%</strong>
+                    <strong style={{ color: "#8b5cf6" }}>{selectedInfra.flood_exposure_pct || 78}%</strong>
                   </div>
                   <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 10px", borderRadius: "4px" }}>
                     <div style={{ color: "#64748b", fontSize: "10.5px" }}>SALT ARC RISK</div>
@@ -1267,7 +1267,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
 
                 {/* Hardening Action Directive */}
                 <div style={{ background: "rgba(37, 99, 235, 0.12)", border: "1px solid rgba(37, 99, 235, 0.3)", padding: "10px 14px", borderRadius: "6px", fontSize: "12.5px" }}>
-                  <span style={{ color: "#60a5fa", fontWeight: 700, display: "block", marginBottom: "4px" }}>
+                  <span style={{ color: "#a78bfa", fontWeight: 700, display: "block", marginBottom: "4px" }}>
                     🛠️ Pre-Landfall Hardening Directive:
                   </span>
                   <span style={{ color: "#e2e8f0" }}>
@@ -1307,7 +1307,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                       <span
                         style={{
                           background: rt.route_type === "Safest" ? "rgba(16, 185, 129, 0.2)" : rt.route_type === "Fastest" ? "rgba(245, 158, 11, 0.2)" : "rgba(59, 130, 246, 0.2)",
-                          color: rt.route_type === "Safest" ? "#34d399" : rt.route_type === "Fastest" ? "#fbbf24" : "#60a5fa",
+                          color: rt.route_type === "Safest" ? "#34d399" : rt.route_type === "Fastest" ? "#fbbf24" : "#a78bfa",
                           fontSize: "10px",
                           fontWeight: 700,
                           padding: "1px 6px",
@@ -1412,7 +1412,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                      <strong style={{ color: "#60a5fa" }}>{era.domain}</strong>
+                      <strong style={{ color: "#a78bfa" }}>{era.domain}</strong>
                       <span
                         style={{
                           background: era.priority === "CRITICAL" ? "rgba(239, 68, 68, 0.2)" : "rgba(245, 158, 11, 0.2)",
@@ -1441,7 +1441,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
 
                     {/* Action */}
                     <div style={{ background: "rgba(37, 99, 235, 0.15)", padding: "6px 8px", borderRadius: "4px", border: "1px solid rgba(37, 99, 235, 0.3)" }}>
-                      <span style={{ color: "#38bdf8", fontWeight: 700, fontSize: "10.5px" }}>ACTION: </span>
+                      <span style={{ color: "#8b5cf6", fontWeight: 700, fontSize: "10.5px" }}>ACTION: </span>
                       <span style={{ color: "#ffffff", fontSize: "11px" }}>{era.action}</span>
                     </div>
                   </div>
@@ -1473,8 +1473,8 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                     onClick={handleVoiceBroadcast}
                     style={{
                       background: isSpeaking ? "rgba(239, 68, 68, 0.25)" : "rgba(37, 99, 235, 0.2)",
-                      border: `1px solid ${isSpeaking ? "#ef4444" : "#3b82f6"}`,
-                      color: isSpeaking ? "#ef4444" : "#60a5fa",
+                      border: `1px solid ${isSpeaking ? "#ef4444" : "#7c3aed"}`,
+                      color: isSpeaking ? "#ef4444" : "#a78bfa",
                       fontSize: "11px",
                       fontWeight: 600,
                       padding: "4px 10px",
@@ -1538,7 +1538,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                       type="button"
                       onClick={() => setSelectedLang(lang)}
                       style={{
-                        background: isLangActive ? "#2563eb" : "transparent",
+                        background: isLangActive ? "#6d28d9" : "transparent",
                         color: isLangActive ? "#ffffff" : "#94a3b8",
                         border: "none",
                         borderRadius: "4px",
@@ -1568,7 +1568,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   borderRadius: "4px",
                   color: "#e2e8f0",
                   fontSize: "11px",
-                  fontFamily: selectedLang === "en" ? "'JetBrains Mono', monospace" : "inherit",
+                  fontFamily: selectedLang === "en" ? "'Space Mono', monospace" : "inherit",
                   padding: "10px",
                   lineHeight: "1.55",
                   resize: "none",
@@ -1603,7 +1603,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                       fontSize: "11px",
                     }}
                   >
-                    <span style={{ color: "#38bdf8", fontWeight: 700, minWidth: "90px" }}>{tm.phase}</span>
+                    <span style={{ color: "#8b5cf6", fontWeight: 700, minWidth: "90px" }}>{tm.phase}</span>
                     <div>
                       <strong style={{ color: "#ffffff", display: "block" }}>{tm.title}</strong>
                       <span style={{ color: "#94a3b8" }}>{tm.action}</span>
@@ -1679,7 +1679,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                   {data?.post_landfall?.restoration_priority_manifest.map((item, idx) => (
                     <div key={idx} style={{ background: "rgba(0,0,0,0.3)", padding: "6px 8px", borderRadius: "4px", fontSize: "11px" }}>
-                      <strong style={{ color: "#38bdf8" }}>Priority {item.priority}: {item.target}</strong>
+                      <strong style={{ color: "#8b5cf6" }}>Priority {item.priority}: {item.target}</strong>
                       <span style={{ color: "#94a3b8", display: "block" }}>{item.action}</span>
                     </div>
                   ))}
@@ -1789,7 +1789,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                     }}
                   >
                     {/* Drone Telemetry HUD */}
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", fontFamily: "'JetBrains Mono', monospace", color: "#38bdf8", marginBottom: "12px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", fontFamily: "'Space Mono', monospace", color: "#8b5cf6", marginBottom: "12px" }}>
                       <span>ALT: {droneReport.drone_telemetry.altitude_agl_m}m AGL</span>
                       <span>GIMBAL: {droneReport.drone_telemetry.gimbal_pitch_deg}°</span>
                       <span>FIX: {droneReport.drone_telemetry.gps_fix}</span>
@@ -1812,7 +1812,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                     >
                       {/* Reticle / Crosshair */}
                       <div style={{ position: "absolute", top: "50%", left: "50%", width: "40px", height: "40px", transform: "translate(-50%, -50%)", border: "1px solid rgba(56, 189, 248, 0.4)", borderRadius: "50%" }} />
-                      <div style={{ position: "absolute", top: "50%", left: "50%", width: "6px", height: "6px", transform: "translate(-50%, -50%)", background: "#38bdf8", borderRadius: "50%" }} />
+                      <div style={{ position: "absolute", top: "50%", left: "50%", width: "6px", height: "6px", transform: "translate(-50%, -50%)", background: "#8b5cf6", borderRadius: "50%" }} />
 
                       {/* Bounding Box Callout */}
                       <div
@@ -1870,7 +1870,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                       </div>
                       <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px", borderRadius: "4px" }}>
                         <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>EST. REPAIR</span>
-                        <strong style={{ color: "#38bdf8", fontSize: "13px" }}>{droneReport.estimated_repair_hours} hrs</strong>
+                        <strong style={{ color: "#8b5cf6", fontSize: "13px" }}>{droneReport.estimated_repair_hours} hrs</strong>
                       </div>
                     </div>
 
@@ -1886,7 +1886,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                     </div>
 
                     <div style={{ background: "rgba(37, 99, 235, 0.12)", border: "1px solid rgba(59, 130, 246, 0.3)", borderRadius: "6px", padding: "10px", fontSize: "11px" }}>
-                      <div style={{ color: "#60a5fa", fontWeight: 700, marginBottom: "4px" }}>
+                      <div style={{ color: "#a78bfa", fontWeight: 700, marginBottom: "4px" }}>
                         EMERGENCY CREW DISPATCH:
                       </div>
                       <div style={{ color: "#ffffff" }}>{droneReport.emergency_dispatch_crew}</div>
@@ -1904,7 +1904,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                         }}
                         style={{
                           flex: 1,
-                          background: "#2563eb",
+                          background: "#6d28d9",
                           color: "#ffffff",
                           border: "none",
                           padding: "8px 14px",
@@ -1967,7 +1967,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 overflowY: "auto",
                 boxShadow: "0 25px 60px rgba(0,0,0,0.9)",
                 padding: "32px",
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "'Outfit', sans-serif",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #0f172a", paddingBottom: "14px", marginBottom: "18px" }}>
@@ -1987,7 +1987,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                     type="button"
                     onClick={() => window.print()}
                     style={{
-                      background: "#2563eb",
+                      background: "#6d28d9",
                       color: "#ffffff",
                       border: "none",
                       padding: "6px 12px",
@@ -2206,8 +2206,8 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                       borderRadius: "6px",
                       padding: "16px",
                       fontSize: "11px",
-                      fontFamily: "'JetBrains Mono', monospace",
-                      color: "#38bdf8",
+                      fontFamily: "'Space Mono', monospace",
+                      color: "#8b5cf6",
                       overflowX: "auto",
                       maxHeight: "420px",
                       whiteSpace: "pre-wrap",
@@ -2245,7 +2245,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                       href={`data:text/xml;charset=utf-8,${encodeURIComponent(capXml)}`}
                       download={`cyclonex-alert-${activePreset.id}.cap.xml`}
                       style={{
-                        background: "#2563eb",
+                        background: "#6d28d9",
                         color: "#ffffff",
                         padding: "8px 14px",
                         borderRadius: "6px",

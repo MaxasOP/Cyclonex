@@ -176,7 +176,7 @@ export default function Google3DCityView({
           ) : (
             <>
               <div style={{ fontSize: "2rem", marginBottom: "10px" }}>{"🌐"}</div>
-              <div style={{ fontWeight: 800, color: "#38bdf8", marginBottom: "8px" }}>Loading Google Photorealistic 3D Tiles</div>
+              <div style={{ fontWeight: 800, color: "#8b5cf6", marginBottom: "8px" }}>Loading Google Photorealistic 3D Tiles</div>
               <div style={{ fontSize: "0.78rem", color: "#94a3b8" }}>{loadStatus}</div>
             </>
           )}
@@ -193,7 +193,7 @@ export default function Google3DCityView({
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: "1 1 200px" }}>
           <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: isReady ? "#10b981" : "#f59e0b", boxShadow: isReady ? "0 0 8px #10b981" : "0 0 8px #f59e0b", display: "inline-block" }} />
-          <span style={{ fontWeight: 800, color: "#38bdf8", fontSize: "0.82rem", letterSpacing: "0.04em" }}>GOOGLE PHOTOREALISTIC 3D</span>
+          <span style={{ fontWeight: 800, color: "#8b5cf6", fontSize: "0.82rem", letterSpacing: "0.04em" }}>GOOGLE PHOTOREALISTIC 3D</span>
           <span style={{ fontSize: "0.62rem", fontWeight: 700, background: "rgba(16,185,129,0.2)", color: "#10b981", border: "1px solid rgba(16,185,129,0.4)", padding: "2px 6px", borderRadius: "4px" }}>
             {isReady ? "LIVE TILES" : "LOADING"}
           </span>
@@ -207,13 +207,13 @@ export default function Google3DCityView({
         <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
           {(Object.keys(CAM_PRESETS) as CamPreset[]).map(p => (
             <button key={p} type="button" onClick={() => handleSetCameraPreset(p)}
-              style={{ padding: "4px 10px", background: cameraView === p ? "#0284c7" : "rgba(255,255,255,0.08)", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: cameraView === p ? 700 : 500, fontSize: "0.7rem" }}>
+              style={{ padding: "4px 10px", background: cameraView === p ? "#7c3aed" : "rgba(255,255,255,0.08)", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: cameraView === p ? 700 : 500, fontSize: "0.7rem" }}>
               {CAM_LABELS[p]}
             </button>
           ))}
           {onExitReal3D && (
             <button type="button" onClick={onExitReal3D}
-              style={{ padding: "4px 12px", background: "#38bdf8", color: "#050b14", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: 800, fontSize: "0.7rem" }}>
+              style={{ padding: "4px 12px", background: "#8b5cf6", color: "#050b14", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: 800, fontSize: "0.7rem" }}>
               {"<"} Back to 2D
             </button>
           )}
@@ -229,17 +229,17 @@ export default function Google3DCityView({
         color: "#e2e8f0", fontSize: "0.74rem", minWidth: "240px",
         pointerEvents: "auto", boxShadow: "0 8px 30px rgba(0,0,0,0.6)",
       }}>
-        <div style={{ fontWeight: 800, color: "#38bdf8", borderBottom: "1px solid rgba(255,255,255,0.12)", paddingBottom: "5px" }}>{"⚡"} 3D PHYSICS SIMULATION</div>
-        <div style={{ fontSize: "0.68rem", color: "#94a3b8" }}>Basemap: <strong style={{ color: "#38bdf8" }}>{"🛰️"} Google Photorealistic</strong></div>
+        <div style={{ fontWeight: 800, color: "#8b5cf6", borderBottom: "1px solid rgba(255,255,255,0.12)", paddingBottom: "5px" }}>{"⚡"} 3D PHYSICS SIMULATION</div>
+        <div style={{ fontSize: "0.68rem", color: "#94a3b8" }}>Basemap: <strong style={{ color: "#8b5cf6" }}>{"🛰️"} Google Photorealistic</strong></div>
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
               <input type="checkbox" checked={showSurge} onChange={e => setShowSurge(e.target.checked)} />
               <span>{"🌊"} Storm Surge Flood</span>
             </label>
-            <span style={{ color: "#38bdf8", fontWeight: 800 }}>+{surgeHeightM.toFixed(1)} m</span>
+            <span style={{ color: "#8b5cf6", fontWeight: 800 }}>+{surgeHeightM.toFixed(1)} m</span>
           </div>
-          {showSurge && <input type="range" min="0.5" max="5.0" step="0.1" value={surgeHeightM} onChange={e => setSurgeHeightM(parseFloat(e.target.value))} style={{ width: "100%", accentColor: "#0284c7" }} />}
+          {showSurge && <input type="range" min="0.5" max="5.0" step="0.1" value={surgeHeightM} onChange={e => setSurgeHeightM(parseFloat(e.target.value))} style={{ width: "100%", accentColor: "#7c3aed" }} />}
         </div>
         <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
           <input type="checkbox" checked={showWindStreams} onChange={e => setShowWindStreams(e.target.checked)} />
@@ -259,7 +259,7 @@ export default function Google3DCityView({
             <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
               {["puri_odisha", "visakhapatnam", "chennai"].map(key => (
                 <button key={key} type="button" onClick={() => onSelectPreset(key)}
-                  style={{ padding: "3px 8px", background: "rgba(56,189,248,0.12)", border: "1px solid rgba(56,189,248,0.3)", borderRadius: "4px", color: "#38bdf8", fontSize: "0.67rem", cursor: "pointer", fontWeight: 600 }}>
+                  style={{ padding: "3px 8px", background: "rgba(56,189,248,0.12)", border: "1px solid rgba(56,189,248,0.3)", borderRadius: "4px", color: "#8b5cf6", fontSize: "0.67rem", cursor: "pointer", fontWeight: 600 }}>
                   {key.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
                 </button>
               ))}

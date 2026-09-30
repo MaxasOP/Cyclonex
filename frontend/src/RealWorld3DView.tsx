@@ -485,7 +485,7 @@ export default function RealWorld3DView({
             height: o.height,
             min_height: 0,
             archColor: isShelter && showGreenBuildings ? "#22c55e" : "#f8fafc",
-            riskColor: isShelter ? "#22c55e" : score >= 0.55 ? "#ef4444" : score >= 0.25 ? "#f59e0b" : "#38bdf8",
+            riskColor: isShelter ? "#22c55e" : score >= 0.55 ? "#ef4444" : score >= 0.25 ? "#f59e0b" : "#8b5cf6",
             score,
             classification,
           },
@@ -707,7 +707,7 @@ export default function RealWorld3DView({
             type: "fill",
             source: "surge-flood-source",
             paint: {
-              "fill-color": "#0284c7",
+              "fill-color": "#7c3aed",
               "fill-opacity": showSurge ? 0.65 : 0.0,
             },
           },
@@ -790,7 +790,7 @@ export default function RealWorld3DView({
               "fill-extrusion-color": [
                 "case",
                 ["==", ["get", "id"], ""],
-                "#38bdf8",
+                "#8b5cf6",
                 ["coalesce", ["get", visualMode === "architectural" ? "archColor" : "riskColor"], "#64748B"],
               ],
               "fill-extrusion-height": [
@@ -811,7 +811,7 @@ export default function RealWorld3DView({
             source: "buildings-source",
             filter: ["==", ["get", "id"], ""],
             paint: {
-              "fill-extrusion-color": "#38bdf8",
+              "fill-extrusion-color": "#8b5cf6",
               "fill-extrusion-height": ["+", ["coalesce", ["get", "height"], 15], 4],
               "fill-extrusion-base": ["coalesce", ["get", "min_height"], 0],
               "fill-extrusion-opacity": 0.98,
@@ -1102,7 +1102,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
           [
             "case",
             ["==", ["get", "id"], selectedBld?.id || ""],
-            "#38bdf8",
+            "#8b5cf6",
             ["coalesce", ["get", visualMode === "architectural" ? "archColor" : "riskColor"], "#64748B"],
           ]
         );
@@ -1317,7 +1317,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span style={{ fontSize: "13px", fontWeight: 800, color: "#38bdf8", letterSpacing: "0.5px" }}>
+          <span style={{ fontSize: "13px", fontWeight: 800, color: "#8b5cf6", letterSpacing: "0.5px" }}>
             📍 CYCLONEX &bull; 3D CITY DIGITAL TWIN
           </span>
           <span style={{ fontSize: "11px", color: "#94a3b8", fontFamily: "monospace" }}>
@@ -1335,7 +1335,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
               value={customLatInput}
               onChange={(e) => setCustomLatInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleApplyCustomCoords(); }}
-              style={{ width: "62px", background: "#0f172a", border: "1px solid #334155", color: "#38bdf8", borderRadius: "4px", fontSize: "10px", padding: "2px 4px", fontWeight: 700 }}
+              style={{ width: "62px", background: "#0f172a", border: "1px solid #334155", color: "#8b5cf6", borderRadius: "4px", fontSize: "10px", padding: "2px 4px", fontWeight: 700 }}
             />
             <span style={{ fontSize: "10px", color: "#94a3b8", fontWeight: 700, marginLeft: "2px" }}>Lon:</span>
             <input
@@ -1344,11 +1344,11 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
               value={customLngInput}
               onChange={(e) => setCustomLngInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleApplyCustomCoords(); }}
-              style={{ width: "62px", background: "#0f172a", border: "1px solid #334155", color: "#38bdf8", borderRadius: "4px", fontSize: "10px", padding: "2px 4px", fontWeight: 700 }}
+              style={{ width: "62px", background: "#0f172a", border: "1px solid #334155", color: "#8b5cf6", borderRadius: "4px", fontSize: "10px", padding: "2px 4px", fontWeight: 700 }}
             />
             <button
               onClick={handleApplyCustomCoords}
-              style={{ padding: "2px 6px", borderRadius: "4px", fontSize: "10px", fontWeight: 800, background: "#0284c7", color: "#ffffff", border: "none", cursor: "pointer" }}
+              style={{ padding: "2px 6px", borderRadius: "4px", fontSize: "10px", fontWeight: 800, background: "#7c3aed", color: "#ffffff", border: "none", cursor: "pointer" }}
             >
               Go 📍
             </button>
@@ -1438,7 +1438,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
         </div>
         <div style={{ fontSize: "10px", color: "#94a3b8", display: "flex", justifyContent: "space-between" }}>
           <span>Dyn Pressure: <strong style={{ color: "#f87171" }}>2,800 Pa</strong></span>
-          <span>Heading: <strong style={{ color: "#38bdf8" }}>{headingDeg}°</strong></span>
+          <span>Heading: <strong style={{ color: "#8b5cf6" }}>{headingDeg}°</strong></span>
         </div>
       </div>
 
@@ -1465,7 +1465,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ fontSize: "12px", fontWeight: 800, color: "#38bdf8", letterSpacing: "0.5px" }}>
+            <div style={{ fontSize: "12px", fontWeight: 800, color: "#8b5cf6", letterSpacing: "0.5px" }}>
               🏙️ 3D CITY
             </div>
             <div style={{ fontSize: "10px", color: "#cbd5e1" }}>
@@ -1501,9 +1501,9 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
                 borderRadius: "4px",
                 fontSize: "10px",
                 fontWeight: 700,
-                background: activeCityKey === preset.key ? "#0284c7" : "rgba(30, 41, 59, 0.8)",
+                background: activeCityKey === preset.key ? "#7c3aed" : "rgba(30, 41, 59, 0.8)",
                 color: "#ffffff",
-                border: activeCityKey === preset.key ? "1px solid #38bdf8" : "1px solid rgba(255,255,255,0.1)",
+                border: activeCityKey === preset.key ? "1px solid #8b5cf6" : "1px solid rgba(255,255,255,0.1)",
                 cursor: "pointer",
               }}
             >
@@ -1516,7 +1516,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
         <div style={{ display: "flex", flexDirection: "column", gap: "5px", padding: "6px 0", borderTop: "1px solid rgba(255,255,255,0.08)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
             <span>🏢 3D Buildings ({buildingData.buildingList.length})</span>
-            <span style={{ color: "#38bdf8", fontWeight: 800 }}>● Active</span>
+            <span style={{ color: "#8b5cf6", fontWeight: 800 }}>● Active</span>
           </label>
           <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
             <span>🛣️ OSM Roads ({roadsGeoJson.features.length})</span>
@@ -1561,7 +1561,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
               </button>
               <button
                 onClick={handleResetView}
-                style={{ padding: "2px 6px", borderRadius: "4px", fontSize: "10px", fontWeight: 800, background: "rgba(30, 41, 59, 0.9)", color: "#38bdf8", border: "1px solid rgba(56, 189, 248, 0.3)", cursor: "pointer" }}
+                style={{ padding: "2px 6px", borderRadius: "4px", fontSize: "10px", fontWeight: 800, background: "rgba(30, 41, 59, 0.9)", color: "#8b5cf6", border: "1px solid rgba(56, 189, 248, 0.3)", cursor: "pointer" }}
                 title="Center City"
               >
                 ⌖
@@ -1585,9 +1585,9 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
                 borderRadius: "5px",
                 fontSize: "10px",
                 fontWeight: 800,
-                background: viewPerspective === "city3d" ? "#0284c7" : "rgba(30, 41, 59, 0.8)",
+                background: viewPerspective === "city3d" ? "#7c3aed" : "rgba(30, 41, 59, 0.8)",
                 color: "#ffffff",
-                border: viewPerspective === "city3d" ? "1px solid #38bdf8" : "1px solid rgba(255,255,255,0.08)",
+                border: viewPerspective === "city3d" ? "1px solid #8b5cf6" : "1px solid rgba(255,255,255,0.08)",
                 cursor: "pointer",
               }}
             >
@@ -1601,9 +1601,9 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
                 borderRadius: "5px",
                 fontSize: "10px",
                 fontWeight: 800,
-                background: viewPerspective === "street" ? "#0284c7" : "rgba(30, 41, 59, 0.8)",
+                background: viewPerspective === "street" ? "#7c3aed" : "rgba(30, 41, 59, 0.8)",
                 color: "#ffffff",
-                border: viewPerspective === "street" ? "1px solid #38bdf8" : "1px solid rgba(255,255,255,0.08)",
+                border: viewPerspective === "street" ? "1px solid #8b5cf6" : "1px solid rgba(255,255,255,0.08)",
                 cursor: "pointer",
               }}
             >
@@ -1636,7 +1636,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(56, 189, 248, 0.25)", paddingBottom: "6px" }}>
-            <span style={{ fontSize: "11px", fontWeight: 800, color: "#38bdf8", letterSpacing: "0.5px" }}>
+            <span style={{ fontSize: "11px", fontWeight: 800, color: "#8b5cf6", letterSpacing: "0.5px" }}>
               📋 BUILDING ASSESSMENT
             </span>
             <span
@@ -1794,7 +1794,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
 
                 <div style={{ background: "rgba(15, 23, 42, 0.8)", border: "1px solid rgba(56, 189, 248, 0.3)", borderRadius: "10px", padding: "10px" }}>
                   <div style={{ fontSize: "10px", color: "#94a3b8", textTransform: "uppercase", fontWeight: 700 }}>Safe Shelter Capacity</div>
-                  <div style={{ fontSize: "18px", fontWeight: 800, color: "#38bdf8", marginTop: "2px" }}>
+                  <div style={{ fontSize: "18px", fontWeight: 800, color: "#8b5cf6", marginTop: "2px" }}>
                     {(sheltersPlan?.total_capacity ?? 12500).toLocaleString()} <span style={{ fontSize: "11px", fontWeight: 600 }}>persons</span>
                   </div>
                   <div style={{ fontSize: "10px", color: "#bae6fd" }}>RCC Category-5 Fortified</div>
@@ -1820,7 +1820,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
               {/* Section 1: Coastal Multipurpose Refugee Shelters Inventory */}
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                  <h4 style={{ margin: 0, fontSize: "13px", fontWeight: 800, color: "#38bdf8", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <h4 style={{ margin: 0, fontSize: "13px", fontWeight: 800, color: "#8b5cf6", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
                     <span>🏢</span> Designated Multipurpose Cyclone Shelters (MPCS Roster)
                   </h4>
                   <span style={{ fontSize: "11px", color: "#94a3b8" }}>
@@ -1938,7 +1938,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
                           borderRadius: "6px",
                           fontSize: "10px",
                           fontWeight: 800,
-                          background: "#0284c7",
+                          background: "#7c3aed",
                           color: "#ffffff",
                           border: "none",
                           cursor: "pointer",
@@ -1963,7 +1963,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "10px" }}>
                   <div style={{ background: "rgba(15, 23, 42, 0.75)", border: "1px solid rgba(56, 189, 248, 0.25)", borderRadius: "8px", padding: "10px" }}>
-                    <div style={{ fontWeight: 800, fontSize: "11px", color: "#38bdf8", marginBottom: "3px" }}>
+                    <div style={{ fontWeight: 800, fontSize: "11px", color: "#8b5cf6", marginBottom: "3px" }}>
                       1. Roof Truss Hurricane Tie-Downs
                     </div>
                     <div style={{ fontSize: "10.5px", color: "#cbd5e1", lineHeight: 1.5 }}>
@@ -1972,7 +1972,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
                   </div>
 
                   <div style={{ background: "rgba(15, 23, 42, 0.75)", border: "1px solid rgba(56, 189, 248, 0.25)", borderRadius: "8px", padding: "10px" }}>
-                    <div style={{ fontWeight: 800, fontSize: "11px", color: "#38bdf8", marginBottom: "3px" }}>
+                    <div style={{ fontWeight: 800, fontSize: "11px", color: "#8b5cf6", marginBottom: "3px" }}>
                       2. Window Impact Storm Shutters
                     </div>
                     <div style={{ fontSize: "10.5px", color: "#cbd5e1", lineHeight: 1.5 }}>
@@ -1981,7 +1981,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
                   </div>
 
                   <div style={{ background: "rgba(15, 23, 42, 0.75)", border: "1px solid rgba(56, 189, 248, 0.25)", borderRadius: "8px", padding: "10px" }}>
-                    <div style={{ fontWeight: 800, fontSize: "11px", color: "#38bdf8", marginBottom: "3px" }}>
+                    <div style={{ fontWeight: 800, fontSize: "11px", color: "#8b5cf6", marginBottom: "3px" }}>
                       3. Upwind Obstacle Sheltering (15% Reduction)
                     </div>
                     <div style={{ fontSize: "10.5px", color: "#cbd5e1", lineHeight: 1.5 }}>
@@ -1990,7 +1990,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
                   </div>
 
                   <div style={{ background: "rgba(15, 23, 42, 0.75)", border: "1px solid rgba(56, 189, 248, 0.25)", borderRadius: "8px", padding: "10px" }}>
-                    <div style={{ fontWeight: 800, fontSize: "11px", color: "#38bdf8", marginBottom: "3px" }}>
+                    <div style={{ fontWeight: 800, fontSize: "11px", color: "#8b5cf6", marginBottom: "3px" }}>
                       4. RCC Stilted Elevation &amp; Scour Piles
                     </div>
                     <div style={{ fontSize: "10.5px", color: "#cbd5e1", lineHeight: 1.5 }}>
@@ -1999,7 +1999,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
                   </div>
 
                   <div style={{ background: "rgba(15, 23, 42, 0.75)", border: "1px solid rgba(56, 189, 248, 0.25)", borderRadius: "8px", padding: "10px", gridColumn: "span 2" }}>
-                    <div style={{ fontWeight: 800, fontSize: "11px", color: "#38bdf8", marginBottom: "3px" }}>
+                    <div style={{ fontWeight: 800, fontSize: "11px", color: "#8b5cf6", marginBottom: "3px" }}>
                       5. Coastal Mangrove &amp; Casuarina Bio-Shields
                     </div>
                     <div style={{ fontSize: "10.5px", color: "#cbd5e1", lineHeight: 1.5 }}>
@@ -2035,7 +2035,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
                           {w.action}
                         </div>
                         <div style={{ color: "#94a3b8", marginTop: "4px", fontSize: "10px" }}>
-                          Assigned Shelter: <strong style={{ color: "#38bdf8" }}>{w.nearest_shelter}</strong> ({w.distance_km} km)
+                          Assigned Shelter: <strong style={{ color: "#8b5cf6" }}>{w.nearest_shelter}</strong> ({w.distance_km} km)
                         </div>
                       </div>
                     ))}
@@ -2095,7 +2095,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px" }}>
-            <span style={{ fontWeight: 800, color: "#38bdf8", fontSize: "11.5px" }}>{hoveredBld.name}</span>
+            <span style={{ fontWeight: 800, color: "#8b5cf6", fontSize: "11.5px" }}>{hoveredBld.name}</span>
             <span
               style={{
                 fontSize: "9px",
@@ -2155,7 +2155,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
             minWidth: "210px",
             boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
           }}>
-            <div style={{ fontWeight: 900, color: "#38bdf8", marginBottom: "4px", fontSize: "11px", letterSpacing: "0.5px" }}>
+            <div style={{ fontWeight: 900, color: "#8b5cf6", marginBottom: "4px", fontSize: "11px", letterSpacing: "0.5px" }}>
               3D CITY STATUS
             </div>
             {debugInfo.featureCount === 0 ? (
@@ -2167,7 +2167,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
                 <div><span style={{ color: "#94a3b8" }}>MapLibre: </span><span style={{ color: "#22c55e", fontWeight: 700 }}>READY</span></div>
                 <div><span style={{ color: "#94a3b8" }}>Satellite: </span><span style={{ color: "#22c55e", fontWeight: 700 }}>READY</span></div>
                 <div><span style={{ color: "#94a3b8" }}>Buildings: </span><span style={{ color: "#22c55e", fontWeight: 700 }}>READY</span></div>
-                <div><span style={{ color: "#94a3b8" }}>Building Features: </span><strong style={{ color: "#38bdf8" }}>{debugInfo.featureCount.toLocaleString()}</strong></div>
+                <div><span style={{ color: "#94a3b8" }}>Building Features: </span><strong style={{ color: "#8b5cf6" }}>{debugInfo.featureCount.toLocaleString()}</strong></div>
                 <div><span style={{ color: "#94a3b8" }}>3D Extrusion: </span><span style={{ color: "#22c55e", fontWeight: 700 }}>{debugInfo.layerActive ? "ACTIVE" : "MISSING"}</span></div>
                 <div><span style={{ color: "#94a3b8" }}>Roads: </span><span style={{ color: "#22c55e", fontWeight: 700 }}>{debugInfo.roadCount > 0 ? "READY" : "EMPTY"}</span></div>
                 <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", marginTop: "4px", paddingTop: "4px" }}>

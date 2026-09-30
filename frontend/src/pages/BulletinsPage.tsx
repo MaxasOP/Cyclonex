@@ -206,7 +206,7 @@ export default function BulletinsPage({
               color: "#ffffff",
               fontWeight: 800,
               fontSize: "16px",
-              fontFamily: "'JetBrains Mono', monospace"
+              fontFamily: "'Space Mono', monospace"
             }}>
               X
             </div>
@@ -220,8 +220,8 @@ export default function BulletinsPage({
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: "16px", fontFamily: "'JetBrains Mono', monospace", fontSize: "11px" }}>
-            <div>Vmax: <strong style={{ color: "#38bdf8" }}>{windKph} km/h</strong></div>
+          <div style={{ display: "flex", gap: "16px", fontFamily: "'Space Mono', monospace", fontSize: "11px" }}>
+            <div>Vmax: <strong style={{ color: "#8b5cf6" }}>{windKph} km/h</strong></div>
             <div>Pressure: <strong style={{ color: "#f59e0b" }}>{pressureHpa} hPa</strong></div>
             <div>Status: <strong style={{ color: "#ef4444" }}>RED ALERT</strong></div>
           </div>
@@ -235,7 +235,7 @@ export default function BulletinsPage({
             <div className="op-technical-panel">
               <div className="op-tech-panel-header">
                 <div className="op-tech-panel-title">
-                  <Clock size={14} style={{ color: "#38bdf8" }} />
+                  <Clock size={14} style={{ color: "#8b5cf6" }} />
                   <span>CHRONOLOGICAL SITUATION STREAM</span>
                 </div>
                 <span className="op-tech-panel-badge">LIVE FEED</span>
@@ -244,7 +244,7 @@ export default function BulletinsPage({
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {OPERATIONAL_EVENTS.map(ev => {
                   const isExpanded = ev.id === expandedEventId;
-                  const sevColor = ev.severity === "CRITICAL" ? "#ef4444" : ev.severity === "HIGH" ? "#f59e0b" : "#38bdf8";
+                  const sevColor = ev.severity === "CRITICAL" ? "#ef4444" : ev.severity === "HIGH" ? "#f59e0b" : "#8b5cf6";
 
                   return (
                     <div
@@ -254,7 +254,7 @@ export default function BulletinsPage({
                         padding: "12px 14px",
                         background: isExpanded ? "rgba(56, 189, 248, 0.05)" : "rgba(255, 255, 255, 0.02)",
                         border: "1px solid",
-                        borderColor: isExpanded ? "#38bdf8" : "rgba(255, 255, 255, 0.06)",
+                        borderColor: isExpanded ? "#8b5cf6" : "rgba(255, 255, 255, 0.06)",
                         borderLeft: `3px solid ${sevColor}`,
                         borderRadius: "3px",
                         cursor: "pointer",
@@ -262,10 +262,10 @@ export default function BulletinsPage({
                       }}
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                        <span style={{ fontSize: "10px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
+                        <span style={{ fontSize: "10px", fontFamily: "'Space Mono', monospace", color: "#64748b" }}>
                           {ev.time} &middot; {ev.source}
                         </span>
-                        <span style={{ fontSize: "9px", fontFamily: "'JetBrains Mono', monospace", color: sevColor, fontWeight: 700 }}>
+                        <span style={{ fontSize: "9px", fontFamily: "'Space Mono', monospace", color: sevColor, fontWeight: 700 }}>
                           {ev.severity}
                         </span>
                       </div>
@@ -297,7 +297,7 @@ export default function BulletinsPage({
             <div className="op-technical-panel">
               <div className="op-tech-panel-header">
                 <div className="op-tech-panel-title">
-                  <Anchor size={14} style={{ color: "#38bdf8" }} />
+                  <Anchor size={14} style={{ color: "#8b5cf6" }} />
                   <span>PORT WARNING SIGNALS (1–11)</span>
                 </div>
                 <span className="op-tech-panel-badge">MARITIME BOARD</span>
@@ -305,7 +305,7 @@ export default function BulletinsPage({
 
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 {PORT_SIGNALS.map(ps => {
-                  const sevColor = ps.severity === "critical" ? "#ef4444" : ps.severity === "high" ? "#f59e0b" : ps.severity === "medium" ? "#38bdf8" : "#10b981";
+                  const sevColor = ps.severity === "critical" ? "#ef4444" : ps.severity === "high" ? "#f59e0b" : ps.severity === "medium" ? "#8b5cf6" : "#10b981";
 
                   return (
                     <div
@@ -348,14 +348,14 @@ export default function BulletinsPage({
                 until further notice.
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "10px", fontFamily: "'JetBrains Mono', monospace" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "10px", fontFamily: "'Space Mono', monospace" }}>
                 <div style={{ padding: "6px", background: "#03060a", border: "1px solid rgba(255,255,255,0.05)" }}>
                   <div style={{ color: "#64748b" }}>HARBOR RECALL</div>
                   <div style={{ color: "#10b981", fontWeight: 700 }}>100% BOATS IN PORT</div>
                 </div>
                 <div style={{ padding: "6px", background: "#03060a", border: "1px solid rgba(255,255,255,0.05)" }}>
                   <div style={{ color: "#64748b" }}>COAST GUARD PATROL</div>
-                  <div style={{ color: "#38bdf8", fontWeight: 700 }}>ACTIVE AIR/SEA</div>
+                  <div style={{ color: "#8b5cf6", fontWeight: 700 }}>ACTIVE AIR/SEA</div>
                 </div>
               </div>
             </div>

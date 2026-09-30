@@ -304,7 +304,7 @@ export function getLifecycleStages(
         windSpeedKph: 45,
         pressureHpa: 1004,
         sstC: 31.5,
-        color: "#38bdf8",
+        color: "#8b5cf6",
         description: "Formed over exceptionally warm Arabian Sea waters (>31°C) near Lakshadweep archipelago.",
         coneRadiusKm: 25,
         statusType: "genesis",
@@ -384,7 +384,7 @@ export function getLifecycleStages(
         windSpeedKph: 45,
         pressureHpa: 1002,
         sstC: 0.0,
-        color: "#38bdf8",
+        color: "#8b5cf6",
         description: "Dissipated into remnant low pressure area over central India as kinetic energy is completely exhausted.",
         coneRadiusKm: 165,
         statusType: "dissipation",
@@ -405,7 +405,7 @@ export function getLifecycleStages(
         windSpeedKph: 50,
         pressureHpa: 1002,
         sstC: 31.8,
-        color: "#38bdf8",
+        color: "#8b5cf6",
         description: "Formed in extremely warm waters of south-central Arabian Sea.",
         coneRadiusKm: 30,
         statusType: "genesis",
@@ -453,7 +453,7 @@ export function getLifecycleStages(
         windSpeedKph: 50,
         pressureHpa: 996,
         sstC: 0.0,
-        color: "#38bdf8",
+        color: "#8b5cf6",
         description: "Weakened into depression over southwest Rajasthan desert.",
         coneRadiusKm: 150,
         statusType: "dissipation",
@@ -474,7 +474,7 @@ export function getLifecycleStages(
         windSpeedKph: 55,
         pressureHpa: 1002,
         sstC: 30.6,
-        color: "#38bdf8",
+        color: "#8b5cf6",
         description: "Developed over east-central Bay of Bengal from active monsoon trough.",
         coneRadiusKm: 30,
         statusType: "genesis",
@@ -522,7 +522,7 @@ export function getLifecycleStages(
         windSpeedKph: 50,
         pressureHpa: 1000,
         sstC: 0.0,
-        color: "#38bdf8",
+        color: "#8b5cf6",
         description: "Weakened rapidly over north interior Odisha hills.",
         coneRadiusKm: 140,
         statusType: "dissipation",
@@ -543,7 +543,7 @@ export function getLifecycleStages(
         windSpeedKph: 55,
         pressureHpa: 1004,
         sstC: 31.4,
-        color: "#38bdf8",
+        color: "#8b5cf6",
         description: "Formed in warm equatorial waters of southern Bay of Bengal. Latent heat flux exceeds 280 W/m².",
         coneRadiusKm: 25,
         statusType: "genesis",
@@ -623,7 +623,7 @@ export function getLifecycleStages(
         windSpeedKph: 55,
         pressureHpa: 998,
         sstC: 0.0,
-        color: "#38bdf8",
+        color: "#8b5cf6",
         description: "Degenerates into a remnant low over inland Assam/Bangladesh hills due to topographical obstacles.",
         coneRadiusKm: 175,
         statusType: "dissipation",
@@ -644,7 +644,7 @@ export function getLifecycleStages(
         windSpeedKph: 45,
         pressureHpa: 1006,
         sstC: 31.2,
-        color: "#38bdf8",
+        color: "#8b5cf6",
         description: "Formed very close to equator in east Indian Ocean, slowly tracking northward into Bay of Bengal.",
         coneRadiusKm: 25,
         statusType: "genesis",
@@ -724,7 +724,7 @@ export function getLifecycleStages(
         windSpeedKph: 55,
         pressureHpa: 996,
         sstC: 0.0,
-        color: "#38bdf8",
+        color: "#8b5cf6",
         description: "Dissipated into deep depression over West Bengal / Bangladesh border.",
         coneRadiusKm: 180,
         statusType: "dissipation",
@@ -745,7 +745,7 @@ export function getLifecycleStages(
         windSpeedKph: 50,
         pressureHpa: 1004,
         sstC: 30.6,
-        color: "#38bdf8",
+        color: "#8b5cf6",
         description: "Formed over warm waters near Tenasserim / Andaman Sea with strong southwesterly monsoon surge.",
         coneRadiusKm: 25,
         statusType: "genesis",
@@ -809,7 +809,7 @@ export function getLifecycleStages(
         windSpeedKph: 45,
         pressureHpa: 1000,
         sstC: 0.0,
-        color: "#38bdf8",
+        color: "#8b5cf6",
         description: "Weakened into low pressure area over Chhattisgarh and eastern MP.",
         coneRadiusKm: 175,
         statusType: "dissipation",
@@ -834,7 +834,7 @@ export function getLifecycleStages(
       windSpeedKph: 50,
       pressureHpa: 1004,
       sstC: 31.2,
-      color: "#38bdf8",
+      color: "#8b5cf6",
       description: `Tropical depression initiated over warm waters of ${isArabianSea ? "the Arabian Sea" : "the Bay of Bengal"} (SST > 30°C).`,
       coneRadiusKm: 25,
       statusType: "genesis",
@@ -898,7 +898,7 @@ export function getLifecycleStages(
       windSpeedKph: 50,
       pressureHpa: 998,
       sstC: 0.0,
-      color: "#38bdf8",
+      color: "#8b5cf6",
       description: "Degenerates into a remnant low over higher inland terrain obstacles.",
       coneRadiusKm: 180,
       statusType: "dissipation",
@@ -1234,7 +1234,7 @@ export default function Globe3DView({
       } else if (r < 3.2) {
         c.set("#f59e0b"); // Storm force (48-63 kt)
       } else {
-        c.set("#38bdf8"); // Gale force (34-47 kt)
+        c.set("#8b5cf6"); // Gale force (34-47 kt)
       }
       windColors[i * 3] = c.r;
       windColors[i * 3 + 1] = c.g;
@@ -1676,7 +1676,7 @@ export default function Globe3DView({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 800, color: "#38bdf8", letterSpacing: "0.04em" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 800, color: "#8b5cf6", letterSpacing: "0.04em" }}>
             <span
               style={{
                 width: "9px",
@@ -1831,7 +1831,7 @@ export default function Globe3DView({
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "0.68rem", color: "#38bdf8", fontWeight: 700 }}>
+                <span style={{ fontSize: "0.68rem", color: "#8b5cf6", fontWeight: 700 }}>
                   🏷️ Notation Transparency:
                 </span>
                 <span style={{ fontSize: "0.68rem", color: "#ffffff", fontWeight: 800 }}>
@@ -1844,7 +1844,7 @@ export default function Globe3DView({
                 max="100"
                 value={notationOpacity}
                 onChange={(e) => setNotationOpacity(Number(e.target.value))}
-                style={{ width: "100%", accentColor: "#38bdf8", cursor: "pointer", height: "4px" }}
+                style={{ width: "100%", accentColor: "#8b5cf6", cursor: "pointer", height: "4px" }}
                 title="Slide left to make labels/notations more translucent"
               />
 
@@ -1984,7 +1984,7 @@ export default function Globe3DView({
               </button>
             </div>
           ) : (
-            <span style={{ fontSize: "0.72rem", color: "#38bdf8", fontWeight: 700 }}>Diagnostics Panel</span>
+            <span style={{ fontSize: "0.72rem", color: "#8b5cf6", fontWeight: 700 }}>Diagnostics Panel</span>
           )}
 
           <button
@@ -2003,7 +2003,7 @@ export default function Globe3DView({
             {/* TAB 1: ORIGIN & GENESIS THERMAL ENERGY */}
             {activeTab === "lifecycle" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-                <div style={{ color: "#38bdf8", fontWeight: 700, fontSize: "0.78rem" }}>
+                <div style={{ color: "#8b5cf6", fontWeight: 700, fontSize: "0.78rem" }}>
                   🌀 TROPICAL CYCLOGENESIS ORIGIN
                 </div>
                 <div style={{ fontSize: "0.73rem", color: "#cbd5e1", lineHeight: 1.35 }}>
@@ -2017,7 +2017,7 @@ export default function Globe3DView({
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "3px" }}>
                     <span style={{ color: "#94a3b8" }}>Genesis Coordinates:</span>
-                    <strong style={{ color: "#38bdf8" }}>{stages[0]?.lat.toFixed(1)}°N, {stages[0]?.lng.toFixed(1)}°E</strong>
+                    <strong style={{ color: "#8b5cf6" }}>{stages[0]?.lat.toFixed(1)}°N, {stages[0]?.lng.toFixed(1)}°E</strong>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "3px" }}>
                     <span style={{ color: "#94a3b8" }}>Ocean Heat Content (OHC):</span>
@@ -2032,7 +2032,7 @@ export default function Globe3DView({
                 <button
                   type="button"
                   className="dock-btn"
-                  style={{ fontSize: "0.70rem", padding: "5px", background: "rgba(56, 189, 248, 0.15)", borderColor: "#38bdf8", color: "#38bdf8" }}
+                  style={{ fontSize: "0.70rem", padding: "5px", background: "rgba(56, 189, 248, 0.15)", borderColor: "#8b5cf6", color: "#8b5cf6" }}
                   onClick={() => {
                     setCurrentStageIdx(0);
                     focusOnCoordinates(stages[0].lat, stages[0].lng, 185);
@@ -2070,9 +2070,9 @@ export default function Globe3DView({
                     <span style={{ fontSize: "0.66rem", color: "#94a3b8" }}>Radius: 85 km</span>
                   </div>
 
-                  <div style={{ background: "rgba(56, 189, 248, 0.12)", borderLeft: "3px solid #38bdf8", padding: "5px 7px", borderRadius: "4px" }}>
+                  <div style={{ background: "rgba(56, 189, 248, 0.12)", borderLeft: "3px solid #8b5cf6", padding: "5px 7px", borderRadius: "4px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <strong style={{ color: "#38bdf8" }}>R34 (Gale Force Outer Extent)</strong>
+                      <strong style={{ color: "#8b5cf6" }}>R34 (Gale Force Outer Extent)</strong>
                       <span>63 - 88 km/h</span>
                     </div>
                     <span style={{ fontSize: "0.66rem", color: "#94a3b8" }}>Radius: 180 km</span>
@@ -2096,7 +2096,7 @@ export default function Globe3DView({
             {/* TAB 3: CONE OF UNCERTAINTY */}
             {activeTab === "cone" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-                <div style={{ color: "#38bdf8", fontWeight: 700, fontSize: "0.78rem" }}>
+                <div style={{ color: "#8b5cf6", fontWeight: 700, fontSize: "0.78rem" }}>
                   🎯 FORECAST PATH & CONE OF UNCERTAINTY
                 </div>
                 <div style={{ fontSize: "0.73rem", color: "#cbd5e1", lineHeight: 1.35 }}>
@@ -2118,7 +2118,7 @@ export default function Globe3DView({
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <span style={{ color: "#94a3b8" }}>Steering Flow:</span>
-                    <strong style={{ color: "#38bdf8" }}>500 hPa Ridge Crest</strong>
+                    <strong style={{ color: "#8b5cf6" }}>500 hPa Ridge Crest</strong>
                   </div>
                 </div>
 
@@ -2149,7 +2149,7 @@ export default function Globe3DView({
                 <div style={{ background: "rgba(15, 23, 42, 0.65)", padding: "8px 10px", borderRadius: "8px", border: "1px solid rgba(245, 158, 11, 0.25)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "3px" }}>
                     <span style={{ color: "#94a3b8" }}>Ocean Roughness z₀:</span>
-                    <strong style={{ color: "#38bdf8" }}>0.0002 m</strong>
+                    <strong style={{ color: "#8b5cf6" }}>0.0002 m</strong>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "3px" }}>
                     <span style={{ color: "#94a3b8" }}>Terrestrial Roughness z₀:</span>
@@ -2338,7 +2338,7 @@ export default function Globe3DView({
         <button
           type="button"
           className="dock-btn"
-          style={{ fontSize: "0.72rem", padding: "5px 10px", borderColor: "#38bdf8", color: "#38bdf8" }}
+          style={{ fontSize: "0.72rem", padding: "5px 10px", borderColor: "#8b5cf6", color: "#8b5cf6" }}
           onClick={focusCurrentStage}
           title="Recenter Camera on Active Eye Position"
         >
