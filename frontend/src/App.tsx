@@ -423,13 +423,14 @@ export default function App() {
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
 
+  const [currentTimeUTC, setCurrentTimeUTC] = useState(() => {
+    return new Date().toISOString().slice(11, 19) + " UTC";
+  });
+
   const [currentTimeIST, setCurrentTimeIST] = useState(() => {
     return (
       new Date().toLocaleString("en-IN", {
         timeZone: "Asia/Kolkata",
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
@@ -440,12 +441,11 @@ export default function App() {
 
   useEffect(() => {
     const timer = setInterval(() => {
+      const now = new Date();
+      setCurrentTimeUTC(now.toISOString().slice(11, 19) + " UTC");
       setCurrentTimeIST(
-        new Date().toLocaleString("en-IN", {
+        now.toLocaleString("en-IN", {
           timeZone: "Asia/Kolkata",
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",
@@ -947,85 +947,106 @@ export default function App() {
         </div>
       </aside>
 
-      {/* Main Viewport & Global SaaS Header */}
+      {/* Main Viewport & Global Operational Header */}
       <div className="saas-main-viewport">
         <header className="saas-top-bar">
-          <div className="saas-breadcrumb">
-            <span className="saas-breadcrumb-item" onClick={() => navigateTo("landing")}>CYCLONEX</span>
-            <span className="saas-breadcrumb-separator">/</span>
-            <span className="saas-breadcrumb-active">
-              {currentView === "landing" ? "Overview" :
-               currentView === "app" ? "Tactical Hazard Map" :
-               currentView === "ai-lab" ? "AI Satellite Lab" :
-               currentView === "forecast" ? "Holland Wind Forecast" :
-               currentView === "evacuation" ? "Shelters & Evacuation" :
-               currentView === "analytics" ? "Historical Analytics" :
-               currentView === "data-sources" ? "Data Feeds & Telemetry" :
-               currentView === "docs" ? "Methodology & NDMA SOPs" :
-               currentView === "resilience" ? "Track-Based Infrastructure Vulnerability Forecaster (Challenge 05)" : "Port Warnings & Bulletins"}
+          <div className="geoint-header-left">
+            <div className="geoint-brand" onClick={() => navigateTo("app")}>
+              <span className="geoint-brand-title">CYCLONEX</span>
+              <span className="geoint-brand-sub">GEOINT C2</span>
+            </div>
+
+            <div className="geoint-nav-pills">
+              {APP_NAV_ITEMS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`geoint-nav-pill ${currentView === item.id ? "active" : ""}`}
+                  onClick={() => navigateTo(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Operational Context Chip in Center */}
+          <div className="geoint-active-storm-chip" title="Active Cyclone Scenario Context">
+            <span className="storm-status-badge">
+              <span className="status-dot" />
+              {stormCategory.tier}
+            </span>
+            <span className="storm-name-text">
+              {presets[selectedPreset]?.name.split("(")[0].trim() || form.name}
+            </span>
+            <span className="storm-coords-mono">
+              {form.lat}°N, {form.lon}°E &middot; {form.wind} km/h &middot; {form.pressure} hPa
             </span>
           </div>
 
-          {/* Search Box */}
-          <div className="saas-search-box">
-            <input
-              type="text"
-              className="saas-search-input"
-              placeholder="Search coastal targets..."
-              value={searchLocationQuery}
-              onChange={(e) => setSearchLocationQuery(e.target.value)}
-              onFocus={() => setIsSearchOpen(true)}
-            />
-            <span className="saas-search-kbd">⌘K</span>
-            {isSearchOpen && filteredLocations.length > 0 && (
-              <div className="saas-search-dropdown">
-                {filteredLocations.map((loc) => (
-                  <div
-                    key={loc.name}
-                    className="saas-search-item"
-                    onClick={() => {
-                      void handlePresetChange(loc.presetKey as keyof typeof presets);
-                      setSearchLocationQuery("");
-                      setIsSearchOpen(false);
-                      navigateTo("app");
-                    }}
-                  >
-                    <span>{loc.name}</span>
-                    <span className="badge">{loc.presetKey.toUpperCase()}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Right Controls: Search, Telemetry Feeds, Clocks, SITREP */}
+          <div className="geoint-header-right">
+            <div className="saas-search-box">
+              <Search size={12} className="search-icon" />
+              <input
+                type="text"
+                className="saas-search-input"
+                placeholder="Search coastal targets..."
+                value={searchLocationQuery}
+                onChange={(e) => setSearchLocationQuery(e.target.value)}
+                onFocus={() => setIsSearchOpen(true)}
+              />
+              <span className="saas-search-kbd">⌘K</span>
+              {isSearchOpen && filteredLocations.length > 0 && (
+                <div className="saas-search-dropdown">
+                  {filteredLocations.map((loc) => (
+                    <div
+                      key={loc.name}
+                      className="saas-search-item"
+                      onClick={() => {
+                        void handlePresetChange(loc.presetKey as keyof typeof presets);
+                        setSearchLocationQuery("");
+                        setIsSearchOpen(false);
+                        navigateTo("app");
+                      }}
+                    >
+                      <span>{loc.name}</span>
+                      <span className="search-loc-badge">{loc.presetKey.toUpperCase()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          {/* Header Meta */}
-          <div className="saas-header-meta">
-            {/* Minimalist Dark / Light Mode Switcher */}
+            <div className="geoint-stream-indicator" title="Active Sensor Telemetry: INSAT-3DR TIR-1 L1B (15-min)">
+              <span className="stream-dot" />
+              <span>INSAT-3DR</span>
+              <span className="stream-sub">L1B</span>
+            </div>
+
+            <div className="geoint-dual-clock" title="System Operational Clocks">
+              <span className="clock-utc">{currentTimeUTC}</span>
+              <span className="clock-divider">|</span>
+              <span className="clock-ist">{currentTimeIST}</span>
+            </div>
+
             <button
               type="button"
               className="saas-theme-toggle"
               onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
-              title={theme === "dark" ? "Switch to Minimal White Theme" : "Switch to Minimal Dark Theme"}
+              title={theme === "dark" ? "Light theme" : "Dark theme"}
             >
-              {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
-              <span>{theme === "dark" ? "Light" : "Dark"}</span>
+              {theme === "dark" ? <Sun size={12} /> : <Moon size={12} />}
             </button>
 
-            <div className="saas-time-pill" title="Live Indian Standard Time">
-              {currentTimeIST}
-            </div>
-            <div className="saas-status-pill" title="Active Sensor Feeds">
-              <span className="saas-status-dot" />
-              <span>INSAT-3D Online</span>
-            </div>
             <button
               type="button"
-              className="saas-action-btn primary"
+              className="geoint-btn-sitrep"
               onClick={() => window.print()}
               title="Export official Situation Report as PDF"
             >
-              <IconDownload />
-              <span>Export SITREP</span>
+              <FileText size={12} />
+              <span>SITREP</span>
             </button>
           </div>
         </header>
@@ -1166,8 +1187,8 @@ export default function App() {
                       <div className="tactical-panel-title-wrap">
                         <Sliders size={13} className="tactical-panel-icon" />
                         <div>
-                          <div className="tactical-panel-title">SIMULATION INPUTS</div>
-                          <div className="tactical-panel-sub">Cyclone Kinematics &amp; IMD Presets</div>
+                          <div className="tactical-panel-title">Hydrodynamic Forcing</div>
+                          <div className="tactical-panel-sub">IMD Presets &amp; Kinematic Inputs</div>
                         </div>
                       </div>
                       <button
@@ -1176,14 +1197,14 @@ export default function App() {
                         onClick={() => setIsLeftPanelOpen(false)}
                         title="Collapse Controls (Expand Map View)"
                       >
-                        <ChevronLeft size={15} />
+                        <ChevronLeft size={14} />
                       </button>
                     </div>
 
                     <div className="tactical-panel-body">
                       {/* Active Cyclone Selection */}
                       <div className="tactical-control-group">
-                        <label className="tactical-control-label">ACTIVE TROPICAL CYCLONE</label>
+                        <label className="tactical-control-label">Active Scenario Preset</label>
                         <select
                           className="tactical-select"
                           value={selectedPreset}
@@ -1199,10 +1220,10 @@ export default function App() {
 
                       {/* Meteorological Forcing Inputs */}
                       <div className="tactical-control-group">
-                        <label className="tactical-control-label">METEOROLOGICAL PARAMETERS</label>
+                        <label className="tactical-control-label">Kinematic Parameters</label>
                         <div className="tactical-input-grid">
                           <div className="tactical-input-box">
-                            <span className="tactical-box-label">PEAK WIND</span>
+                            <span className="tactical-box-label">Sustained Wind</span>
                             <div className="tactical-box-val-row">
                               <input
                                 type="number"
@@ -1215,7 +1236,7 @@ export default function App() {
                           </div>
 
                           <div className="tactical-input-box">
-                            <span className="tactical-box-label">CENTRAL PRES</span>
+                            <span className="tactical-box-label">Central Pressure</span>
                             <div className="tactical-box-val-row">
                               <input
                                 type="number"
@@ -1228,7 +1249,7 @@ export default function App() {
                           </div>
 
                           <div className="tactical-input-box">
-                            <span className="tactical-box-label">EYE LATITUDE</span>
+                            <span className="tactical-box-label">Center Latitude</span>
                             <div className="tactical-box-val-row">
                               <input
                                 type="number"
@@ -1242,7 +1263,7 @@ export default function App() {
                           </div>
 
                           <div className="tactical-input-box">
-                            <span className="tactical-box-label">EYE LONGITUDE</span>
+                            <span className="tactical-box-label">Center Longitude</span>
                             <div className="tactical-box-val-row">
                               <input
                                 type="number"
@@ -1256,7 +1277,7 @@ export default function App() {
                           </div>
 
                           <div className="tactical-input-box">
-                            <span className="tactical-box-label">HEADING</span>
+                            <span className="tactical-box-label">Forward Heading</span>
                             <div className="tactical-box-val-row">
                               <input
                                 type="number"
@@ -1264,12 +1285,12 @@ export default function App() {
                                 value={form.heading}
                                 onChange={(e) => setForm((p) => ({ ...p, heading: e.target.value }))}
                               />
-                              <span className="tactical-unit">°</span>
+                              <span className="tactical-unit">° Azimuth</span>
                             </div>
                           </div>
 
                           <div className="tactical-input-box">
-                            <span className="tactical-box-label">FWD SPEED</span>
+                            <span className="tactical-box-label">Translation Speed</span>
                             <div className="tactical-box-val-row">
                               <input
                                 type="number"
@@ -1301,36 +1322,21 @@ export default function App() {
                         >
                           {loading ? (
                             <>
-                              <RefreshCw className="spin" size={13} />
-                              <span>Simulating Hydrodynamics...</span>
+                              <RefreshCw className="spin" size={12} />
+                              <span>Solving Hydrodynamics...</span>
                             </>
                           ) : (
                             <>
-                              <Zap size={13} />
-                              <span>Update Hazard Screening</span>
+                              <Zap size={12} />
+                              <span>Run Hydrodynamic Solver</span>
                             </>
                           )}
-                        </button>
-
-                        <button
-                          type="button"
-                          className="tactical-recalc-btn"
-                          style={{
-                            marginTop: "8px",
-                            background: "linear-gradient(135deg, rgba(37, 99, 235, 0.3) 0%, rgba(124, 58, 237, 0.4) 100%)",
-                            border: "1px solid rgba(168, 85, 247, 0.4)",
-                            color: "#c084fc",
-                          }}
-                          onClick={() => navigateTo("resilience")}
-                        >
-                          <Sparkles size={13} />
-                          <span>Open Resilience Forecaster (Challenge 05)</span>
                         </button>
                       </div>
 
                       {/* Analytical Hazard Modes */}
                       <div className="tactical-control-group">
-                        <label className="tactical-control-label">ANALYTICAL HAZARD MODE</label>
+                        <label className="tactical-control-label">Analytical Layer Mode</label>
                         <div className="tactical-modes-grid">
                           {(["DAMAGE", "WIND", "EXPOSURE", "OBSTACLES", "HIT"] as MapAnalysisMode[]).map((mode) => (
                             <button
@@ -1339,7 +1345,10 @@ export default function App() {
                               className={`tactical-mode-btn ${analysisMode === mode ? "active" : ""}`}
                               onClick={() => setAnalysisMode(mode)}
                             >
-                              {mode}
+                              {mode === "DAMAGE" ? "Damage" :
+                               mode === "WIND" ? "Wind Field" :
+                               mode === "EXPOSURE" ? "Exposure" :
+                               mode === "OBSTACLES" ? "Obstacles" : "Hit Prob"}
                             </button>
                           ))}
                         </div>
@@ -1347,7 +1356,7 @@ export default function App() {
 
                       {/* Active Geospatial Layers */}
                       <div className="tactical-control-group">
-                        <label className="tactical-control-label">GEOSPATIAL LAYERS &amp; DEFENSES</label>
+                        <label className="tactical-control-label">Geospatial Overlay Layers</label>
                         <div className="tactical-layer-list">
                           <label className="tactical-layer-item">
                             <input
@@ -1355,7 +1364,7 @@ export default function App() {
                               checked={showShelters}
                               onChange={(e) => setShowShelters(e.target.checked)}
                             />
-                            <span>Cyclone Shelters (MPCS Network)</span>
+                            <span>Cyclone Shelters (42 MPCS Active)</span>
                           </label>
                           <label className="tactical-layer-item">
                             <input
@@ -1363,7 +1372,7 @@ export default function App() {
                               checked={showZones}
                               onChange={(e) => setShowZones(e.target.checked)}
                             />
-                            <span>Land-Use Zones (36 Ward Sectors)</span>
+                            <span>Land-Use Sectors (36 Coastal Wards)</span>
                           </label>
                           <label className="tactical-layer-item">
                             <input
@@ -1498,9 +1507,9 @@ export default function App() {
                       <div className="tactical-panel-title-wrap">
                         <Activity size={13} className="tactical-panel-icon" />
                         <div>
-                          <div className="tactical-panel-title">HAZARD SIMULATION DOSSIER</div>
+                          <div className="tactical-panel-title">Hazard Simulation Dossier</div>
                           <div className="tactical-panel-sub">
-                            Mode: <strong style={{ color: "#8b5cf6" }}>{analysisMode}</strong> &middot; Multi-Sensor Spatial Output
+                            Mode: <strong style={{ color: "var(--accent-primary)" }}>{analysisMode}</strong> &middot; Multi-Sensor Spatial Output
                           </div>
                         </div>
                       </div>
@@ -1510,7 +1519,7 @@ export default function App() {
                         onClick={() => setIsRightPanelOpen(false)}
                         title="Collapse Output Dossier"
                       >
-                        <ChevronRight size={15} />
+                        <ChevronRight size={14} />
                       </button>
                     </div>
 
