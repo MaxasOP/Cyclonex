@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CycloneX - Research and References (SIH Slide 6)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #0f172a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 20px;
+    }
+
+    /* 16:9 Presentation Canvas (1280x720 standard) */
+    .slide-canvas {
+      width: 1280px;
+      height: 720px;
+      background: #ffffff;
+      color: #0f172a;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+      border: 1px solid #cbd5e1;
+    }
+
+    /* Print styling to export exact 16:9 PDF */
+    @media print {
+      body {
+        padding: 0;
+        background: transparent;
+      }
+      .slide-canvas {
+        box-shadow: none;
+        border: none;
+        width: 100vw;
+        height: 100vh;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    /* Header */
+    .slide-header {
+      padding: 16px 28px 8px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+    }
+    .team-badge {
+      border: 2px solid #8b5cf6;
+      border-radius: 50%;
+      width: 96px;
+      height: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-weight: 700;
+      font-size: 11px;
+      color: #5b21b6;
+      line-height: 1.15;
+    }
+    .slide-title-area {
+      text-align: center;
+      flex-grow: 1;
+    }
+    .slide-title {
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      color: #000000;
+      font-family: 'Inter', serif;
+      text-transform: uppercase;
+    }
+    .sih-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sih-logo-svg {
+      width: 44px;
+      height: 44px;
+    }
+    .sih-text {
+      text-align: left;
+      font-weight: 900;
+      font-size: 13px;
+      line-height: 1.1;
+      color: #1e3a8a;
+      letter-spacing: 0.02em;
+    }
+
+    /* Main 3-Column Layout */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 310px 1.1fr 1.05fr;
+      gap: 18px;
+      padding: 6px 28px 10px 28px;
+      flex-grow: 1;
+    }
+
+    /* Column Headings */
+    .col-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: #000000;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+    .col-subhead {
+      font-size: 15px;
+      font-weight: 800;
+      color: #000000;
+      margin-top: 10px;
+      margin-bottom: 6px;
+    }
+
+    /* Column 1: Gap Analysis */
+    .col-gap {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .gap-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1.5px solid #0284c7;
+      border-radius: 6px;
+      overflow: hidden;
+      font-size: 10px;
+      margin-bottom: 10px;
+    }
+    .gap-table th {
+      padding: 6px 8px;
+      font-weight: 800;
+      font-size: 11px;
+      text-align: left;
+      background: #e0f2fe;
+      color: #0369a1;
+      border-bottom: 1.5px solid #0284c7;
+    }
+    .gap-table td {
+      padding: 5.5px 8px;
+      line-height: 1.25;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    .td-product {
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: 700;
+      width: 38%;
+      border-right: 1px solid #cbd5e1;
+    }
+    .td-gap {
+      background: #fffbeb;
+      color: #92400e;
+      width: 62%;
+    }
+    .gap-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* The Gap CycloneX Fills Box */
+    .gap-fill-box {
+      border: 2px solid #f59e0b;
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 8px 10px;
+      font-size: 9.5px;
+      line-height: 1.35;
+      color: #1e293b;
+    }
+    .gap-fill-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #d97706;
+      margin-bottom: 4px;
+    }
+
+    /* Column 2: Research Literature */
+    .col-literature {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding-right: 6px;
+    }
+    .lit-list {
+      font-size: 9.5px;
+      line-height: 1.35;
+      color: #1e293b;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .lit-item strong {
+      color: #000000;
+      font-weight: 800;
+    }
+    .lit-link {
+      color: #2563eb;
+      text-decoration: underline;
+      font-weight: 600;
+    }
+    .lit-desc {
+      color: #475569;
+      font-size: 8.5px;
+      display: block;
+      margin-top: 1px;
+    }
+
+    .citation-box {
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      color: #92400e;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 8.5px;
+      margin-top: 8px;
+    }
+    .citation-box a {
+      color: #1d4ed8;
+      text-decoration: underline;
+      font-weight: 700;
+    }
+
+    /* Column 3: Data Sources & Standards */
+    .col-sources {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-size: 9.5px;
+      line-height: 1.33;
+      color: #1e293b;
+    }
+    .source-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .source-item strong {
+      color: #000000;
+      font-weight: 800;
+    }
+    .source-link {
+      color: #2563eb;
+      text-decoration: underline;
+      word-break: break-all;
+      font-size: 8.5px;
+    }
+    .method-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .method-item strong {
+      color: #000000;
+      font-weight: 800;
+    }
+
+    /* Bottom Blue Banner */
+    .slide-footer-bar {
+      background: #0284c7;
+      color: #ffffff;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 6px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: auto;
+    }
+    .slide-num {
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    /* Print / Preview Controls */
+    .control-panel {
+      position: fixed;
+      bottom: 15px;
+      right: 15px;
+      display: flex;
+      gap: 10px;
+      z-index: 999;
+    }
+    .ctrl-btn {
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .ctrl-btn:hover {
+      background: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 16:9 Presentation Canvas -->
+  <div class="slide-canvas">
+    
+    <!-- Header -->
+    <div class="slide-header">
+      <div class="team-badge">
+        <span>Team</span>
+        <span style="font-size: 13px; color: #6d28d9;">CycloneX</span>
+      </div>
+
+      <div class="slide-title-area">
+        <h1 class="slide-title">RESEARCH AND REFERENCES</h1>
+      </div>
+
+      <div class="sih-badge">
+        <svg class="sih-logo-svg" viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="20" r="18" fill="#1e3a8a" />
+          <path d="M12 20L18 26L28 14" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="sih-text">
+          SMART INDIA<br>HACKATHON<br><span style="font-size: 10px; color: #f59e0b;">2026</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Area: 3 Columns -->
+    <div class="content-grid">
+      
+      <!-- Column 1: Gap Analysis -->
+      <div class="col-gap">
+        <div>
+          <h2 class="col-title">Gap Analysis</h2>
+          <table class="gap-table">
+            <thead>
+              <tr>
+                <th>Existing product</th>
+                <th>Gap</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="td-product">IMD / MOSDAC / WebGIS Portals</td>
+                <td class="td-gap">Coarse regional forecast cones and PDF bulletins; no localized 200m building risk grid or 3D digital twin.</td>
+              </tr>
+              <tr>
+                <td class="td-product">JTWC &amp; Global Track Hubs</td>
+                <td class="td-gap">Meteorological track &amp; wind radii only; no critical infrastructure exposure or highway passability simulation.</td>
+              </tr>
+              <tr>
+                <td class="td-product">NOAA SLOSH &amp; Global Flood Tools</td>
+                <td class="td-gap">Coarse coastal scale (~1-5 km); lacks astronomical tide coupling &amp; overland culvert drainage overtopping pathways.</td>
+              </tr>
+              <tr>
+                <td class="td-product">Standard Disaster Dashboards</td>
+                <td class="td-gap">Post-disaster reporting only; no anticipatory decision intelligence or automated multilingual advisory TTS broadcast.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="gap-fill-box">
+          <div class="gap-fill-title">The Gap CycloneX Fills</div>
+          Every listed tool does <strong>hazard visualization</strong> OR <strong>meteorological tracking</strong> OR <strong>post-event damage reporting</strong> — none of them connects the entire causal resilience pathway from <strong>storm telemetry ➔ GEE multi-sensor satellite layers ➔ physics surge &amp; runoff models ➔ 200m building risk grid ➔ Gemini 3.7 Flash decision intelligence</strong> with automated NDMA IAP generation and interactive virtual countermeasures inside a single install-free browser workspace.
+        </div>
+      </div>
+
+      <!-- Column 2: Research Literature -->
+      <div class="col-literature">
+        <div>
+          <h2 class="col-title">Research Literature</h2>
+          <div class="lit-list">
+            
+            <div class="lit-item">
+              <strong>1. Jelesnianski, C. P. et al. (1992).</strong> <a class="lit-link" href="https://repository.library.noaa.gov/view/noaa/7212" target="_blank">SLOSH: Sea, Lake, and Overland Surges from Hurricanes.</a> NOAA Technical Report NWS 48.
+              <span class="lit-desc">Foundation for physical inverted barometer and wind-stress surge modeling calibrated for shallow Bay of Bengal shelf ($S_{wind} = 0.00155 \cdot V^2$).</span>
+            </div>
+
+            <div class="lit-item">
+              <strong>2. Dvorak, V. F. (1984).</strong> <a class="lit-link" href="https://www.nodc.noaa.gov" target="_blank">Tropical Cyclone Intensity Analysis Using Satellite Data.</a> NOAA Technical Report NESDIS 11.
+              <span class="lit-desc">Benchmark meteorological standard for objective Dvorak pattern recognition, automated in CycloneX by our 4-channel PyTorch CNN classifier.</span>
+            </div>
+
+            <div class="lit-item">
+              <strong>3. Gorelick, N. et al. (2017).</strong> <a class="lit-link" href="https://doi.org/10.1016/j.rse.2017.06.031" target="_blank">Google Earth Engine: Planetary-scale geospatial analysis for everyone.</a> Remote Sensing of Environment, 202, 18–27.
+              <span class="lit-desc">Planetary computing framework powering our Sentinel-1 C-SAR flood mapping, SRTM 30m DEM, Dynamic World LULC, and VIIRS nightlights.</span>
+            </div>
+
+            <div class="lit-item">
+              <strong>4. Zheng, X. et al. (2020).</strong> <a class="lit-link" href="https://ieeexplore.ieee.org" target="_blank">Deep Learning for Tropical Cyclone Intensity Estimation.</a> IEEE TGRS, 58(8).
+              <span class="lit-desc">Architectural baseline for our multi-horizon PyTorch ConvNet / LSTM track and intensity regressor (+6h, +12h, +24h, +48h).</span>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="citation-box">
+          *Every fix and finding cited in this deck is verifiable in the public commit history — <a href="https://github.com/MaxasOP/Cyclonex" target="_blank">github.com/MaxasOP/Cyclonex</a>
+        </div>
+      </div>
+
+      <!-- Column 3: Data Sources & Standards -->
+      <div class="col-sources">
+        <div>
+          <h2 class="col-title">Data Sources</h2>
+          <div class="source-list">
+            <div class="source-item">
+              <strong>1. IMD RSMC New Delhi &amp; JTWC:</strong> <a class="source-link" href="https://rsmcnewdelhi.imd.gov.in" target="_blank">rsmcnewdelhi.imd.gov.in</a> — official tropical cyclone track bulletins, central pressure deficits, and sustained wind observations.
+            </div>
+            <div class="source-item">
+              <strong>2. Google Earth Engine (GEE):</strong> <a class="source-link" href="https://developers.google.com/earth-engine" target="_blank">developers.google.com/earth-engine</a> — Sentinel-1 SAR (<code>COPERNICUS/S1_GRD</code>), SRTM DEM (<code>USGS/SRTMGL1_003</code>), Dynamic World (<code>GOOGLE/DYNAMICWORLD/V1</code>), and VIIRS DNB.
+            </div>
+            <div class="source-item">
+              <strong>3. Open-Meteo &amp; ECMWF ERA5:</strong> <a class="source-link" href="https://open-meteo.com" target="_blank">open-meteo.com</a> — high-resolution atmospheric boundary data, convective rain rates (mm/h), and surface gusts.
+            </div>
+            <div class="source-item">
+              <strong>4. NDMA SACHET Portal:</strong> <a class="source-link" href="https://sachet.ndma.gov.in" target="_blank">sachet.ndma.gov.in</a> — ITU-T X.1303 CAP v1.2 early-warning alert standards &amp; MPCS shelter criteria.
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="col-subhead">Standards, Toolings &amp; Methods</h3>
+          <div class="method-list">
+            <div class="method-item">
+              <strong>1. IS 875 (Part 3) Indian Standard:</strong> Code of Practice for Design Loads (Wind Loads) on Buildings &amp; Structures — engineering basis for asset vulnerability thresholds.
+            </div>
+            <div class="method-item">
+              <strong>2. OASIS CAP v1.2 / ITU-T X.1303:</strong> Common Alerting Protocol XML schema implemented verbatim for NDMA SACHET broadcast interoperability.
+            </div>
+            <div class="method-item">
+              <strong>3. React 19 / TypeScript / Vite / MapLibre GL:</strong> <a class="source-link" href="https://maplibre.org" target="_blank">maplibre.org</a> — browser-native WebGL vector rendering with zero GIS server license cost.
+            </div>
+            <div class="method-item">
+              <strong>4. Three.js Engine:</strong> <a class="source-link" href="https://threejs.org" target="_blank">threejs.org</a> — WebGL 3D digital twin rendering engine with real parcel extrusions &amp; dynamic wind vectors.
+            </div>
+            <div class="method-item">
+              <strong>5. FastAPI / PyTorch / Pydantic V2:</strong> <a class="source-link" href="https://fastapi.tiangolo.com" target="_blank">fastapi.tiangolo.com</a>, <a class="source-link" href="https://pytorch.org" target="_blank">pytorch.org</a> — async science backend serving 4 PyTorch deep learning models on CPU (&lt;50ms).
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Footer Bar -->
+    <div class="slide-footer-bar">
+      <span>@SIH Idea submission - Team CycloneX</span>
+      <span class="slide-num">6</span>
+    </div>
+
+  </div>
+
+  <!-- Print / Save to PDF Control -->
+  <div class="control-panel no-print">
+    <button class="ctrl-btn" onclick="window.print()">🖨️ Print / Save as PDF Slide (Slide 6)</button>
+  </div>
+
+</body>
+</html>
