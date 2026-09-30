@@ -98,13 +98,28 @@ export default function ForecastPage({
       wind: mlResult?.forecast_24h?.max_wind_kph ?? Math.round(windKph * 0.92),
       pressure: mlResult?.forecast_24h?.central_pressure_hpa ?? Math.round(pressureHpa + 6),
       uncertaintyKm: 58.74,
-      stage: "Landfall Point · Alibag Coast",
+      stage: "Projected Landfall Sector",
       speed: speedKph,
       heading: headingDeg,
       x: 390,
       y: 110,
     },
   ];
+
+  // Derive active coastal sector label from storm coordinates
+  const getCoastalSector = (targetLat: number, targetLon: number) => {
+    if (targetLon > 80) {
+      if (targetLat >= 20) return "ODISHA / WB COAST";
+      if (targetLat >= 14) return "ANDHRA PRADESH COAST";
+      return "TAMIL NADU COAST";
+    } else {
+      if (targetLat >= 20.5) return "GUJARAT / SAURASHTRA";
+      if (targetLat >= 15) return "MAHARASHTRA / GOA";
+      return "KARNATAKA / KERALA";
+    }
+  };
+
+  const coastalSector = getCoastalSector(lat, lon);
 
   // Current active waypoint values
   const currentWp = waypoints.find(w => w.horizon === selectedHorizon) || waypoints[0];
@@ -242,15 +257,15 @@ export default function ForecastPage({
                 <rect width="500" height="400" fill="#040609" />
                 <rect width="500" height="400" fill="url(#navGrid)" />
 
-                {/* Coastline Polygon (Alibag / Maharashtra) */}
+                {/* Coastline Polygon */}
                 <path
                   d="M 370,0 Q 360,90 350,150 T 380,260 Q 400,320 440,400 L 500,400 L 500,0 Z"
                   fill="rgba(30, 41, 59, 0.35)"
                   stroke="rgba(148, 163, 184, 0.25)"
                   strokeWidth="1.5"
                 />
-                <text x="410" y="50" fill="#64748b" fontSize="10" fontFamily="'Space Mono', monospace">MAHARASHTRA</text>
-                <text x="395" y="100" fill="#f43f5e" fontSize="9" fontWeight="bold" fontFamily="'Space Mono', monospace">LANDFALL POINT</text>
+                <text x="390" y="50" fill="#64748b" fontSize="9" fontFamily="var(--font-mono)">{coastalSector}</text>
+                <text x="390" y="70" fill="#f43f5e" fontSize="9" fontWeight="bold" fontFamily="var(--font-mono)">PROJECTED LANDFALL</text>
 
                 {/* Uncertainty Cone Polygon */}
                 <polygon

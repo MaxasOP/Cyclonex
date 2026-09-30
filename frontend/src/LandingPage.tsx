@@ -135,7 +135,6 @@ export default function LandingPage({
           <div className="op-hero-grid">
             <div>
               <div className="op-section-kicker">
-                <span className="saas-status-dot" style={{ display: "inline-block", marginRight: "8px" }} />
                 OPERATIONAL ARCHITECTURE · BUILD v3.4-NIO
               </div>
 
@@ -224,107 +223,106 @@ export default function LandingPage({
               </div>
             </div>
 
-            {/* Tactical Canvas Simulation Preview Frame */}
+            {/* Operational Scenario Ingestion & Target Console */}
             <div className="op-tactical-preview-frame">
               <div className="op-preview-topbar">
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981" }} />
-                  <span style={{ color: "#f1f5f9", fontWeight: 700 }}>TACTICAL RADAR / WIND ENGINE</span>
+                  <Compass size={14} style={{ color: "var(--accent-cyan)" }} />
+                  <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>Active Meteorological Presets &middot; IMD Best-Track Ingest</span>
                 </div>
-                <div>18.35°N · 72.98°E</div>
-              </div>
-
-              <div className="op-preview-hud">
-                <div style={{ color: "#8b5cf6", fontWeight: 800 }}>TARGET: NISARGA (VSCS · T4.5)</div>
-                <div style={{ color: "#94a3b8", fontSize: "10.5px", marginTop: "2px" }}>
-                  Vmax: <strong style={{ color: "#ffffff" }}>120 km/h</strong> · Pc: <strong style={{ color: "#ffffff" }}>984 hPa</strong>
-                </div>
-                <div style={{ color: "#64748b", fontSize: "10px", marginTop: "2px" }}>
-                  RMW: 28 km · Holland B: 1.25 · Grid: 200m
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "10.5px", color: "var(--text-muted)" }}>
+                  NIO Basin (04°N–25°N, 60°E–95°E)
                 </div>
               </div>
 
-              {/* Realistic SVG Radar & Wind Field Visualization */}
-              <div style={{ width: "100%", height: "320px", background: "#06090e", position: "relative" }}>
-                <svg width="100%" height="100%" viewBox="0 0 500 320" style={{ display: "block" }}>
-                  <defs>
-                    <radialGradient id="stormGrad" cx="55%" cy="48%" r="45%">
-                      <stop offset="0%" stopColor="#ef4444" stopOpacity="0.45" />
-                      <stop offset="25%" stopColor="#f59e0b" stopOpacity="0.30" />
-                      <stop offset="55%" stopColor="#8b5cf6" stopOpacity="0.15" />
-                      <stop offset="90%" stopColor="#0f172a" stopOpacity="0" />
-                    </radialGradient>
-                    <pattern id="tacticalGrid" width="25" height="25" patternUnits="userSpaceOnUse">
-                      <path d="M 25 0 L 0 0 0 25" fill="none" stroke="rgba(255, 255, 255, 0.04)" strokeWidth="1" />
-                    </pattern>
-                  </defs>
+              <div style={{ padding: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                  <div className="tactical-input-box">
+                    <span className="tactical-box-label">Atmospheric Ingestion</span>
+                    <strong style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--text-primary)" }}>INSAT-3DR TIR-1 (10.8µm)</strong>
+                  </div>
+                  <div className="tactical-input-box">
+                    <span className="tactical-box-label">Spatial Risk Grid</span>
+                    <strong style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--text-primary)" }}>200m Uniform Cartesian Mesh</strong>
+                  </div>
+                </div>
 
-                  {/* Grid Background */}
-                  <rect width="500" height="320" fill="url(#tacticalGrid)" />
+                <div style={{ fontSize: "10.5px", fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.02em", marginTop: "2px" }}>
+                  SELECT HISTORICAL BENCHMARK OR ACTIVE SCENARIO:
+                </div>
 
-                  {/* Stylized Coastline (Alibag / Mumbai Coast) */}
-                  <path
-                    d="M 380,0 Q 360,80 340,140 T 360,240 Q 380,280 410,320 L 500,320 L 500,0 Z"
-                    fill="rgba(30, 41, 59, 0.35)"
-                    stroke="rgba(148, 163, 184, 0.3)"
-                    strokeWidth="1.5"
-                    strokeDasharray="4 2"
-                  />
-                  <text x="430" y="40" fill="#64748b" fontSize="10" fontFamily="'Space Mono', monospace">MAHARASHTRA</text>
-                  <text x="390" y="160" fill="#8b5cf6" fontSize="10" fontFamily="'Space Mono', monospace">ALIBAG (LANDFALL)</text>
+                <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                  {[
+                    { id: "nisarga", name: "Cyclone Nisarga", cat: "VSCS", coords: "18.35°N, 72.98°E", wind: "120 km/h", pres: "984 hPa", land: "Raigad / Alibaug Coast" },
+                    { id: "biparjoy", name: "Cyclone Biparjoy", cat: "ESCS", coords: "23.20°N, 68.60°E", wind: "140 km/h", pres: "965 hPa", land: "Kutch / Jakhau Port" },
+                    { id: "amphan", name: "Cyclone Amphan", cat: "Super CS", coords: "21.62°N, 87.51°E", wind: "165 km/h", pres: "950 hPa", land: "Digha / WB Coast" },
+                    { id: "fani", name: "Cyclone Fani", cat: "Extremely Severe", coords: "19.81°N, 85.83°E", wind: "175 km/h", pres: "937 hPa", land: "Puri / Odisha Coast" },
+                    { id: "dana", name: "Cyclone Dana", cat: "Severe CS", coords: "20.85°N, 86.95°E", wind: "120 km/h", pres: "980 hPa", land: "Dhamra Port / Odisha" },
+                  ].map((storm) => (
+                    <div
+                      key={storm.id}
+                      onClick={() => onLaunchConsole(storm.id)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "7px 10px",
+                        background: "var(--bg-input)",
+                        border: "1px solid var(--border-subtle)",
+                        borderRadius: "var(--radius-sm)",
+                        cursor: "pointer",
+                        transition: "all 0.12s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "var(--border-focus)";
+                        e.currentTarget.style.background = "var(--bg-surface-hover)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "var(--border-subtle)";
+                        e.currentTarget.style.background = "var(--bg-input)";
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "9px",
+                          fontWeight: 700,
+                          padding: "1px 5px",
+                          borderRadius: "2px",
+                          background: storm.cat.includes("Super") || storm.cat.includes("Extremely") ? "rgba(239, 68, 68, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                          color: storm.cat.includes("Super") || storm.cat.includes("Extremely") ? "var(--status-red)" : "var(--status-amber)",
+                        }}>
+                          {storm.cat}
+                        </span>
+                        <span style={{ fontSize: "11.5px", fontWeight: 600, color: "var(--text-primary)" }}>
+                          {storm.name}
+                        </span>
+                        <span style={{ fontSize: "10.5px", color: "var(--text-muted)" }}>
+                          ({storm.land})
+                        </span>
+                      </div>
 
-                  {/* Storm Eye Intensity Thermal Mask */}
-                  <circle cx="260" cy="155" r="140" fill="url(#stormGrad)" />
-
-                  {/* Concentric Holland Pressure Isobars */}
-                  <circle cx="260" cy="155" r="28" fill="none" stroke="#ef4444" strokeWidth="1.8" strokeDasharray="2 2" />
-                  <circle cx="260" cy="155" r="60" fill="none" stroke="#f59e0b" strokeWidth="1.2" />
-                  <circle cx="260" cy="155" r="100" fill="none" stroke="#8b5cf6" strokeWidth="1" opacity="0.7" />
-                  <circle cx="260" cy="155" r="150" fill="none" stroke="#64748b" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.5" />
-
-                  {/* Isobar Labels */}
-                  <text x="292" y="152" fill="#ef4444" fontSize="9" fontFamily="'Space Mono', monospace">984 hPa (Rmax 28km)</text>
-                  <text x="325" y="152" fill="#f59e0b" fontSize="9" fontFamily="'Space Mono', monospace">992 hPa</text>
-                  <text x="365" y="152" fill="#8b5cf6" fontSize="9" fontFamily="'Space Mono', monospace">1000 hPa</text>
-
-                  {/* Spiral Inflow Wind Streamlines */}
-                  <path d="M 120,70 Q 200,90 250,140" fill="none" stroke="#8b5cf6" strokeWidth="1.5" opacity="0.8" />
-                  <path d="M 380,80 Q 320,110 270,145" fill="none" stroke="#8b5cf6" strokeWidth="1.5" opacity="0.8" />
-                  <path d="M 340,240 Q 280,210 265,170" fill="none" stroke="#ef4444" strokeWidth="1.8" opacity="0.8" />
-                  <path d="M 140,230 Q 190,200 245,165" fill="none" stroke="#f59e0b" strokeWidth="1.5" opacity="0.8" />
-
-                  {/* Eye Center Crosshair */}
-                  <line x1="250" y1="155" x2="270" y2="155" stroke="#ffffff" strokeWidth="1.5" />
-                  <line x1="260" y1="145" x2="260" y2="165" stroke="#ffffff" strokeWidth="1.5" />
-                  <circle cx="260" cy="155" r="3" fill="#ffffff" />
-
-                  {/* 200m Building Risk Mesh along coastal sector */}
-                  <g opacity="0.75">
-                    <rect x="370" y="140" width="8" height="8" fill="#ef4444" stroke="#000" strokeWidth="0.5" />
-                    <rect x="382" y="138" width="8" height="8" fill="#ef4444" stroke="#000" strokeWidth="0.5" />
-                    <rect x="375" y="152" width="8" height="8" fill="#f59e0b" stroke="#000" strokeWidth="0.5" />
-                    <rect x="390" y="150" width="8" height="8" fill="#f59e0b" stroke="#000" strokeWidth="0.5" />
-                    <rect x="372" y="165" width="8" height="8" fill="#f59e0b" stroke="#000" strokeWidth="0.5" />
-                    <rect x="388" y="168" width="8" height="8" fill="#8b5cf6" stroke="#000" strokeWidth="0.5" />
-                    <rect x="405" y="145" width="8" height="8" fill="#8b5cf6" stroke="#000" strokeWidth="0.5" />
-                    <rect x="402" y="160" width="8" height="8" fill="#10b981" stroke="#000" strokeWidth="0.5" />
-                  </g>
-
-                  {/* Projected Landfall Vector */}
-                  <line x1="260" y1="155" x2="360" y2="175" stroke="#f43f5e" strokeWidth="2" strokeDasharray="4 2" />
-                  <circle cx="360" cy="175" r="4" fill="#f43f5e" />
-                  <text x="370" y="188" fill="#f43f5e" fontSize="9" fontWeight="bold" fontFamily="'Space Mono', monospace">LANDFALL POINT T-0H</text>
-                </svg>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", fontFamily: "var(--font-mono)", fontSize: "10.5px" }}>
+                        <span style={{ color: "var(--text-secondary)" }}>{storm.coords}</span>
+                        <span style={{ color: "var(--accent-cyan)", fontWeight: 600 }}>{storm.wind}</span>
+                        <span style={{ color: "var(--text-dim)", fontSize: "9.5px" }}>&rarr; Launch</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
                 <div style={{
-                  position: "absolute",
-                  bottom: "8px",
-                  right: "12px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingTop: "6px",
+                  borderTop: "1px solid var(--border-subtle)",
                   fontSize: "10px",
-                  fontFamily: "'Space Mono', monospace",
-                  color: "#64748b"
+                  fontFamily: "var(--font-mono)",
+                  color: "var(--text-muted)",
                 }}>
-                  HOLLAND 1980 RADIAL INTEGRATOR · PEAK PRESSURE: 1.82 kPa
+                  <span>Wind Code: IS 875 (Part 3)</span>
+                  <span>Hydrodynamic Solver: Modified Rankine + Holland 1980</span>
                 </div>
               </div>
             </div>

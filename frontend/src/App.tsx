@@ -1014,10 +1014,6 @@ export default function App() {
             <div className="saas-time-pill" title="Live Indian Standard Time">
               {currentTimeIST}
             </div>
-            <div className="saas-status-pill" title="Active Sensor Feeds">
-              <span className="saas-status-dot" />
-              <span>INSAT-3D Online</span>
-            </div>
             <button
               type="button"
               className="saas-action-btn primary"

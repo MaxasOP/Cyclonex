@@ -645,8 +645,6 @@ html, body, #root {
   height: 6px;
   border-radius: 50%;
   background-color: #10b981;
-  box-shadow: 0 0 8px #10b981;
-  animation: pulseLight 2s infinite ease-in-out;
 }
 
 .btn-header-action {
@@ -1535,8 +1533,6 @@ html, body, #root {
   height: 5px;
   border-radius: 50%;
   background: #f43f5e;
-  box-shadow: 0 0 6px #f43f5e;
-  animation: pulseLight 1.5s infinite ease-in-out;
 }
 
 /* Bottom Operational Intelligence Status Bar */
@@ -2134,8 +2130,6 @@ html, body, #root {
   height: 6px;
   border-radius: 50%;
   background-color: #10b981;
-  box-shadow: 0 0 8px #10b981;
-  animation: pulseLight 1.8s infinite ease-in-out;
 }
 
 .hero-title {
@@ -2253,12 +2247,10 @@ html, body, #root {
 }
 
 .showcase-beacon {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: #10b981;
-  box-shadow: 0 0 8px #10b981;
-  animation: pulseLight 2s infinite ease-in-out;
 }
 
 .showcase-title {
@@ -3242,7 +3234,6 @@ html, body, #root {
   height: 6px;
   border-radius: 50%;
   background: #10b981;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
 }
 
 .saas-action-btn {
@@ -4144,12 +4135,10 @@ html, body, #root {
 }
 
 .live-status-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: #10b981;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.7);
-  animation: pulse-dot 2s infinite ease-in-out;
 }
 
 .live-status-title {
