@@ -365,10 +365,10 @@ function getAccuracyInfo(scorePercent: number) {
 export default function App() {
   const [currentView, setCurrentView] = useState<AppPage>(() => getPageFromHash());
 
-  // Minimalist Theme Switcher State (Dark / Light)
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
+  // Primary Theme State (Default: light)
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
     const saved = localStorage.getItem("cyclonex_theme");
-    return (saved === "light" || saved === "dark") ? saved : "dark";
+    return saved === "dark" ? "dark" : "light";
   });
 
   useEffect(() => {
@@ -383,7 +383,7 @@ export default function App() {
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
-  
+
   // 10 Geospatial Command Workspaces
   const [activeSection, setActiveSection] = useState<ActiveSection>("command");
   const [isCyclonePanelOpen, setIsCyclonePanelOpen] = useState(false);

@@ -1,57 +1,57 @@
 /* ==========================================================================
    CYCLONEX — NATIONAL DISASTER OPERATIONS PLATFORM
-   Minimalist, Elegant & High-Performance Mission Control Design System
+   High-Contrast Operational Light Design System (Primary Default)
    ========================================================================== */
 
 :root {
-  /* Core Deep Violet & Indigo Color Tokens */
-  --bg-app: #0c0a1a;
-  --bg-header: rgba(14, 11, 30, 0.88);
-  --bg-sidebar: rgba(13, 10, 26, 0.94);
-  --bg-surface: rgba(20, 16, 38, 0.72);
-  --bg-surface-elevated: rgba(30, 24, 56, 0.88);
-  --bg-surface-hover: rgba(42, 34, 72, 0.92);
-  --bg-input: rgba(16, 12, 32, 0.88);
-  --bg-modal: rgba(18, 14, 34, 0.96);
+  /* Core High-Contrast Light Theme Tokens (Primary Default) */
+  --bg-app: #f8fafc;
+  --bg-header: rgba(255, 255, 255, 0.96);
+  --bg-sidebar: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #f1f5f9;
+  --bg-surface-hover: #e2e8f0;
+  --bg-input: #ffffff;
+  --bg-modal: #ffffff;
 
-  /* Hairline & Glassmorphism Borders */
-  --border-subtle: rgba(139, 92, 246, 0.10);
-  --border-medium: rgba(139, 92, 246, 0.18);
-  --border-accent: rgba(124, 58, 237, 0.50);
-  --border-focus: rgba(124, 58, 237, 0.70);
-  --border-hairline: rgba(139, 92, 246, 0.06);
+  /* Crisp Hairline Borders */
+  --border-subtle: #e2e8f0;
+  --border-medium: #cbd5e1;
+  --border-accent: #6366f1;
+  --border-focus: #4f46e5;
+  --border-hairline: #f1f5f9;
 
-  /* Clean Typography Colors */
-  --text-primary: #f5f3ff;
-  --text-secondary: #c4b5fd;
-  --text-muted: #8b7fba;
-  --text-dim: #5b5280;
+  /* High Contrast Typography Colors for Light Backgrounds */
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
 
-  /* Primary State Accent (Deep Violet & Electric Indigo) */
-  --accent-cyan: #8b5cf6;
-  --accent-blue: #7c3aed;
-  --accent-blue-dark: #6d28d9;
-  --accent-cyan-subtle: rgba(139, 92, 246, 0.12);
-  --accent-glow: 0 0 24px rgba(124, 58, 237, 0.22);
+  /* Functional Indigo / Cobalt Accent */
+  --accent-cyan: #4f46e5;
+  --accent-blue: #4338ca;
+  --accent-blue-dark: #3730a3;
+  --accent-cyan-subtle: rgba(79, 70, 229, 0.08);
+  --accent-glow: none;
 
   /* Refined Operational Warning & Hazard Colors */
-  --status-green: #34d399;
-  --status-green-bg: rgba(52, 211, 153, 0.14);
-  --status-amber: #fbbf24;
-  --status-amber-bg: rgba(251, 191, 36, 0.14);
-  --status-orange: #f97316;
-  --status-orange-bg: rgba(249, 115, 22, 0.14);
-  --status-red: #fb7185;
-  --status-red-bg: rgba(251, 113, 133, 0.14);
+  --status-green: #059669;
+  --status-green-bg: #ecfdf5;
+  --status-amber: #d97706;
+  --status-amber-bg: #fffbeb;
+  --status-orange: #ea580c;
+  --status-orange-bg: #fff7ed;
+  --status-red: #dc2626;
+  --status-red-bg: #fef2f2;
 
   /* Damage Grade Colors */
-  --damage-severe: #fb7185;
-  --damage-moderate: #fbbf24;
-  --damage-safe: #34d399;
-  --damage-nodamage: #8b5cf6;
+  --damage-severe: #dc2626;
+  --damage-moderate: #d97706;
+  --damage-safe: #059669;
+  --damage-nodamage: #4f46e5;
 
   /* Typography & Font Stacks */
-  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Space Mono', 'SF Mono', 'Fira Code', Consolas, monospace;
   --font-numeric: 'JetBrains Mono', 'SF Mono', 'Roboto Mono', monospace;
 
@@ -105,57 +105,50 @@ input[type="number"] {
   letter-spacing: -0.01em;
 }
 
-
 /* ==========================================================================
-   MINIMALIST WHITE / LIGHT THEME SYSTEM
+   SECONDARY DARK THEME SYSTEM
    ========================================================================== */
-:root[data-theme="light"],
-.theme-light {
-  /* Core Minimalist Light / Lavender-White Color Tokens */
-  --bg-app: #faf8ff;
-  --bg-header: rgba(255, 255, 255, 0.96);
-  --bg-sidebar: #ffffff;
-  --bg-surface: #ffffff;
-  --bg-surface-elevated: #f3f0ff;
-  --bg-surface-hover: #ede9fe;
-  --bg-input: #ffffff;
-  --bg-modal: #ffffff;
+:root[data-theme="dark"],
+.theme-dark {
+  --bg-app: #080c14;
+  --bg-header: rgba(11, 16, 27, 0.96);
+  --bg-sidebar: #0b101b;
+  --bg-surface: #0e1625;
+  --bg-surface-elevated: #131d31;
+  --bg-surface-hover: #1e293b;
+  --bg-input: #0b101b;
+  --bg-modal: #0e1625;
 
-  /* Hairlines & Borders */
-  --border-subtle: rgba(124, 58, 237, 0.10);
-  --border-medium: rgba(124, 58, 237, 0.18);
-  --border-accent: rgba(124, 58, 237, 0.45);
-  --border-focus: rgba(124, 58, 237, 0.70);
-  --border-hairline: rgba(124, 58, 237, 0.06);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.16);
+  --border-accent: rgba(99, 102, 241, 0.45);
+  --border-focus: rgba(99, 102, 241, 0.70);
+  --border-hairline: rgba(255, 255, 255, 0.04);
 
-  /* Clean Dark Typography on Light Background */
-  --text-primary: #1e1033;
-  --text-secondary: #3b2d5e;
-  --text-muted: #6b5b8a;
-  --text-dim: #a099b8;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
 
-  /* Primary State Accent */
-  --accent-cyan: #7c3aed;
-  --accent-blue: #6d28d9;
-  --accent-blue-dark: #5b21b6;
-  --accent-cyan-subtle: rgba(124, 58, 237, 0.08);
-  --accent-glow: 0 0 18px rgba(124, 58, 237, 0.14);
+  --accent-cyan: #6366f1;
+  --accent-blue: #4f46e5;
+  --accent-blue-dark: #4338ca;
+  --accent-cyan-subtle: rgba(99, 102, 241, 0.12);
+  --accent-glow: none;
 
-  /* Refined Operational Warning & Hazard Colors */
-  --status-green: #059669;
-  --status-green-bg: rgba(5, 150, 105, 0.1);
-  --status-amber: #d97706;
-  --status-amber-bg: rgba(217, 119, 6, 0.1);
-  --status-orange: #ea580c;
-  --status-orange-bg: rgba(234, 88, 12, 0.1);
-  --status-red: #dc2626;
-  --status-red-bg: rgba(220, 38, 38, 0.1);
+  --status-green: #10b981;
+  --status-green-bg: rgba(16, 185, 129, 0.12);
+  --status-amber: #f59e0b;
+  --status-amber-bg: rgba(245, 158, 11, 0.12);
+  --status-orange: #f97316;
+  --status-orange-bg: rgba(249, 115, 22, 0.12);
+  --status-red: #ef4444;
+  --status-red-bg: rgba(239, 68, 68, 0.12);
 
-  /* Damage Grade Colors */
-  --damage-severe: #dc2626;
-  --damage-moderate: #d97706;
-  --damage-safe: #059669;
-  --damage-nodamage: #7c3aed;
+  --damage-severe: #ef4444;
+  --damage-moderate: #f59e0b;
+  --damage-safe: #10b981;
+  --damage-nodamage: #6366f1;
 }
 
 
@@ -530,66 +523,62 @@ html, body, #root {
 .platform-name {
   font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  color: #ffffff;
-  background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
 }
 
 .gov-tag {
-  font-size: 9px;
+  font-size: 9.5px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  background: rgba(255, 255, 255, 0.04);
-  color: #94a3b8;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-surface-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
   padding: 3px 8px;
-  border-radius: 9999px;
+  border-radius: 4px;
   white-space: nowrap;
 }
 
-/* Primary Navigation Dock (Segmented Capsule) */
+/* Primary Navigation Dock */
 .primary-nav-bar {
   display: flex;
   align-items: center;
-  gap: 2px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  gap: 3px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
   padding: 3px;
-  border-radius: 9999px;
+  border-radius: 6px;
   flex-shrink: 0;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .primary-nav-item {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 13px;
-  border-radius: 9999px;
+  padding: 5px 12px;
+  border-radius: 4px;
   font-size: 11.5px;
   font-weight: 500;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: all 0.2s var(--ease-out-expo);
+  transition: all 0.15s ease;
   white-space: nowrap;
 }
 
 .primary-nav-item:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
 }
 
 .primary-nav-item.active {
   color: #ffffff;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  background: var(--accent-cyan);
+  border: none;
+  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.25);
 }
 
 .primary-nav-item svg {
@@ -600,14 +589,14 @@ html, body, #root {
 
 .primary-nav-item.active svg {
   opacity: 1;
-  color: var(--accent-cyan);
+  color: #ffffff;
 }
 
 /* Header Status & Telemetry Strip */
 .header-meta-strip {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -618,11 +607,11 @@ html, body, #root {
   font-family: var(--font-mono);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  color: #94a3b8;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: 4px;
   white-space: nowrap;
 }
 
@@ -632,11 +621,11 @@ html, body, #root {
   gap: 7px;
   font-size: 10.5px;
   font-weight: 600;
-  color: #6ee7b7;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: var(--status-green);
+  background: var(--status-green-bg);
+  border: 1px solid rgba(5, 150, 105, 0.25);
   padding: 3px 9px;
-  border-radius: 9999px;
+  border-radius: 4px;
   white-space: nowrap;
 }
 
@@ -1194,7 +1183,7 @@ html, body, #root {
   height: 100%;
   position: relative;
   overflow: hidden;
-  background: #04060a;
+  background: var(--bg-app);
 }
 
 /* Floating Expand Sidebar Button */
@@ -1203,28 +1192,28 @@ html, body, #root {
   top: 12px;
   left: 12px;
   z-index: 999;
-  background: rgba(14, 17, 25, 0.85);
+  background: var(--bg-surface);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: 11px;
   padding: 6px 9px;
   cursor: pointer;
   display: flex;
   align-items: center;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .btn-expand-sidebar-floating:hover {
-  background: rgba(22, 27, 40, 0.95);
-  color: #ffffff;
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
   border-color: var(--border-medium);
   transform: translateX(2px);
 }
 
-/* Floating Map Command Ribbon (Refined Glass Capsule) */
+/* Floating Map Command Ribbon */
 .map-command-ribbon {
   position: absolute;
   top: 12px;
@@ -1234,21 +1223,21 @@ html, body, #root {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(12, 14, 22, 0.82);
+  background: var(--bg-surface);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 9999px;
-  padding: 3px 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 4px 8px;
   max-width: calc(100% - 24px);
   overflow-x: auto;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .ribbon-engine-switcher {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
 }
 
 .engine-pill {
@@ -1256,33 +1245,33 @@ html, body, #root {
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
-  border-radius: 9999px;
-  font-size: 10.5px;
+  border-radius: 4px;
+  font-size: 11px;
   font-weight: 600;
   border: none;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s var(--ease-out-expo);
+  transition: all 0.15s ease;
   white-space: nowrap;
 }
 
 .engine-pill:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
 }
 
 .engine-pill.active {
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: var(--accent-cyan);
+  border: none;
   color: #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 4px rgba(79, 70, 229, 0.25);
 }
 
 .ribbon-divider {
   width: 1px;
   height: 16px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--border-subtle);
   flex-shrink: 0;
 }
 
@@ -1294,20 +1283,27 @@ html, body, #root {
 
 .ribbon-pill {
   padding: 3px 8px;
-  border-radius: 9999px;
-  font-size: 9.5px;
+  border-radius: 4px;
+  font-size: 10px;
   font-weight: 600;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-muted);
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
 }
 
 .ribbon-pill:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
+}
+
+.ribbon-pill.active {
+  background: var(--bg-surface-elevated);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
 .ribbon-pill.active {
@@ -1372,13 +1368,13 @@ html, body, #root {
   display: flex;
   align-items: center;
   gap: 5px;
-  background: rgba(12, 14, 22, 0.82);
+  background: var(--bg-surface);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 9999px;
-  padding: 3px 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 4px 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .dock-group {
@@ -1392,31 +1388,31 @@ html, body, #root {
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  border-radius: 9999px;
-  font-size: 10px;
+  border-radius: 4px;
+  font-size: 10.5px;
   font-weight: 600;
   border: none;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   white-space: nowrap;
 }
 
 .dock-btn:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
 }
 
 .dock-btn.active {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--accent-cyan);
   color: #ffffff;
 }
 
 .dock-divider {
   width: 1px;
   height: 14px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--border-subtle);
   margin: 0 2px;
 }
 
@@ -1442,7 +1438,7 @@ html, body, #root {
   cursor: pointer;
 }
 
-/* Floating Trajectory Timeline Scrubber (Bottom Center Media Player) */
+/* Floating Trajectory Timeline Scrubber */
 .map-timeline-player {
   position: absolute;
   bottom: 56px;
@@ -1452,20 +1448,20 @@ html, body, #root {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(12, 14, 22, 0.85);
+  background: var(--bg-surface);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   padding: 4px 10px;
-  border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .timeline-play-btn {
   background: var(--accent-cyan);
-  color: #040812;
+  color: #ffffff;
   border: 0;
-  border-radius: 9999px;
+  border-radius: 4px;
   padding: 4px 11px;
   font-size: 10.5px;
   font-weight: 700;
@@ -1474,13 +1470,12 @@ html, body, #root {
   align-items: center;
   gap: 5px;
   white-space: nowrap;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.35);
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 4px rgba(79, 70, 229, 0.25);
 }
 
 .timeline-play-btn:hover {
-  background: #7dd3fc;
-  transform: scale(1.02);
+  background: var(--accent-blue);
 }
 
 .timeline-steps {
@@ -1490,9 +1485,9 @@ html, body, #root {
 
 .timeline-step-btn {
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   border: 1px solid var(--border-subtle);
-  border-radius: 9999px;
+  border-radius: 4px;
   padding: 3px 8px;
   font-size: 10px;
   font-weight: 600;
@@ -1502,15 +1497,15 @@ html, body, #root {
 }
 
 .timeline-step-btn:hover {
-  color: #ffffff;
+  color: var(--text-primary);
   border-color: var(--border-medium);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-surface-hover);
 }
 
 .timeline-step-btn.active {
-  background: rgba(56, 189, 248, 0.2);
+  background: var(--accent-cyan);
   border-color: var(--accent-cyan);
-  color: var(--accent-cyan);
+  color: #ffffff;
   font-weight: 700;
 }
 
@@ -1521,9 +1516,9 @@ html, body, #root {
   font-size: 10px;
   font-weight: 600;
   color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-surface-elevated);
   padding: 3px 8px;
-  border-radius: 9999px;
+  border-radius: 4px;
   border: 1px solid var(--border-subtle);
   white-space: nowrap;
 }
@@ -1648,12 +1643,12 @@ html, body, #root {
   flex-shrink: 0;
   z-index: 400;
   overflow: hidden;
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.4);
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.05);
 }
 
 .cell-drawer-header {
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-surface-elevated);
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
@@ -1663,8 +1658,8 @@ html, body, #root {
 .cell-drawer-title {
   font-size: 11.5px;
   font-weight: 700;
-  color: #ffffff;
-  letter-spacing: 0.04em;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -1675,7 +1670,7 @@ html, body, #root {
 }
 
 .btn-close-drawer {
-  background: rgba(255, 255, 255, 0.03);
+  background: transparent;
   border: 1px solid var(--border-subtle);
   color: var(--text-muted);
   font-size: 12px;
@@ -1690,8 +1685,8 @@ html, body, #root {
 }
 
 .btn-close-drawer:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
   border-color: var(--border-medium);
 }
 
@@ -1705,9 +1700,9 @@ html, body, #root {
 }
 
 .cell-dossier-card {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-surface-elevated);
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
@@ -1737,7 +1732,7 @@ html, body, #root {
 .dossier-row strong {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 /* ==========================================================================

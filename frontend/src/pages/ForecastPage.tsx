@@ -217,8 +217,8 @@ export default function ForecastPage({
             <div style={{
               position: "relative",
               height: "400px",
-              background: "#040609",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-subtle)",
               borderRadius: "4px",
               overflow: "hidden"
             }}>
@@ -230,19 +230,19 @@ export default function ForecastPage({
                 left: 0,
                 right: 0,
                 padding: "8px 14px",
-                background: "rgba(7, 10, 15, 0.9)",
-                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                background: "var(--bg-surface-elevated)",
+                borderBottom: "1px solid var(--border-subtle)",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "var(--font-mono)",
                 fontSize: "10.5px",
-                color: "#64748b",
+                color: "var(--text-secondary)",
                 zIndex: 10
               }}>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                  <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#8b5cf6" }} />
-                  <span style={{ color: "#ffffff", fontWeight: 700 }}>TRAJECTORY SIMULATION · {stormName.toUpperCase()}</span>
+                  <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--accent-cyan)" }} />
+                  <span style={{ color: "var(--text-primary)", fontWeight: 700 }}>TRAJECTORY SIMULATION · {stormName.toUpperCase()}</span>
                 </div>
                 <div>FORWARD SPEED: {speedKph} km/h · HEADING: {headingDeg}° (NW)</div>
               </div>
@@ -251,27 +251,27 @@ export default function ForecastPage({
               <svg width="100%" height="100%" viewBox="0 0 500 400" style={{ display: "block" }}>
                 <defs>
                   <pattern id="navGrid" width="25" height="25" patternUnits="userSpaceOnUse">
-                    <path d="M 25 0 L 0 0 0 25" fill="none" stroke="rgba(255, 255, 255, 0.03)" strokeWidth="1" />
+                    <path d="M 25 0 L 0 0 0 25" fill="none" stroke="currentColor" strokeWidth="0.5" opacity="0.12" />
                   </pattern>
                 </defs>
-                <rect width="500" height="400" fill="#040609" />
+                <rect width="500" height="400" fill="var(--bg-surface)" />
                 <rect width="500" height="400" fill="url(#navGrid)" />
 
                 {/* Coastline Polygon */}
                 <path
                   d="M 370,0 Q 360,90 350,150 T 380,260 Q 400,320 440,400 L 500,400 L 500,0 Z"
-                  fill="rgba(30, 41, 59, 0.35)"
-                  stroke="rgba(148, 163, 184, 0.25)"
+                  fill="var(--bg-surface-elevated)"
+                  stroke="var(--border-medium)"
                   strokeWidth="1.5"
                 />
-                <text x="390" y="50" fill="#64748b" fontSize="9" fontFamily="var(--font-mono)">{coastalSector}</text>
-                <text x="390" y="70" fill="#f43f5e" fontSize="9" fontWeight="bold" fontFamily="var(--font-mono)">PROJECTED LANDFALL</text>
+                <text x="390" y="50" fill="var(--text-muted)" fontSize="9" fontFamily="var(--font-mono)">{coastalSector}</text>
+                <text x="390" y="70" fill="var(--status-red)" fontSize="9" fontWeight="bold" fontFamily="var(--font-mono)">PROJECTED LANDFALL</text>
 
                 {/* Uncertainty Cone Polygon */}
                 <polygon
                   points="140,260 210,185 290,120 420,70 380,150 290,180 210,225"
-                  fill="rgba(56, 189, 248, 0.06)"
-                  stroke="rgba(56, 189, 248, 0.25)"
+                  fill="rgba(79, 70, 229, 0.06)"
+                  stroke="rgba(79, 70, 229, 0.35)"
                   strokeWidth="1"
                   strokeDasharray="4 3"
                 />
@@ -280,7 +280,7 @@ export default function ForecastPage({
                 <path
                   d="M 140,260 L 210,205 L 290,150 L 390,110"
                   fill="none"
-                  stroke="#8b5cf6"
+                  stroke="var(--accent-cyan)"
                   strokeWidth="2.5"
                   className="op-stream-flow-line"
                 />
@@ -294,16 +294,16 @@ export default function ForecastPage({
                         cx={w.x}
                         cy={w.y}
                         r={isActive ? 8 : 4}
-                        fill={isActive ? "#8b5cf6" : "#64748b"}
-                        stroke="#ffffff"
+                        fill={isActive ? "var(--accent-cyan)" : "var(--text-muted)"}
+                        stroke="var(--bg-surface)"
                         strokeWidth={isActive ? 2 : 1}
                       />
                       <text
                         x={w.x + 10}
                         y={w.y + 4}
-                        fill={isActive ? "#ffffff" : "#94a3b8"}
+                        fill={isActive ? "var(--text-primary)" : "var(--text-secondary)"}
                         fontSize="10"
-                        fontFamily="'Space Mono', monospace"
+                        fontFamily="var(--font-mono)"
                         fontWeight={isActive ? "bold" : "normal"}
                       >
                         {w.label}
@@ -315,18 +315,17 @@ export default function ForecastPage({
                 {/* Active Storm Cyclone Center with Concentric Wind Rings */}
                 <g transform={`translate(${currentWp.x}, ${currentWp.y})`}>
                   {/* Outer R34 Gale Radius Ring (60px) */}
-                  <circle cx="0" cy="0" r="60" fill="none" stroke="#8b5cf6" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
+                  <circle cx="0" cy="0" r="60" fill="none" stroke="var(--accent-cyan)" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
                   {/* R50 Storm Radius Ring (38px) */}
-                  <circle cx="0" cy="0" r="38" fill="none" stroke="#f59e0b" strokeWidth="1.2" opacity="0.8" />
+                  <circle cx="0" cy="0" r="38" fill="none" stroke="var(--status-amber)" strokeWidth="1.2" opacity="0.8" />
                   {/* Rmax Ring (18px) */}
-                  <circle cx="0" cy="0" r="18" fill="rgba(239, 68, 68, 0.25)" stroke="#ef4444" strokeWidth="2" />
-                  <circle cx="0" cy="0" r="18" fill="none" stroke="#ef4444" className="op-pulse-ring" />
+                  <circle cx="0" cy="0" r="18" fill="rgba(220, 38, 38, 0.15)" stroke="var(--status-red)" strokeWidth="2" />
                   {/* Eye Center */}
-                  <circle cx="0" cy="0" r="3" fill="#ffffff" />
+                  <circle cx="0" cy="0" r="3" fill="var(--text-primary)" />
 
                   {/* Heading Vector Arrow */}
-                  <line x1="0" y1="0" x2="22" y2="-22" stroke="#ffffff" strokeWidth="2" />
-                  <polygon points="22,-22 14,-22 22,-14" fill="#ffffff" />
+                  <line x1="0" y1="0" x2="22" y2="-22" stroke="var(--text-primary)" strokeWidth="2" />
+                  <polygon points="22,-22 14,-22 22,-14" fill="var(--text-primary)" />
                 </g>
               </svg>
 
@@ -336,30 +335,29 @@ export default function ForecastPage({
                 bottom: "10px",
                 left: "14px",
                 right: "14px",
-                background: "rgba(4, 7, 12, 0.92)",
-                backdropFilter: "blur(6px)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
+                background: "var(--bg-surface-elevated)",
+                border: "1px solid var(--border-subtle)",
                 padding: "8px 14px",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "var(--font-mono)",
                 fontSize: "11px",
                 zIndex: 10
               }}>
                 <div>
-                  TIMESTEP: <strong style={{ color: "#8b5cf6" }}>{currentWp.label}</strong> &middot; COORD: <strong style={{ color: "#ffffff" }}>{currentWp.lat}°N, {currentWp.lon}°E</strong>
+                  TIMESTEP: <strong style={{ color: "var(--accent-cyan)" }}>{currentWp.label}</strong> &middot; COORD: <strong style={{ color: "var(--text-primary)" }}>{currentWp.lat}°N, {currentWp.lon}°E</strong>
                 </div>
                 <div>
-                  VMAX: <strong style={{ color: "#8b5cf6" }}>{currentWp.wind} km/h</strong> &middot; PC: <strong style={{ color: "#f59e0b" }}>{currentWp.pressure} hPa</strong>
+                  VMAX: <strong style={{ color: "var(--accent-cyan)" }}>{currentWp.wind} km/h</strong> &middot; PC: <strong style={{ color: "var(--status-amber)" }}>{currentWp.pressure} hPa</strong>
                 </div>
               </div>
 
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#64748b", padding: "0 4px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--text-muted)", padding: "0 4px" }}>
               <span>Use Play button or click waypoints to observe forecast track evolution</span>
-              <span style={{ color: "#8b5cf6" }}>Ensemble Model: ECMWF IFS + GFS Blended Track</span>
+              <span style={{ color: "var(--accent-cyan)" }}>Ensemble Model: ECMWF IFS + GFS Blended Track</span>
             </div>
           </div>
 
@@ -369,22 +367,22 @@ export default function ForecastPage({
             <div className="op-technical-panel">
               <div className="op-tech-panel-header">
                 <div className="op-tech-panel-title">
-                  <Wind size={14} style={{ color: "#8b5cf6" }} />
+                  <Wind size={14} style={{ color: "var(--accent-cyan)" }} />
                   <span>HOLLAND 1980 RADIAL VELOCITY CURVE</span>
                 </div>
                 <span className="op-tech-panel-badge">B = 1.25</span>
               </div>
 
-              <div style={{ fontSize: "11.5px", color: "#94a3b8", lineHeight: 1.5, marginBottom: "12px" }}>
+              <div style={{ fontSize: "11.5px", color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: "12px" }}>
                 Drag or hover the radial distance slider below to compute the instantaneous tangential wind speed
                 and structural wind pressure at any distance \(r\) from the cyclone center.
               </div>
 
               {/* Radial Distance Slider */}
               <div style={{ marginBottom: "14px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontFamily: "'Space Mono', monospace", marginBottom: "4px" }}>
-                  <span style={{ color: "#64748b" }}>RADIAL DISTANCE (r):</span>
-                  <span style={{ color: "#8b5cf6", fontWeight: 700 }}>{hoveredRadius} km</span>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontFamily: "var(--font-mono)", marginBottom: "4px" }}>
+                  <span style={{ color: "var(--text-muted)" }}>RADIAL DISTANCE (r):</span>
+                  <span style={{ color: "var(--accent-cyan)", fontWeight: 700 }}>{hoveredRadius} km</span>
                 </div>
                 <input
                   type="range"
@@ -392,38 +390,38 @@ export default function ForecastPage({
                   max="160"
                   value={hoveredRadius}
                   onChange={(e) => setHoveredRadius(Number(e.target.value))}
-                  style={{ width: "100%", accentColor: "#8b5cf6", cursor: "pointer" }}
+                  style={{ width: "100%", accentColor: "var(--accent-cyan)", cursor: "pointer" }}
                 />
               </div>
 
               {/* Instantaneous Calculation Readout Box */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", padding: "12px", background: "#03060a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "3px", marginBottom: "14px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", padding: "12px", background: "var(--bg-surface-elevated)", border: "1px solid var(--border-subtle)", borderRadius: "4px", marginBottom: "14px" }}>
                 <div>
-                  <div style={{ fontSize: "9.5px", color: "#64748b", textTransform: "uppercase" }}>Wind Velocity V(r)</div>
-                  <div style={{ fontSize: "22px", fontWeight: 800, color: "#8b5cf6", fontFamily: "'Space Mono', monospace" }}>
+                  <div style={{ fontSize: "9.5px", color: "var(--text-muted)", textTransform: "uppercase" }}>Wind Velocity V(r)</div>
+                  <div style={{ fontSize: "22px", fontWeight: 800, color: "var(--accent-cyan)", fontFamily: "var(--font-mono)" }}>
                     {calculatedWindAtHover} <span style={{ fontSize: "12px" }}>km/h</span>
                   </div>
-                  <div style={{ fontSize: "10px", color: "#94a3b8" }}>{hoveredRadius === 28 ? "Peak Vmax (Eyewall)" : "Outer Radial Isotach"}</div>
+                  <div style={{ fontSize: "10px", color: "var(--text-secondary)" }}>{hoveredRadius === 28 ? "Peak Vmax (Eyewall)" : "Outer Radial Isotach"}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: "9.5px", color: "#64748b", textTransform: "uppercase" }}>Wind Pressure (pz)</div>
-                  <div style={{ fontSize: "22px", fontWeight: 800, color: "#f59e0b", fontFamily: "'Space Mono', monospace" }}>
+                  <div style={{ fontSize: "9.5px", color: "var(--text-muted)", textTransform: "uppercase" }}>Wind Pressure (pz)</div>
+                  <div style={{ fontSize: "22px", fontWeight: 800, color: "var(--status-amber)", fontFamily: "var(--font-mono)" }}>
                     {calculatedPressureAtHover} <span style={{ fontSize: "12px" }}>kPa</span>
                   </div>
-                  <div style={{ fontSize: "10px", color: "#94a3b8" }}>IS:875 Facade Load</div>
+                  <div style={{ fontSize: "10px", color: "var(--text-secondary)" }}>IS:875 Facade Load</div>
                 </div>
               </div>
 
               {/* SVG Radial Velocity Curve */}
-              <div style={{ background: "#020408", border: "1px solid rgba(255,255,255,0.05)", padding: "12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#64748b", fontFamily: "'Space Mono', monospace", marginBottom: "4px" }}>
+              <div style={{ background: "var(--bg-surface-elevated)", border: "1px solid var(--border-subtle)", padding: "12px", borderRadius: "4px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginBottom: "4px" }}>
                   <span>RADIAL VELOCITY PROFILE V(r)</span>
-                  <span style={{ color: "#ef4444" }}>RMAX: 28 km</span>
+                  <span style={{ color: "var(--status-red)" }}>RMAX: 28 km</span>
                 </div>
                 <svg width="100%" height="90" viewBox="0 0 300 90" style={{ display: "block" }}>
                   {/* Axis */}
-                  <line x1="25" y1="75" x2="290" y2="75" stroke="#334155" strokeWidth="1" />
-                  <line x1="25" y1="10" x2="25" y2="75" stroke="#334155" strokeWidth="1" />
+                  <line x1="25" y1="75" x2="290" y2="75" stroke="var(--border-medium)" strokeWidth="1" />
+                  <line x1="25" y1="10" x2="25" y2="75" stroke="var(--border-medium)" strokeWidth="1" />
 
                   {/* Velocity Curve */}
                   <path
