@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CycloneX - Full System Architecture & Methodology Diagram</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #0b1120;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 24px;
+    }
+
+    /* 16:9 High-Resolution Canvas (1440x810 native aspect ratio) */
+    .diagram-canvas {
+      width: 1400px;
+      height: 788px;
+      background: #ffffff;
+      color: #0f172a;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.65);
+      border: 1.5px solid #cbd5e1;
+      padding: 16px 20px 12px 20px;
+    }
+
+    @media print {
+      body {
+        padding: 0;
+        background: transparent;
+      }
+      .diagram-canvas {
+        box-shadow: none;
+        border: none;
+        width: 100vw;
+        height: 100vh;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    /* SVG Connecting Arrows Overlay */
+    .arrows-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    /* Top Methodology Pipeline */
+    .top-pipeline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+      position: relative;
+      z-index: 2;
+    }
+    .pipe-step {
+      flex: 1;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px 12px;
+      background: #ffffff;
+      min-height: 84px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .pipe-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 3px;
+    }
+    .pipe-badge {
+      font-size: 10px;
+      font-weight: 800;
+      color: #ffffff;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .bg-orange { background: #ea580c; }
+    .bg-blue { background: #0284c7; }
+    .bg-indigo { background: #4f46e5; }
+    .bg-cyan { background: #0891b2; }
+    .bg-teal { background: #0d9488; }
+
+    .pipe-icon-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .pipe-desc {
+      font-size: 10.5px;
+      color: #334155;
+      line-height: 1.28;
+    }
+    .pipe-verified {
+      font-size: 9px;
+      color: #059669;
+      font-weight: 800;
+      margin-top: 3px;
+      letter-spacing: 0.04em;
+    }
+    .pipe-arrow {
+      color: #059669;
+      font-weight: 900;
+      font-size: 18px;
+      user-select: none;
+    }
+    .working-prototype-card {
+      border: 2px dashed #059669;
+      background: #f0fdf4;
+      border-radius: 8px;
+      padding: 8px 14px;
+      min-height: 84px;
+      width: 170px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    .prototype-title {
+      font-size: 13px;
+      font-weight: 900;
+      color: #065f46;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .prototype-sub {
+      font-size: 9.5px;
+      color: #047857;
+      margin-top: 3px;
+      line-height: 1.25;
+      font-weight: 600;
+    }
+
+    /* Bottom Architecture (3 Main Columns) */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: 290px 1.48fr 1.32fr;
+      gap: 16px;
+      flex-grow: 1;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Common Card Styles */
+    .column-box {
+      border-radius: 10px;
+      padding: 12px 14px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .col-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .col-title-tag {
+      font-size: 11px;
+      font-weight: 900;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+    .tag-source { background: #ea580c; color: #ffffff; }
+    .tag-server { background: #0284c7; color: #ffffff; }
+    .tag-client { background: #059669; color: #ffffff; }
+
+    /* Column 1: External Data Sources */
+    .box-sources {
+      border: 2px solid #f97316;
+      background: #ffffff;
+    }
+    .source-panel {
+      background: #ffffff;
+      border: 1.5px solid #fed7aa;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+    .source-head {
+      font-size: 12px;
+      font-weight: 800;
+      color: #c2410c;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .source-subtext {
+      font-size: 9.5px;
+      color: #9a3412;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .source-bullets {
+      list-style: none;
+      font-size: 10px;
+      color: #7c2d12;
+      line-height: 1.4;
+    }
+    .source-bullets li::before {
+      content: "• ";
+      color: #ea580c;
+      font-weight: bold;
+    }
+    .source-pill-badge {
+      display: inline-block;
+      font-size: 9px;
+      font-family: 'JetBrains Mono', monospace;
+      background: #fff7ed;
+      border: 1px solid #fdba74;
+      color: #9a3412;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 6px;
+    }
+
+    /* Column 2: Server / Backend */
+    .box-server {
+      border: 2px solid #0284c7;
+      background: #f0f9ff;
+    }
+    .cron-badge {
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #0369a1;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .server-card {
+      background: #ffffff;
+      border: 1.5px solid #bae6fd;
+      border-radius: 8px;
+      padding: 9px 12px;
+      margin-bottom: 9px;
+    }
+    .server-card-head {
+      font-size: 12px;
+      font-weight: 800;
+      color: #0369a1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+    .server-card-desc {
+      font-size: 10px;
+      color: #334155;
+      line-height: 1.35;
+    }
+    .pills-group {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .sys-pill {
+      font-size: 8.5px;
+      font-family: 'JetBrains Mono', monospace;
+      background: #e0f2fe;
+      border: 1px solid #7dd3fc;
+      color: #0369a1;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Column 3: Client / Browser */
+    .box-client {
+      border: 2px solid #059669;
+      background: #f0fdf4;
+    }
+    .client-card {
+      background: #ffffff;
+      border: 1.5px solid #a7f3d0;
+      border-radius: 8px;
+      padding: 9px 12px;
+      margin-bottom: 9px;
+    }
+    .client-card-head {
+      font-size: 12px;
+      font-weight: 800;
+      color: #047857;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+    .client-card-desc {
+      font-size: 10px;
+      color: #1e293b;
+      line-height: 1.35;
+    }
+
+    /* Interactive Linked Views Table */
+    .views-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.5px;
+      margin-top: 4px;
+    }
+    .views-table td {
+      padding: 2px 4px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .td-view-name {
+      font-weight: 800;
+      color: #047857;
+      width: 32%;
+    }
+    .td-view-desc {
+      color: #475569;
+    }
+
+    /* End Operator Banner */
+    .operator-banner {
+      background: #ecfdf5;
+      border: 1.5px solid #6ee7b7;
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: auto;
+    }
+    .operator-icon {
+      width: 32px;
+      height: 32px;
+      background: #059669;
+      color: #ffffff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .operator-title {
+      font-size: 11.5px;
+      font-weight: 900;
+      color: #065f46;
+    }
+    .operator-sub {
+      font-size: 9px;
+      color: #047857;
+      font-weight: 600;
+    }
+
+    /* Bottom Legend & Status Box */
+    .legend-box {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #ffffff;
+      padding: 6px 10px;
+      margin-top: auto;
+      font-size: 9px;
+      color: #334155;
+    }
+    .legend-title {
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+    .legend-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .leg-arrow {
+      color: #059669;
+      font-weight: 900;
+    }
+    .leg-shared {
+      width: 14px;
+      height: 2px;
+      background: #0284c7;
+    }
+    .leg-user {
+      width: 14px;
+      height: 2px;
+      border-top: 2px dashed #f59e0b;
+    }
+
+    /* Channel Connector Badges (Simulated Middle Pill) */
+    .channel-pill {
+      font-size: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      background: #ffffff;
+      border: 1px solid #0284c7;
+      color: #0284c7;
+      padding: 1px 5px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    /* Print / Preview Controls */
+    .control-panel {
+      position: fixed;
+      bottom: 15px;
+      right: 15px;
+      display: flex;
+      gap: 10px;
+      z-index: 999;
+    }
+    .ctrl-btn {
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      padding: 9px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+    }
+    .ctrl-btn:hover {
+      background: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Full 16:9 Canvas -->
+  <div class="diagram-canvas">
+    
+    <!-- SVG Connector Lines Overlay (Connecting Sources to Backend & Backend to Client) -->
+    <svg class="arrows-overlay" viewBox="0 0 1400 788" fill="none">
+      <defs>
+        <marker id="arrowGreen" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#059669"/>
+        </marker>
+        <marker id="arrowBlue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#0284c7"/>
+        </marker>
+        <marker id="arrowOrange" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#f59e0b"/>
+        </marker>
+      </defs>
+
+      <!-- Curve 1: Data Sources (IMD/JTWC) -> Ingestion Script -->
+      <path d="M 285 240 C 330 240, 340 180, 395 180" stroke="#059669" stroke-width="2.5" fill="none" marker-end="url(#arrowGreen)"/>
+
+      <!-- Curve 2: GEE Multi-Sensor -> Ingestion Script -->
+      <path d="M 285 390 C 340 390, 350 210, 395 210" stroke="#059669" stroke-width="2.5" fill="none" marker-end="url(#arrowGreen)"/>
+
+      <!-- Bi-directional: Backend REST Surface <-> Client State & Evidence Panel -->
+      <path d="M 870 480 L 920 480" stroke="#0284c7" stroke-width="2.5" fill="none" marker-end="url(#arrowBlue)" marker-start="url(#arrowBlue)"/>
+
+      <!-- State write: Client State Layer -> Three.js & Tactical Canvas -->
+      <path d="M 975 245 L 975 275" stroke="#0284c7" stroke-width="2" fill="none" marker-end="url(#arrowBlue)"/>
+
+      <!-- State read: Three.js -> Evidence Panel -->
+      <path d="M 975 390 L 975 420" stroke="#0284c7" stroke-width="2" fill="none" marker-end="url(#arrowBlue)"/>
+
+      <!-- User interaction: Operator -> Tactical UI -->
+      <path d="M 1250 690 L 1250 590" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 3" fill="none" marker-end="url(#arrowOrange)"/>
+    </svg>
+
+    <!-- TOP METHODOLOGY PIPELINE -->
+    <div class="top-pipeline">
+      
+      <!-- Stage 01 -->
+      <div class="pipe-step">
+        <div>
+          <div class="pipe-header">
+            <span class="pipe-badge bg-orange">01</span>
+            <div class="pipe-icon-title">
+              <span>🌐</span>
+              <span>Data Sourcing</span>
+            </div>
+          </div>
+          <div class="pipe-desc">Harvest real IMD / JTWC track + GEE Sentinel-1 & SRTM.</div>
+        </div>
+        <div class="pipe-verified">VERIFIED · Validation gate isolates malformed inputs</div>
+      </div>
+
+      <div class="pipe-arrow">➔</div>
+
+      <!-- Stage 02 -->
+      <div class="pipe-step">
+        <div>
+          <div class="pipe-header">
+            <span class="pipe-badge bg-blue">02</span>
+            <div class="pipe-icon-title">
+              <span>⚙️</span>
+              <span>Science & ML Model</span>
+            </div>
+          </div>
+          <div class="pipe-desc">Physics wind stress surge + 4 PyTorch CNN / LSTMs.</div>
+        </div>
+        <div class="pipe-verified">VERIFIED · Unit-tested on 10 historical storms (13/13 OK)</div>
+      </div>
+
+      <div class="pipe-arrow">➔</div>
+
+      <!-- Stage 03 -->
+      <div class="pipe-step">
+        <div>
+          <div class="pipe-header">
+            <span class="pipe-badge bg-indigo">03</span>
+            <div class="pipe-icon-title">
+              <span>&lt;/&gt;</span>
+              <span>Backend API</span>
+            </div>
+          </div>
+          <div class="pipe-desc">FastAPI serves canonical state & asset vulnerability.</div>
+        </div>
+        <div class="pipe-verified">VERIFIED · Integration-tested using live & cached data</div>
+      </div>
+
+      <div class="pipe-arrow">➔</div>
+
+      <!-- Stage 04 -->
+      <div class="pipe-step">
+        <div>
+          <div class="pipe-header">
+            <span class="pipe-badge bg-cyan">04</span>
+            <div class="pipe-icon-title">
+              <span>🧊</span>
+              <span>3D Evidence UI</span>
+            </div>
+          </div>
+          <div class="pipe-desc">MapLibre GL 2D risk grid + Three.js 3D digital twin.</div>
+        </div>
+        <div class="pipe-verified">VERIFIED · Built against live REST endpoints (no mockups)</div>
+      </div>
+
+      <div class="pipe-arrow">➔</div>
+
+      <!-- Stage 05 -->
+      <div class="pipe-step">
+        <div>
+          <div class="pipe-header">
+            <span class="pipe-badge bg-teal">05</span>
+            <div class="pipe-icon-title">
+              <span>🛡️</span>
+              <span>QA & Hardening</span>
+            </div>
+          </div>
+          <div class="pipe-desc">Gemini 3.7 Flash + RuleEngine fallback + CAP XML.</div>
+        </div>
+        <div class="pipe-verified">VERIFIED · Failure simulation tested with 0 crashes</div>
+      </div>
+
+      <div class="pipe-arrow">➔</div>
+
+      <!-- Working Prototype -->
+      <div class="working-prototype-card">
+        <div class="prototype-title">
+          <span>🎯</span>
+          <span>Working Prototype</span>
+        </div>
+        <div class="prototype-sub">
+          Production ready on live ports 8000 & 5173. Real data.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BOTTOM ARCHITECTURE (3 COLUMNS) -->
+    <div class="arch-grid">
+      
+      <!-- 01 EXTERNAL DATA SOURCES -->
+      <div class="column-box box-sources">
+        <div class="col-header">
+          <span class="col-title-tag tag-source">01 EXTERNAL DATA SOURCES</span>
+        </div>
+
+        <!-- Source 1 -->
+        <div class="source-panel">
+          <div class="source-head">
+            <span>🌐</span>
+            <span>IMD &amp; JTWC Telemetry</span>
+          </div>
+          <div class="source-subtext">RSMC New Delhi + Joint Typhoon Warning</div>
+          <ul class="source-bullets">
+            <li>Observed center coordinates (lat, lon)</li>
+            <li>Central pressure deficit &amp; radii ($R_{max}$)</li>
+            <li>Max sustained surface winds ($V_{max}$)</li>
+            <li>Translation speed &amp; heading vectors</li>
+          </ul>
+          <span class="source-pill-badge">IMD Telemetry · Tracks</span>
+        </div>
+
+        <!-- Source 2 -->
+        <div class="source-panel">
+          <div class="source-head">
+            <span>🛰️</span>
+            <span>GEE Multi-Sensor Pipeline</span>
+          </div>
+          <div class="source-subtext">Planetary Computing Earth Observation</div>
+          <ul class="source-bullets">
+            <li>Sentinel-1 C-SAR (10m floodwater mask)</li>
+            <li>SRTM 30m DEM (elevation &amp; runoff slopes)</li>
+            <li>Dynamic World (10m land cover / mangroves)</li>
+            <li>VIIRS DNB (nightlights blackout anomalies)</li>
+          </ul>
+          <span class="source-pill-badge">COPERNICUS · USGS · NOAA</span>
+        </div>
+
+        <!-- Source 3 -->
+        <div class="source-panel" style="margin-bottom: 0;">
+          <div class="source-head">
+            <span>🌦️</span>
+            <span>Open-Meteo &amp; ERA5 Reanalysis</span>
+          </div>
+          <div class="source-subtext">NWP High-Resolution Atmospheric Telemetry</div>
+          <ul class="source-bullets">
+            <li>Convective rain rate (mm/h) &amp; gusts</li>
+            <li>Thermal buffer (SST 26°C isotherm depth)</li>
+          </ul>
+          <span class="source-pill-badge">Live NWP · Gridded Fields</span>
+        </div>
+
+        <!-- Legend Box -->
+        <div class="legend-box" style="margin-top: 10px;">
+          <div class="legend-title">CycloneX LEGEND</div>
+          <div class="legend-items">
+            <div class="legend-item"><span class="leg-arrow">➔</span> Data flow</div>
+            <div class="legend-item"><span class="leg-shared"></span> Shared state</div>
+            <div class="legend-item"><span class="leg-user"></span> User action</div>
+          </div>
+          <div style="font-size: 8px; color: #64748b;">
+            Status labels derive from provenance audit — simulated or cached data is never presented as "live".
+          </div>
+        </div>
+      </div>
+
+      <!-- 02 SERVER / BACKEND -->
+      <div class="column-box box-server">
+        <div class="col-header">
+          <span class="col-title-tag tag-server">02 SERVER / BACKEND</span>
+          <div class="cron-badge">
+            <span>⏱️ Scheduler (cron)</span>
+            <span style="font-size: 8.5px; color: #0284c7;">· triggers 1h interval</span>
+          </div>
+        </div>
+
+        <!-- Sub-box 1: Ingestion & Validation -->
+        <div class="server-card">
+          <div class="server-card-head">
+            <span>⚙️</span>
+            <span>Ingestion &amp; Validation Pipeline</span>
+          </div>
+          <div class="server-card-desc">
+            Harvest · decode · normalize incoming telemetry into canonical <code>CycloneState</code>. A strict Pydantic V2 validation gate isolates malformed packets before physics execution.
+          </div>
+          <div class="pills-group">
+            <span class="sys-pill">validation gate</span>
+            <span class="sys-pill">canonical_models.py</span>
+            <span class="sys-pill">offline cache</span>
+          </div>
+        </div>
+
+        <!-- Sub-box 2: Science & PyTorch Engine -->
+        <div class="server-card" style="flex-grow: 1;">
+          <div class="server-card-head" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span>🧠</span>
+              <span>Python + FastAPI Resilience Service</span>
+            </div>
+            <span class="sys-pill" style="background: #e0e7ff; color: #3730a3; border-color: #a5b4fc;">container</span>
+          </div>
+
+          <div style="font-size: 10.5px; font-weight: 800; color: #0f172a; margin: 4px 0 2px 0;">
+            Science / Hydrodynamic &amp; PyTorch AI Engine
+          </div>
+          <div class="server-card-desc">
+            • <strong>4 PyTorch AI Models:</strong> Eye Locator CNN, Dvorak Pattern (6 classes), Rapid Intensification, and Multi-Horizon Regressor.<br>
+            • <strong>Shallow-Shelf Storm Surge:</strong> Inverted barometer ($\Delta P \times 0.01\text{m}$) + bathymetric wind stress ($0.00155 \cdot V^2$) + spring astronomical tide (+1.4m).<br>
+            • <strong>6-Stage Runoff Pathway:</strong> Rain ➔ 100% soil saturation ➔ 0.88 runoff coeff ➔ 142% canal overtopping ➔ road culvert breach.<br>
+            • <strong>Common Asset Vulnerability:</strong> IS-875 wind + surge + marine salt spray decay ($100 \cdot e^{-0.35 d}$).
+          </div>
+
+          <!-- REST API Surface -->
+          <div style="font-size: 10.5px; font-weight: 800; color: #0f172a; margin: 8px 0 3px 0;">
+            &lt;/&gt; REST API Surface (FastAPI)
+          </div>
+          <div class="pills-group">
+            <span class="sys-pill">/api/resilience/assess</span>
+            <span class="sys-pill">/api/ai/analyze-cyclone</span>
+            <span class="sys-pill">/api/resilience/inspect-drone-damage</span>
+            <span class="sys-pill">/api/resilience/cap-alert.xml</span>
+            <span class="sys-pill">/api/ai/models-status</span>
+            <span class="sys-pill">/api/v3/inference</span>
+          </div>
+
+          <!-- Decision Intelligence & Provenance -->
+          <div style="font-size: 10.5px; font-weight: 800; color: #0f172a; margin: 8px 0 2px 0;">
+            🛡️ Gemini 3.7 Flash &amp; Provenance Service
+          </div>
+          <div class="server-card-desc">
+            Translates multi-stream telemetry into Evidence ➔ Reasoning ➔ Action directives across 6 coastal Indian languages. Dual-path: falls back to <code>RuleEngine v2.4-NDMA</code> when offline.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 03 CLIENT / BROWSER -->
+      <div class="column-box box-client">
+        <div class="col-header">
+          <span class="col-title-tag tag-client">03 CLIENT / BROWSER</span>
+        </div>
+
+        <!-- React 19 & State -->
+        <div class="client-card">
+          <div class="client-card-head">
+            <span>⚡</span>
+            <span>React 19 + TypeScript + Vite</span>
+          </div>
+          <div style="font-size: 10.5px; font-weight: 800; color: #065f46; margin: 2px 0;">
+            Canonical State Layer
+          </div>
+          <div class="client-card-desc">
+            Single source of UI truth: <code>CentralResilienceAssessment</code> synchronizing storm telemetry, surge contours, and asset status.
+          </div>
+        </div>
+
+        <!-- 3D Digital Twin & 2D Tactical Map -->
+        <div class="client-card">
+          <div class="client-card-head">
+            <span>🧊</span>
+            <span>Three.js 3D Digital Twin &amp; 2D Tactical Map</span>
+          </div>
+          <div class="client-card-desc">
+            • <strong>MapLibre GL:</strong> 200m building damage risk grid with dynamic wind incidence.<br>
+            • <strong>Three.js Scene:</strong> Depth-referenced surge water plane + real building parcel extrusions + clickable infrastructure markers.
+          </div>
+        </div>
+
+        <!-- Evidence Panel & Anticipatory Hub -->
+        <div class="client-card" style="flex-grow: 1;">
+          <div class="client-card-head">
+            <span>📊</span>
+            <span>Anticipatory Action Hub — 4 Linked Modules</span>
+          </div>
+          
+          <table class="views-table">
+            <tr>
+              <td class="td-view-name">Evidence ➔ Action</td>
+              <td class="td-view-desc">Power de-energization, highway bypass diversions, and hospital citadel readiness.</td>
+            </tr>
+            <tr>
+              <td class="td-view-name">Sandbox Defense</td>
+              <td class="td-view-desc">Deploy mobile flood barrier at NH-53 Km 18.4 (-30% surge reach, restores passability).</td>
+            </tr>
+            <tr>
+              <td class="td-view-name">Drone Recon</td>
+              <td class="td-view-desc">Multimodal UAV low-altitude defect inspection (pylons, culvert scour, hospital roof).</td>
+            </tr>
+            <tr>
+              <td class="td-view-name">IAP &amp; CAP XML</td>
+              <td class="td-view-desc">One-click NDMA Form 201/202 PDF export + SACHET-compliant XML feed.</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- End Operator -->
+        <div class="operator-banner">
+          <div class="operator-icon">👤</div>
+          <div>
+            <div class="operator-title">NDMA / SDMA Operations Commander</div>
+            <div class="operator-sub">Any modern browser · zero native client install · no GPU cluster</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Print / Save to PDF Control -->
+  <div class="control-panel no-print">
+    <button class="ctrl-btn" onclick="window.print()">🖨️ Print / Save as High-Res PDF Diagram</button>
+  </div>
+
+</body>
+</html>

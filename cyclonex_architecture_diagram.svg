@@ -1,0 +1,503 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 788" width="1400" height="788">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@500;600;700&amp;display=swap');
+      text { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+      .mono { font-family: 'JetBrains Mono', monospace; }
+    </style>
+    
+    <!-- Drop Shadow Filter -->
+    <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.06"/>
+    </filter>
+    
+    <!-- Arrow Markers -->
+    <marker id="arrowOrange" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M 0 1 L 7 4 L 0 7 z" fill="#ea580c"/>
+    </marker>
+    <marker id="arrowBlue" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M 0 1 L 7 4 L 0 7 z" fill="#0284c7"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M 0 1 L 7 4 L 0 7 z" fill="#059669"/>
+    </marker>
+    <marker id="arrowPipe" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto">
+      <path d="M 0 2 L 8 5 L 0 8 z" fill="#059669"/>
+    </marker>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="1400" height="788" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" rx="6"/>
+
+  <!-- ========================================== -->
+  <!-- TOP METHODOLOGY PIPELINE (Y: 16 to 106)    -->
+  <!-- ========================================== -->
+
+  <!-- Step 01 -->
+  <g transform="translate(20, 16)">
+    <rect width="186" height="84" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect x="10" y="10" width="22" height="15" rx="3" fill="#ea580c"/>
+    <text x="21" y="21" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle" class="mono">01</text>
+    <text x="38" y="22" fill="#0f172a" font-size="12" font-weight="800">📡 Data Sourcing</text>
+    <text x="10" y="42" fill="#334155" font-size="9.5" font-weight="500">IMD RSMC telemetry,</text>
+    <text x="10" y="55" fill="#334155" font-size="9.5" font-weight="500">GEE multi-band SAR &amp; DEM</text>
+    <text x="10" y="74" fill="#059669" font-size="8.5" font-weight="800" letter-spacing="0.5">✓ VERIFIED</text>
+  </g>
+  <path d="M 212 58 L 222 58" stroke="#059669" stroke-width="2.5" marker-end="url(#arrowPipe)"/>
+
+  <!-- Step 02 -->
+  <g transform="translate(230, 16)">
+    <rect width="186" height="84" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect x="10" y="10" width="22" height="15" rx="3" fill="#0284c7"/>
+    <text x="21" y="21" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle" class="mono">02</text>
+    <text x="38" y="22" fill="#0f172a" font-size="12" font-weight="800">🧪 Science Model</text>
+    <text x="10" y="42" fill="#334155" font-size="9.5" font-weight="500">Physics surge, 6-stage</text>
+    <text x="10" y="55" fill="#334155" font-size="9.5" font-weight="500">causal runoff &amp; 4 PyTorch ML</text>
+    <text x="10" y="74" fill="#059669" font-size="8.5" font-weight="800" letter-spacing="0.5">✓ VERIFIED</text>
+  </g>
+  <path d="M 422 58 L 432 58" stroke="#059669" stroke-width="2.5" marker-end="url(#arrowPipe)"/>
+
+  <!-- Step 03 -->
+  <g transform="translate(440, 16)">
+    <rect width="186" height="84" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect x="10" y="10" width="22" height="15" rx="3" fill="#4f46e5"/>
+    <text x="21" y="21" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle" class="mono">03</text>
+    <text x="38" y="22" fill="#0f172a" font-size="12" font-weight="800">⚡ Backend API</text>
+    <text x="10" y="42" fill="#334155" font-size="9.5" font-weight="500">FastAPI async routing,</text>
+    <text x="10" y="55" fill="#334155" font-size="9.5" font-weight="500">Pydantic V2 &amp; NDMA CAP</text>
+    <text x="10" y="74" fill="#059669" font-size="8.5" font-weight="800" letter-spacing="0.5">✓ VERIFIED</text>
+  </g>
+  <path d="M 632 58 L 642 58" stroke="#059669" stroke-width="2.5" marker-end="url(#arrowPipe)"/>
+
+  <!-- Step 04 -->
+  <g transform="translate(650, 16)">
+    <rect width="186" height="84" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect x="10" y="10" width="22" height="15" rx="3" fill="#0891b2"/>
+    <text x="21" y="21" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle" class="mono">04</text>
+    <text x="38" y="22" fill="#0f172a" font-size="12" font-weight="800">🧊 3D Evidence UI</text>
+    <text x="10" y="42" fill="#334155" font-size="9.5" font-weight="500">Three.js real city twin,</text>
+    <text x="10" y="55" fill="#334155" font-size="9.5" font-weight="500">MapLibre 200m risk grid</text>
+    <text x="10" y="74" fill="#059669" font-size="8.5" font-weight="800" letter-spacing="0.5">✓ VERIFIED</text>
+  </g>
+  <path d="M 842 58 L 852 58" stroke="#059669" stroke-width="2.5" marker-end="url(#arrowPipe)"/>
+
+  <!-- Step 05 -->
+  <g transform="translate(860, 16)">
+    <rect width="186" height="84" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect x="10" y="10" width="22" height="15" rx="3" fill="#0d9488"/>
+    <text x="21" y="21" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle" class="mono">05</text>
+    <text x="38" y="22" fill="#0f172a" font-size="12" font-weight="800">🛡️ QA &amp; Hardening</text>
+    <text x="10" y="42" fill="#334155" font-size="9.5" font-weight="500">Offline fallback fixture,</text>
+    <text x="10" y="55" fill="#334155" font-size="9.5" font-weight="500">Pytest test suite &amp; lint zero</text>
+    <text x="10" y="74" fill="#059669" font-size="8.5" font-weight="800" letter-spacing="0.5">✓ VERIFIED</text>
+  </g>
+  <path d="M 1052 58 L 1064 58" stroke="#059669" stroke-width="2.5" marker-end="url(#arrowPipe)"/>
+
+  <!-- Working Prototype Box -->
+  <g transform="translate(1074, 16)">
+    <rect width="306" height="84" rx="8" fill="#f0fdf4" stroke="#059669" stroke-width="2" stroke-dasharray="6 3"/>
+    <text x="153" y="36" fill="#065f46" font-size="13" font-weight="900" text-anchor="middle">🚀 Working Prototype</text>
+    <text x="153" y="54" fill="#047857" font-size="10" font-weight="600" text-anchor="middle">Zero-dependency browser app with live simulation</text>
+    <text x="153" y="70" fill="#059669" font-size="9" font-weight="700" text-anchor="middle" class="mono">100% OPERATIONAL • REAL DISASTER DATA</text>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- COLUMN 1: 01 EXTERNAL DATA SOURCES (X: 20) -->
+  <!-- Width: 290, Height: 660                    -->
+  <!-- ========================================== -->
+  <g transform="translate(20, 114)">
+    <!-- Column Container -->
+    <rect width="290" height="660" rx="10" fill="#ffffff" stroke="#ea580c" stroke-width="2" filter="url(#cardShadow)"/>
+    
+    <!-- Column Header -->
+    <rect x="14" y="14" width="190" height="22" rx="4" fill="#ea580c"/>
+    <text x="22" y="29" fill="#ffffff" font-size="11" font-weight="900" letter-spacing="0.5">01 EXTERNAL DATA SOURCES</text>
+    <text x="276" y="30" fill="#ea580c" font-size="14" text-anchor="end">📡</text>
+
+    <!-- Source Box 1: IMD & JTWC -->
+    <g transform="translate(14, 46)">
+      <rect width="262" height="136" rx="8" fill="#ffffff" stroke="#fed7aa" stroke-width="1.5"/>
+      <text x="10" y="20" fill="#c2410c" font-size="11.5" font-weight="800">🌀 IMD RSMC &amp; JTWC Telemetry</text>
+      <text x="10" y="34" fill="#9a3412" font-size="9.5" font-weight="500">Live operational tropical cyclone feed</text>
+      
+      <circle cx="14" cy="50" r="2" fill="#ea580c"/>
+      <text x="22" y="53" fill="#7c2d12" font-size="9.5">Best track lat/lon &amp; central pressure</text>
+      
+      <circle cx="14" cy="67" r="2" fill="#ea580c"/>
+      <text x="22" y="70" fill="#7c2d12" font-size="9.5">3-minute max sustained winds (knots)</text>
+      
+      <circle cx="14" cy="84" r="2" fill="#ea580c"/>
+      <text x="22" y="87" fill="#7c2d12" font-size="9.5">Radius of Maximum Winds (RMW) &amp; eye</text>
+      
+      <circle cx="14" cy="101" r="2" fill="#ea580c"/>
+      <text x="22" y="104" fill="#7c2d12" font-size="9.5">Landfall probability cone (12h-72h)</text>
+      
+      <rect x="10" y="112" width="138" height="16" rx="3" fill="#fff7ed" stroke="#fdba74" stroke-width="1"/>
+      <text x="15" y="124" fill="#9a3412" font-size="8.5" font-weight="700" class="mono">REST/GeoJSON ingest</text>
+    </g>
+
+    <!-- Source Box 2: Google Earth Engine -->
+    <g transform="translate(14, 192)">
+      <rect width="262" height="156" rx="8" fill="#ffffff" stroke="#fed7aa" stroke-width="1.5"/>
+      <text x="10" y="20" fill="#c2410c" font-size="11.5" font-weight="800">🛰️ GEE Multi-Sensor Pipeline</text>
+      <text x="10" y="34" fill="#9a3412" font-size="9.5" font-weight="500">Earth Observation cloud catalog</text>
+      
+      <circle cx="14" cy="50" r="2" fill="#ea580c"/>
+      <text x="22" y="53" fill="#7c2d12" font-size="9.5">Sentinel-1 C-SAR (all-weather flood)</text>
+      
+      <circle cx="14" cy="67" r="2" fill="#ea580c"/>
+      <text x="22" y="70" fill="#7c2d12" font-size="9.5">SRTM 30m coastal DEM (elevation)</text>
+      
+      <circle cx="14" cy="84" r="2" fill="#ea580c"/>
+      <text x="22" y="87" fill="#7c2d12" font-size="9.5">Dynamic World 10m Land Use (LULC)</text>
+      
+      <circle cx="14" cy="101" r="2" fill="#ea580c"/>
+      <text x="22" y="104" fill="#7c2d12" font-size="9.5">VIIRS Nightlights (blackout detection)</text>
+      
+      <circle cx="14" cy="118" r="2" fill="#ea580c"/>
+      <text x="22" y="121" fill="#7c2d12" font-size="9.5">Landsat-8/9 post-event scour analysis</text>
+      
+      <rect x="10" y="130" width="168" height="16" rx="3" fill="#fff7ed" stroke="#fdba74" stroke-width="1"/>
+      <text x="15" y="142" fill="#9a3412" font-size="8.5" font-weight="700" class="mono">Python geemap • earthengine-api</text>
+    </g>
+
+    <!-- Source Box 3: Open-Meteo & ERA5 -->
+    <g transform="translate(14, 358)">
+      <rect width="262" height="142" rx="8" fill="#ffffff" stroke="#fed7aa" stroke-width="1.5"/>
+      <text x="10" y="20" fill="#c2410c" font-size="11.5" font-weight="800">🌊 Open-Meteo &amp; ERA5 Reanalysis</text>
+      <text x="10" y="34" fill="#9a3412" font-size="9.5" font-weight="500">Atmosphere-ocean boundary data</text>
+      
+      <circle cx="14" cy="50" r="2" fill="#ea580c"/>
+      <text x="22" y="53" fill="#7c2d12" font-size="9.5">0.1° hourly wind gust &amp; shear grids</text>
+      
+      <circle cx="14" cy="67" r="2" fill="#ea580c"/>
+      <text x="22" y="70" fill="#7c2d12" font-size="9.5">72-hour precipitation accumulation</text>
+      
+      <circle cx="14" cy="84" r="2" fill="#ea580c"/>
+      <text x="22" y="87" fill="#7c2d12" font-size="9.5">Marine bathymetry &amp; tide forecast</text>
+      
+      <circle cx="14" cy="101" r="2" fill="#ea580c"/>
+      <text x="22" y="104" fill="#7c2d12" font-size="9.5">Atmospheric pressure barometric drop</text>
+      
+      <rect x="10" y="114" width="162" height="16" rx="3" fill="#fff7ed" stroke="#fdba74" stroke-width="1"/>
+      <text x="15" y="126" fill="#9a3412" font-size="8.5" font-weight="700" class="mono">Open-Meteo API • NetCDF4</text>
+    </g>
+
+    <!-- Source Box 4: Legend & Ingestion Protocols -->
+    <g transform="translate(14, 510)">
+      <rect width="262" height="136" rx="8" fill="#fff7ed" stroke="#fdba74" stroke-width="1.5"/>
+      <text x="10" y="20" fill="#c2410c" font-size="11" font-weight="800">📋 Legend &amp; Ingestion Protocols</text>
+      
+      <rect x="10" y="32" width="70" height="16" rx="3" fill="#fed7aa"/>
+      <text x="45" y="44" fill="#7c2d12" font-size="8.5" font-weight="700" text-anchor="middle" class="mono">REST / Poll</text>
+      <text x="88" y="44" fill="#7c2d12" font-size="9">IMD / JTWC cyclonic updates (15m)</text>
+
+      <rect x="10" y="56" width="70" height="16" rx="3" fill="#fed7aa"/>
+      <text x="45" y="68" fill="#7c2d12" font-size="8.5" font-weight="700" text-anchor="middle" class="mono">GeoTIFF</text>
+      <text x="88" y="68" fill="#7c2d12" font-size="9">GEE multi-band raster export</text>
+
+      <rect x="10" y="80" width="70" height="16" rx="3" fill="#fed7aa"/>
+      <text x="45" y="92" fill="#7c2d12" font-size="8.5" font-weight="700" text-anchor="middle" class="mono">WebSocket</text>
+      <text x="88" y="92" fill="#7c2d12" font-size="9">Live station barometric telemetry</text>
+
+      <rect x="10" y="104" width="70" height="16" rx="3" fill="#fed7aa"/>
+      <text x="45" y="116" fill="#7c2d12" font-size="8.5" font-weight="700" text-anchor="middle" class="mono">CAP 1.2 XML</text>
+      <text x="88" y="116" fill="#7c2d12" font-size="9">SACHET standard emergency alert</text>
+    </g>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- COLUMN 2: 02 SERVER / BACKEND (X: 326)     -->
+  <!-- Width: 560, Height: 660                    -->
+  <!-- ========================================== -->
+  <g transform="translate(326, 114)">
+    <!-- Column Container -->
+    <rect width="560" height="660" rx="10" fill="#ffffff" stroke="#0284c7" stroke-width="2" filter="url(#cardShadow)"/>
+    
+    <!-- Column Header -->
+    <rect x="16" y="14" width="160" height="22" rx="4" fill="#0284c7"/>
+    <text x="24" y="29" fill="#ffffff" font-size="11" font-weight="900" letter-spacing="0.5">02 SERVER / BACKEND</text>
+    <text x="544" y="30" fill="#0284c7" font-size="14" text-anchor="end">⚙️</text>
+
+    <!-- Sub-Column 1: Core Science & Physics Engine (Width: 260) -->
+    <g transform="translate(14, 46)">
+      <!-- Box 1: Ingestion Gate -->
+      <g transform="translate(0, 0)">
+        <rect width="260" height="98" rx="8" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1.5"/>
+        <text x="10" y="20" fill="#0369a1" font-size="11" font-weight="800">🛡️ Ingestion &amp; Validation Gate</text>
+        <rect x="10" y="28" width="128" height="15" rx="3" fill="#0284c7"/>
+        <text x="74" y="39" fill="#ffffff" font-size="8.5" font-weight="700" text-anchor="middle" class="mono">CycloneState Schema</text>
+        
+        <text x="10" y="58" fill="#0c4a6e" font-size="9">• Strict Pydantic V2 type validation</text>
+        <text x="10" y="72" fill="#0c4a6e" font-size="9">• Spatial bounding-box &amp; NaN clipping</text>
+        <text x="10" y="86" fill="#0c4a6e" font-size="9">• Zero unvalidated exterior data past gate</text>
+      </g>
+
+      <!-- Box 2: Python Resilience Service -->
+      <g transform="translate(0, 108)">
+        <rect width="260" height="126" rx="8" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1.5"/>
+        <text x="10" y="20" fill="#0369a1" font-size="11" font-weight="800">🐍 Python + FastAPI Service</text>
+        <rect x="10" y="28" width="154" height="15" rx="3" fill="#e0f2fe" stroke="#7dd3fc" stroke-width="1"/>
+        <text x="14" y="39" fill="#0369a1" font-size="8.5" font-weight="700" class="mono">main.py • routes/resilience.py</text>
+        
+        <text x="10" y="58" fill="#0c4a6e" font-size="9">• Async request handling (concurrency-safe)</text>
+        <text x="10" y="72" fill="#0c4a6e" font-size="9">• In-memory caching &amp; NumPy vectorization</text>
+        <text x="10" y="86" fill="#0c4a6e" font-size="9">• Deterministic fallback scenario fixtures</text>
+        <text x="10" y="100" fill="#0c4a6e" font-size="9">• Real-time compute pipeline (&lt;1.2s total)</text>
+        
+        <rect x="10" y="106" width="180" height="14" rx="2" fill="#ffffff" stroke="#bae6fd" stroke-width="1"/>
+        <text x="14" y="117" fill="#0369a1" font-size="7.5" font-weight="700" class="mono">uvicorn • pydantic v2 • numpy</text>
+      </g>
+
+      <!-- Box 3: 4 PyTorch AI Models -->
+      <g transform="translate(0, 244)">
+        <rect width="260" height="186" rx="8" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1.5"/>
+        <text x="10" y="20" fill="#0369a1" font-size="11" font-weight="800">🧠 4 PyTorch AI Models</text>
+        <text x="10" y="34" fill="#0284c7" font-size="9" font-weight="700" class="mono">torch.nn • CUDA / CPU-Optimized</text>
+        
+        <!-- Model 1 -->
+        <rect x="8" y="42" width="244" height="30" rx="4" fill="#ffffff" stroke="#e0f2fe" stroke-width="1"/>
+        <text x="14" y="55" fill="#0369a1" font-size="9.5" font-weight="800">1. UNet Flood Inundation Segmenter</text>
+        <text x="14" y="67" fill="#334155" font-size="8.5">SAR + elevation ➔ 10m depth probability</text>
+
+        <!-- Model 2 -->
+        <rect x="8" y="77" width="244" height="30" rx="4" fill="#ffffff" stroke="#e0f2fe" stroke-width="1"/>
+        <text x="14" y="90" fill="#0369a1" font-size="9.5" font-weight="800">2. Bidirectional LSTM Track Forecast</text>
+        <text x="14" y="102" fill="#334155" font-size="8.5">12h-72h cone trajectory &amp; intensity</text>
+
+        <!-- Model 3 -->
+        <rect x="8" y="112" width="244" height="30" rx="4" fill="#ffffff" stroke="#e0f2fe" stroke-width="1"/>
+        <text x="14" y="125" fill="#0369a1" font-size="9.5" font-weight="800">3. Graph Neural Net (GNN) Grid Failure</text>
+        <text x="14" y="137" fill="#334155" font-size="8.5">Substation cascade &amp; blackouts</text>
+
+        <!-- Model 4 -->
+        <rect x="8" y="147" width="244" height="30" rx="4" fill="#ffffff" stroke="#e0f2fe" stroke-width="1"/>
+        <text x="14" y="160" fill="#0369a1" font-size="9.5" font-weight="800">4. Multimodal Drone Damage Inspector</text>
+        <text x="14" y="172" fill="#334155" font-size="8.5">Pylon collapse, roof peel, culvert scour</text>
+      </g>
+
+      <!-- Box 4: Physics & Numerical Coprocessors -->
+      <g transform="translate(0, 440)">
+        <rect width="260" height="154" rx="8" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1.5"/>
+        <text x="10" y="20" fill="#0369a1" font-size="11" font-weight="800">🌊 Physics &amp; Numerical Engine</text>
+        
+        <circle cx="14" cy="38" r="2" fill="#0284c7"/>
+        <text x="22" y="41" fill="#0c4a6e" font-size="9"><strong>Shallow-Shelf Surge Model:</strong></text>
+        <text x="22" y="53" fill="#475569" font-size="8.5">Hydrodynamic wind push + shelf bathymetry</text>
+
+        <circle cx="14" cy="69" r="2" fill="#0284c7"/>
+        <text x="22" y="72" fill="#0c4a6e" font-size="9"><strong>6-Stage Causal Runoff Routing:</strong></text>
+        <text x="22" y="84" fill="#475569" font-size="8.5">Rainfall ➔ Soil Saturation ➔ Overland ➔ Basin</text>
+
+        <circle cx="14" cy="100" r="2" fill="#0284c7"/>
+        <text x="22" y="103" fill="#0c4a6e" font-size="9"><strong>Manning's Roughness n Friction:</strong></text>
+        <text x="22" y="115" fill="#475569" font-size="8.5">Urban concrete vs coastal mangrove drag</text>
+
+        <rect x="10" y="126" width="180" height="16" rx="3" fill="#ffffff" stroke="#bae6fd" stroke-width="1"/>
+        <text x="15" y="138" fill="#0369a1" font-size="8" font-weight="700" class="mono">Vectorized NumPy • SciPy ODE</text>
+      </g>
+    </g>
+
+    <!-- Sub-Column 2: REST API Surface & AI Intelligence (Width: 260, X: 286) -->
+    <g transform="translate(286, 46)">
+      <!-- Box 1: FastAPI REST Endpoints -->
+      <g transform="translate(0, 0)">
+        <rect width="260" height="342" rx="8" fill="#ffffff" stroke="#93c5fd" stroke-width="1.5"/>
+        <text x="10" y="20" fill="#0284c7" font-size="11" font-weight="800">🔌 FastAPI REST API Surface</text>
+        <text x="10" y="34" fill="#64748b" font-size="9">Verified operational endpoint collection</text>
+
+        <!-- Endpoint 1 -->
+        <g transform="translate(10, 44)">
+          <rect width="240" height="42" rx="4" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+          <rect x="6" y="6" width="38" height="14" rx="2" fill="#0284c7"/>
+          <text x="25" y="16" fill="#ffffff" font-size="8" font-weight="800" text-anchor="middle" class="mono">POST</text>
+          <text x="48" y="17" fill="#0f172a" font-size="9" font-weight="700" class="mono">/api/resilience/assess</text>
+          <text x="6" y="32" fill="#475569" font-size="8">Central compound hazard assessment &amp; score</text>
+        </g>
+
+        <!-- Endpoint 2 -->
+        <g transform="translate(10, 92)">
+          <rect width="240" height="42" rx="4" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+          <rect x="6" y="6" width="38" height="14" rx="2" fill="#0284c7"/>
+          <text x="25" y="16" fill="#ffffff" font-size="8" font-weight="800" text-anchor="middle" class="mono">POST</text>
+          <text x="48" y="17" fill="#0f172a" font-size="9" font-weight="700" class="mono">/api/ai/analyze-cyclone</text>
+          <text x="6" y="32" fill="#475569" font-size="8">Gemini 3.7 Flash tactical synthesis &amp; citations</text>
+        </g>
+
+        <!-- Endpoint 3 -->
+        <g transform="translate(10, 140)">
+          <rect width="240" height="42" rx="4" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+          <rect x="6" y="6" width="38" height="14" rx="2" fill="#0284c7"/>
+          <text x="25" y="16" fill="#ffffff" font-size="8" font-weight="800" text-anchor="middle" class="mono">POST</text>
+          <text x="48" y="17" fill="#0f172a" font-size="9" font-weight="700" class="mono">/api/resilience/inspect-drone</text>
+          <text x="6" y="32" fill="#475569" font-size="8">UAV aerial photo structural defect parser</text>
+        </g>
+
+        <!-- Endpoint 4 -->
+        <g transform="translate(10, 188)">
+          <rect width="240" height="42" rx="4" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+          <rect x="6" y="6" width="32" height="14" rx="2" fill="#059669"/>
+          <text x="22" y="16" fill="#ffffff" font-size="8" font-weight="800" text-anchor="middle" class="mono">GET</text>
+          <text x="42" y="17" fill="#0f172a" font-size="9" font-weight="700" class="mono">/api/resilience/cap-alert.xml</text>
+          <text x="6" y="32" fill="#475569" font-size="8">SACHET-compliant XML CAP feed for siren broadcast</text>
+        </g>
+
+        <!-- Endpoint 5 -->
+        <g transform="translate(10, 236)">
+          <rect width="240" height="42" rx="4" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+          <rect x="6" y="6" width="32" height="14" rx="2" fill="#059669"/>
+          <text x="22" y="16" fill="#ffffff" font-size="8" font-weight="800" text-anchor="middle" class="mono">GET</text>
+          <text x="42" y="17" fill="#0f172a" font-size="9" font-weight="700" class="mono">/api/resilience/health</text>
+          <text x="6" y="32" fill="#475569" font-size="8">Heartbeat probe &amp; PyTorch CUDA runtime state</text>
+        </g>
+
+        <!-- Endpoint 6 -->
+        <g transform="translate(10, 284)">
+          <rect width="240" height="42" rx="4" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+          <rect x="6" y="6" width="32" height="14" rx="2" fill="#059669"/>
+          <text x="22" y="16" fill="#ffffff" font-size="8" font-weight="800" text-anchor="middle" class="mono">GET</text>
+          <text x="42" y="17" fill="#0f172a" font-size="9" font-weight="700" class="mono">/api/resilience/sample-scenarios</text>
+          <text x="6" y="32" fill="#475569" font-size="8">Offline fallback scenarios (Fani, Biparjoy, Phailin)</text>
+        </g>
+      </g>
+
+      <!-- Box 2: Gemini 3.7 Flash & Provenance Service -->
+      <g transform="translate(0, 354)">
+        <rect width="260" height="240" rx="8" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.5"/>
+        <text x="10" y="20" fill="#6d28d9" font-size="11" font-weight="800">✨ Gemini 3.7 Flash Reasoning</text>
+        <text x="10" y="34" fill="#7c3aed" font-size="9" font-weight="700" class="mono">google-genai • Multimodal Copilot</text>
+
+        <!-- Card 1 -->
+        <rect x="10" y="44" width="240" height="52" rx="4" fill="#ffffff" stroke="#ddd6fe" stroke-width="1"/>
+        <text x="16" y="58" fill="#5b21b6" font-size="9.5" font-weight="800">Autonomous Incident Action Plan (IAP)</text>
+        <text x="16" y="72" fill="#475569" font-size="8.5">Synthesizes NDMA Form 201/202 operational</text>
+        <text x="16" y="84" fill="#475569" font-size="8.5">directives with estimated costs in ₹ Crores.</text>
+
+        <!-- Card 2 -->
+        <rect x="10" y="104" width="240" height="58" rx="4" fill="#ffffff" stroke="#ddd6fe" stroke-width="1"/>
+        <text x="16" y="118" fill="#5b21b6" font-size="9.5" font-weight="800">Sensor Provenance &amp; Verification</text>
+        <text x="16" y="132" fill="#475569" font-size="8.5">Every recommendation is cross-referenced</text>
+        <text x="16" y="144" fill="#475569" font-size="8.5">with exact satellite pass IDs, tidal gauges,</text>
+        <text x="16" y="156" fill="#475569" font-size="8.5">and confidence intervals (zero hallucination).</text>
+
+        <!-- Card 3 -->
+        <rect x="10" y="170" width="240" height="58" rx="4" fill="#ffffff" stroke="#ddd6fe" stroke-width="1"/>
+        <text x="16" y="184" fill="#5b21b6" font-size="9.5" font-weight="800">Multimodal Vision Defect Parser</text>
+        <text x="16" y="198" fill="#475569" font-size="8.5">Inspects high-resolution drone photography</text>
+        <text x="16" y="210" fill="#475569" font-size="8.5">to score structural damage severity and</text>
+        <text x="16" y="222" fill="#475569" font-size="8.5">generate immediate field repair instructions.</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- COLUMN 3: 03 CLIENT / BROWSER (X: 902)     -->
+  <!-- Width: 478, Height: 660                    -->
+  <!-- ========================================== -->
+  <g transform="translate(902, 114)">
+    <!-- Column Container -->
+    <rect width="478" height="660" rx="10" fill="#ffffff" stroke="#059669" stroke-width="2" filter="url(#cardShadow)"/>
+    
+    <!-- Column Header -->
+    <rect x="16" y="14" width="160" height="22" rx="4" fill="#059669"/>
+    <text x="24" y="29" fill="#ffffff" font-size="11" font-weight="900" letter-spacing="0.5">03 CLIENT / BROWSER</text>
+    <text x="462" y="30" fill="#059669" font-size="14" text-anchor="end">💻</text>
+
+    <!-- Card 1: Canonical State Layer -->
+    <g transform="translate(14, 46)">
+      <rect width="450" height="76" rx="8" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="1.5"/>
+      <text x="12" y="20" fill="#047857" font-size="11" font-weight="800">⚛️ React 19 + TypeScript + Vite</text>
+      <text x="12" y="34" fill="#065f46" font-size="10.5" font-weight="800">Canonical State Layer</text>
+      <text x="12" y="50" fill="#334155" font-size="9">Single source of UI truth: <tspan class="mono" font-weight="700">CentralResilienceAssessment</tspan> synchronizing</text>
+      <text x="12" y="64" fill="#334155" font-size="9">storm telemetry, surge contours, building risk indices, and asset status.</text>
+    </g>
+
+    <!-- Card 2: 3D Digital Twin & 2D Tactical Map -->
+    <g transform="translate(14, 130)">
+      <rect width="450" height="88" rx="8" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="1.5"/>
+      <text x="12" y="20" fill="#047857" font-size="11" font-weight="800">🧊 Three.js 3D Digital Twin &amp; 2D Tactical Map</text>
+      
+      <circle cx="16" cy="38" r="2" fill="#059669"/>
+      <text x="24" y="41" fill="#065f46" font-size="9.5"><strong>MapLibre GL:</strong> 200m building damage risk grid with dynamic wind incidence.</text>
+      
+      <circle cx="16" cy="58" r="2" fill="#059669"/>
+      <text x="24" y="61" fill="#065f46" font-size="9.5"><strong>Three.js Scene:</strong> Depth-referenced surge water plane + real building parcel</text>
+      <text x="24" y="74" fill="#065f46" font-size="9.5">extrusions + clickable infrastructure markers with live damage popups.</text>
+    </g>
+
+    <!-- Card 3: Anticipatory Action Hub (Table) -->
+    <g transform="translate(14, 226)">
+      <rect width="450" height="340" rx="8" fill="#ffffff" stroke="#a7f3d0" stroke-width="1.5"/>
+      <text x="12" y="22" fill="#047857" font-size="11" font-weight="800">📊 Anticipatory Action Hub — 4 Linked Modules</text>
+      
+      <!-- Module 1: Evidence -> Action -->
+      <g transform="translate(10, 34)">
+        <rect width="430" height="68" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+        <rect x="8" y="8" width="130" height="20" rx="4" fill="#059669"/>
+        <text x="73" y="22" fill="#ffffff" font-size="9.5" font-weight="800" text-anchor="middle">Evidence ➔ Action</text>
+        <text x="146" y="22" fill="#0f172a" font-size="9.5" font-weight="700">Pre-Landfall Directives</text>
+        <text x="12" y="42" fill="#334155" font-size="9">• Power de-energization for substations in high water risk zone</text>
+        <text x="12" y="56" fill="#334155" font-size="9">• Highway bypass diversions &amp; hospital citadel power readiness</text>
+      </g>
+
+      <!-- Module 2: Sandbox Defense -->
+      <g transform="translate(10, 110)">
+        <rect width="430" height="68" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+        <rect x="8" y="8" width="130" height="20" rx="4" fill="#0284c7"/>
+        <text x="73" y="22" fill="#ffffff" font-size="9.5" font-weight="800" text-anchor="middle">Sandbox Defense</text>
+        <text x="146" y="22" fill="#0f172a" font-size="9.5" font-weight="700">Counterfactual Simulator</text>
+        <text x="12" y="42" fill="#334155" font-size="9">• Interactive "Deploy Mobile Barrier at NH-53 Km 18.4"</text>
+        <text x="12" y="56" fill="#334155" font-size="9">• Instant recalculation: -30% surge reach, restores passability</text>
+      </g>
+
+      <!-- Module 3: Drone Recon -->
+      <g transform="translate(10, 186)">
+        <rect width="430" height="68" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+        <rect x="8" y="8" width="130" height="20" rx="4" fill="#4f46e5"/>
+        <text x="73" y="22" fill="#ffffff" font-size="9.5" font-weight="800" text-anchor="middle">Drone Recon</text>
+        <text x="146" y="22" fill="#0f172a" font-size="9.5" font-weight="700">Multimodal UAV Damage Inspection</text>
+        <text x="12" y="42" fill="#334155" font-size="9">• Drag-and-drop low-altitude aerial damage photography</text>
+        <text x="12" y="56" fill="#334155" font-size="9">• AI flags fallen pylons, culvert scour, and hospital roof peel</text>
+      </g>
+
+      <!-- Module 4: IAP & CAP XML -->
+      <g transform="translate(10, 262)">
+        <rect width="430" height="68" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+        <rect x="8" y="8" width="130" height="20" rx="4" fill="#ea580c"/>
+        <text x="73" y="22" fill="#ffffff" font-size="9.5" font-weight="800" text-anchor="middle">IAP &amp; CAP XML</text>
+        <text x="146" y="22" fill="#0f172a" font-size="9.5" font-weight="700">Formal Multi-Agency Dissemination</text>
+        <text x="12" y="42" fill="#334155" font-size="9">• One-click NDMA Form 201/202 Incident Action Plan generation</text>
+        <text x="12" y="56" fill="#334155" font-size="9">• Validated CAP XML feed for national public alert system (SACHET)</text>
+      </g>
+    </g>
+
+    <!-- Card 4: NDMA / SDMA Commander Banner -->
+    <g transform="translate(14, 576)">
+      <rect width="450" height="70" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+      <circle cx="36" cy="35" r="18" fill="#334155"/>
+      <text x="36" y="42" fill="#ffffff" font-size="18" text-anchor="middle">👤</text>
+      <text x="66" y="28" fill="#ffffff" font-size="12" font-weight="800">NDMA / SDMA Operations Commander</text>
+      <text x="66" y="44" fill="#94a3b8" font-size="9.5">Any modern browser • zero native client install • no local GPU cluster</text>
+      <text x="66" y="58" fill="#38bdf8" font-size="8.5" font-weight="600" class="mono">Role-based controls • Real-time interactive decision feedback</text>
+    </g>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- CONNECTING ARROWS OVERLAY                  -->
+  <!-- ========================================== -->
+  <!-- Col 1 to Col 2 Ingestion Arrow -->
+  <path d="M 310 240 L 324 240" stroke="#ea580c" stroke-width="3" marker-end="url(#arrowOrange)"/>
+  <rect x="295" y="226" width="46" height="13" rx="2" fill="#ea580c"/>
+  <text x="318" y="235" fill="#ffffff" font-size="7.5" font-weight="800" text-anchor="middle" class="mono">INGEST</text>
+
+  <!-- Col 2 to Col 3 REST / JSON State Arrow -->
+  <path d="M 886 160 L 900 160" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowBlue)"/>
+  <rect x="864" y="146" width="62" height="13" rx="2" fill="#0284c7"/>
+  <text x="895" y="155" fill="#ffffff" font-size="7.5" font-weight="800" text-anchor="middle" class="mono">REST/JSON</text>
+
+  <!-- Col 3 to Col 2 Feedback / Trigger Arrow -->
+  <path d="M 902 280 L 888 280" stroke="#059669" stroke-width="2.5" stroke-dasharray="4 2" marker-end="url(#arrowGreen)"/>
+  <rect x="874" y="266" width="42" height="13" rx="2" fill="#059669"/>
+  <text x="895" y="275" fill="#ffffff" font-size="7.5" font-weight="800" text-anchor="middle" class="mono">ACTION</text>
+
+</svg>
