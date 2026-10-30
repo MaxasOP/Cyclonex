@@ -859,7 +859,7 @@ export default function RiskMap({
           </div>
           <div className="dock-divider" />
           <div className="dock-opacity">
-            <span className="dock-opacity-label">Grid {Math.round(gridOpacity * 100)}%</span>
+            <span className="dock-opacity-label">{features[0]?.properties.grid_size_m ?? "—"} m grid {Math.round(gridOpacity * 100)}%</span>
             <input
               type="range"
               min="15"
@@ -867,7 +867,7 @@ export default function RiskMap({
               value={Math.round(gridOpacity * 100)}
               onChange={(e) => setGridOpacity(Number(e.target.value) / 100)}
               className="dock-opacity-slider"
-              title="Adjust 200m damage grid layer opacity (15%–95%)"
+              title="Adjust scenario grid layer opacity (15%–95%)"
             />
           </div>
         </div>
@@ -1001,9 +1001,9 @@ export default function RiskMap({
           >
             <Popup>
               <div style={{ fontFamily: "-apple-system, system-ui, sans-serif", fontSize: "0.82rem" }}>
-                <strong style={{ color: "#ffab40" }}>⚠️ IMD Cone of Uncertainty</strong>
+                <strong style={{ color: "#ffab40" }}>Illustrative forecast corridor</strong>
                 <div style={{ marginTop: "4px", color: "#d7e5f5", lineHeight: 1.4 }}>
-                  Represents 67% probability envelope of cyclone track based on out-of-sample error:
+                  Scenario visualization; the following radii are illustrative and have no calibrated probability:
                   <br />• 6h error radius: ±16.9 km
                   <br />• 12h error radius: ±34.1 km
                   <br />• 24h error radius: ±73.9 km

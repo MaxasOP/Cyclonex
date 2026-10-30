@@ -38,7 +38,7 @@ export default function ContextualCyclonePanel({
   speedKph,
   lat,
   lon,
-  aiConfidence = 94.7,
+  aiConfidence = 0,
   trend = "Strengthening (Eyewall consolidation)",
   onNavigateSection,
 }: ContextualCyclonePanelProps) {

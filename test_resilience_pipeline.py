@@ -13,6 +13,7 @@ Validates:
 
 import sys
 import unittest
+from unittest.mock import patch
 from datetime import datetime
 
 from canonical_models import (
@@ -169,20 +170,12 @@ class TestEvacuationRouting(unittest.TestCase):
     """Validates multi-strategy evacuation routing and trade-off generation."""
 
     def test_evacuation_routes(self):
-        evac = EvacuationRoutingEngine.compute_evacuation_assessment(eye_lon=86.8, surge_height_m=2.8)
-        self.assertEqual(len(evac.recommended_routes), 4)
-        
-        types = [r.route_type for r in evac.recommended_routes]
-        self.assertIn("Fastest", types)
-        self.assertIn("Safest", types)
-        self.assertIn("Flood-avoiding", types)
-        self.assertIn("Capacity-aware", types)
+        with patch("routing_service.road_routes", return_value={"status": "UNAVAILABLE", "source": "OSRM_ROAD_NETWORK", "routes": [], "notice": "Provider unavailable"}):
+            evac = EvacuationRoutingEngine.compute_evacuation_assessment(eye_lon=86.8, surge_height_m=2.8)
+        self.assertEqual(evac.status, "UNAVAILABLE")
+        self.assertEqual(evac.recommended_routes, [])
+        self.assertEqual(evac.assigned_shelter_count, 0)
 
-        fast = next(r for r in evac.recommended_routes if r.route_type == "Fastest")
-        safe = next(r for r in evac.recommended_routes if r.route_type == "Safest")
-        # Safest route must have lower flood risk than fastest
-        self.assertGreater(safe.distance_km, fast.distance_km)
-        self.assertEqual(safe.flood_risk_level, "LOW")
 
 
 class TestParametricLiquiditySimulation(unittest.TestCase):
@@ -212,6 +205,11 @@ class TestParametricLiquiditySimulation(unittest.TestCase):
 
 
 class TestFullResilienceServiceIntegration(unittest.TestCase):
+    def setUp(self):
+        routes = patch("routing_service.road_routes", return_value={"status":"UNAVAILABLE", "source":"OSRM_ROAD_NETWORK", "routes":[], "notice":"No verified routes"})
+        routes.start()
+        self.addCleanup(routes.stop)
+
     """Validates end-to-end integration and graceful degradation."""
 
     def test_standard_evaluation(self):
@@ -294,7 +292,8 @@ class TestFullResilienceServiceIntegration(unittest.TestCase):
         self.assertIn('xmlns="urn:oasis:names:tc:emergency:cap:1.2"', xml)
         self.assertIn('<valueName>NDMA-SACHET</valueName>', xml)
         self.assertIn('<severity>Extreme</severity>', xml)
-        self.assertIn('Paradip Municipality', xml)
+        self.assertIn('<status>Exercise</status>', xml)
+        self.assertIn('<certainty>Possible</certainty>', xml)
 
 
 if __name__ == "__main__":

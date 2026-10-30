@@ -179,79 +179,47 @@ def generate_synthetic_coastal_buildings(south: float, west: float, north: float
 
 
 def fetch_buildings(south: float, west: float, north: float, east: float) -> dict[str, Any]:
+    from copy import deepcopy
+    from time import monotonic
     bbox_key = (round(south, 4), round(west, 4), round(north, 4), round(east, 4))
-    if bbox_key in _MEMORY_BUILDING_CACHE:
-        return _MEMORY_BUILDING_CACHE[bbox_key]
+    entry = _MEMORY_BUILDING_CACHE.get(bbox_key)
+    if entry and monotonic() - entry["cached_at"] < 900:
+        return deepcopy(entry["result"])
 
-    try:
-        from storage import get_cached_buildings, save_cached_buildings
-        cached = get_cached_buildings(south, west, north, east)
-        if cached is not None:
-            _MEMORY_BUILDING_CACHE[bbox_key] = cached
-            return cached
-    except Exception:
-        save_cached_buildings = None
-
-    c_lat = (south + north) / 2.0
-    c_lon = (west + east) / 2.0
-    sub_half = 0.016  # Focus on ~3.5km central landfall impact zone
-    q_s = max(south, c_lat - sub_half)
-    q_n = min(north, c_lat + sub_half)
-    q_w = max(west, c_lon - sub_half)
-    q_e = min(east, c_lon + sub_half)
-
-    query = f"[out:json][timeout:15];way[\"building\"]({q_s:.5f},{q_w:.5f},{q_n:.5f},{q_e:.5f});out tags geom 200;"
-    raw: dict[str, Any] = {}
-    try:
-        response = requests.post(
-            OVERPASS_URL,
-            data={"data": query},
-            headers={
-                "Content-Type": "application/x-www-form-urlencoded",
-                "User-Agent": "CYCLONEX-SIH/2.0 (contact@cyclonex.internal)",
-            },
-            timeout=OVERPASS_TIMEOUT,
-        )
-        response.raise_for_status()
-        raw = response.json()
-    except Exception:
+    c_lat, c_lon = (south + north) / 2, (west + east) / 2
+    # Use known local footprints first. Never fabricate emergency infrastructure.
+    candidates = [b for b in _get_bundled_buildings(c_lat, c_lon)
+                  if west <= b["centroid"][0] <= east and south <= b["centroid"][1] <= north]
+    source = "BUNDLED_FOOTPRINTS_UNVERIFIED" if candidates else "OPENSTREETMAP_LIVE"
+    status = "CACHED" if candidates else "LIVE"
+    error = None
+    q_s, q_n = max(south, c_lat - .016), min(north, c_lat + .016)
+    q_w, q_e = max(west, c_lon - .016), min(east, c_lon + .016)
+    if not candidates:
+        query = f'[out:json][timeout:8];way["building"]({q_s:.5f},{q_w:.5f},{q_n:.5f},{q_e:.5f});out tags geom 200;'
         raw = {}
-
-    candidates: list[dict[str, Any]] = []
-    for item in raw.get("elements", []):
-        geometry = item.get("geometry", [])
-        if len(geometry) < 3:
-            continue
-        ring = [[point["lon"], point["lat"]] for point in geometry]
-        if ring[0] != ring[-1]:
-            ring.append(ring[0])
-        height_m, height_source = _height_m(item.get("tags", {}))
-        bld_name = item.get("tags", {}).get("name")
-        bld_tag = (item.get("tags", {}).get("building") or "residential").upper()
-        if not bld_name:
-            bld_name = f"Coastal {bld_tag.capitalize()} #{item['id']}"
-
-        candidates.append(
-            {
-                "id": f"osm-way-{item['id']}",
-                "name": bld_name,
-                "building_type": bld_tag,
-                "ring": ring,
-                "centroid": _centroid(ring[:-1]),
-                "height_m": height_m or 9.0,
-                "height_source": height_source,
-                "is_locally_taller": False,
-                "capacity": 0,
-            }
-        )
-
-    # 1. First fallback: use bundled authentic OSM datasets for major coastal cities
-    if not candidates:
-        candidates = _get_bundled_buildings(c_lat, c_lon)
-
-    # 2. Second fallback: generate realistic synthetic coastal infrastructure
-    if not candidates:
-        candidates = generate_synthetic_coastal_buildings(south, west, north, east)
+        try:
+            response = requests.post(OVERPASS_URL, data={"data": query},
+                                     headers={"User-Agent": "CYCLONEX/2.2"}, timeout=(2, 8))
+            response.raise_for_status()
+            raw = response.json()
+        except (requests.RequestException, ValueError):
+            error, status = "Building provider unavailable; no footprints were invented.", "UNAVAILABLE"
+        for item in raw.get("elements", []):
+            geometry = item.get("geometry", [])
+            if len(geometry) < 3:
+                continue
+            ring = [[point["lon"], point["lat"]] for point in geometry]
+            if ring[0] != ring[-1]:
+                ring.append(ring[0])
+            tags = item.get("tags", {})
+            height_m, height_source = _height_m(tags)
+            candidates.append({"id": f"osm-way-{item['id']}", "name": tags.get("name", f"OSM building {item['id']}"),
+                               "building_type": tags.get("building", "yes").upper(), "ring": ring,
+                               "centroid": _centroid(ring[:-1]), "height_m": height_m,
+                               "height_source": height_source, "is_locally_taller": False, "capacity": 0})
+        if not candidates and status == "LIVE":
+            status = "NO_DATA"
 
     features: list[dict[str, Any]] = []
     for building in candidates:
@@ -285,14 +253,17 @@ def fetch_buildings(south: float, west: float, north: float, east: float) -> dic
         "type": "FeatureCollection",
         "features": features,
         "metadata": {
-            "source": "OpenStreetMap via Overpass API",
+            "source": source,
+            "status": status,
+            "notice": error,
+            "query_extent": {"south": q_s, "west": q_w, "north": q_n, "east": q_e},
+            "coverage": "Partial footprint coverage; not a complete scenario inventory.",
             "height_notice": "Height may be absent or estimated from building levels.",
             "adjacency_definition": "Centroids within 15 m, with a lower neighbouring recorded height.",
         },
     }
-    try:
-        from storage import save_cached_buildings
-        save_cached_buildings(south, west, north, east, result)
-    except Exception:
-        pass
+    if candidates:
+        _MEMORY_BUILDING_CACHE[bbox_key] = {"cached_at": monotonic(), "result": deepcopy(result)}
+        if len(_MEMORY_BUILDING_CACHE) > 32:
+            _MEMORY_BUILDING_CACHE.pop(next(iter(_MEMORY_BUILDING_CACHE)))
     return result

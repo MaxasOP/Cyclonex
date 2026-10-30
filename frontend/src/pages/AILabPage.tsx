@@ -14,12 +14,12 @@ import {
   ShieldAlert,
   Gauge
 } from "lucide-react";
-import type { AICycloneAnalysisResponse } from "../api";
+import type { AICycloneAnalysisResponse, AICycloneAnalysisRequest } from "../api";
 
 interface AILabPageProps {
   analysis: AICycloneAnalysisResponse | null;
   loading: boolean;
-  onRunAnalysis: (lat?: number, lon?: number, wind?: number, pressure?: number) => void;
+  onRunAnalysis: (lat?: number, lon?: number, wind?: number, pressure?: number, images?: AICycloneAnalysisRequest["satellite_images"]) => void;
   stormName: string;
   lat: number;
   lon: number;
@@ -47,16 +47,18 @@ export default function AILabPage({
   const [viewMode, setViewMode] = useState<"pipeline" | "slider">("slider");
   const [sliderPos, setSliderPos] = useState<number>(50); // percentage 0 to 100
   const isDragging = useRef<boolean>(false);
+  const [images, setImages] = useState<NonNullable<AICycloneAnalysisRequest["satellite_images"]>>({});
+  const [uploadError, setUploadError] = useState("");
 
   const [customLat, setCustomLat] = useState(lat.toString());
   const [customLon, setCustomLon] = useState(lon.toString());
   const [customWind, setCustomWind] = useState(windKph.toString());
   const [customPressure, setCustomPressure] = useState(pressureHpa.toString());
 
-  const currentWind = Number(customWind) || windKph || 120;
-  const currentPressure = Number(customPressure) || pressureHpa || 984;
-  const currentLat = Number(customLat) || lat || 18.35;
-  const currentLon = Number(customLon) || lon || 72.98;
+  const currentWind = Number(customWind);
+  const currentPressure = Number(customPressure);
+  const currentLat = Number(customLat);
+  const currentLon = Number(customLon);
 
   // Dynamic Dvorak intensity calculations
   const dvorakScore = Math.min(8.0, Math.max(1.0, Number((1.0 + (currentWind - 45) / 18).toFixed(1))));
@@ -109,24 +111,20 @@ export default function AILabPage({
   ];
 
   const PIPELINE_STAGES = [
-    { idx: 1, title: "Raw Satellite", sub: "INSAT-3DR HDF5", desc: "Uncalibrated 10-bit digital radiometry ingest with scanlines" },
+    { idx: 1, title: "Raw Satellite", sub: "Illustrative scene", desc: "Uncalibrated 10-bit digital radiometry ingest with scanlines" },
     { idx: 2, title: "Preprocessing", sub: "Tb Conversion", desc: "Brightness temperature calibration & cold cloud-top thresholding" },
     { idx: 3, title: "Pattern Analysis", sub: "Eye & Spirals", desc: "Logarithmic spiral curve fitting & convective wrap angles" },
     { idx: 4, title: "Dvorak CI", sub: `ADT ${dvorakCI}`, desc: "Objective intensity estimation via Eye/CDO thermal contrast" },
-    { idx: 5, title: "ML Inference", sub: "ResNet-50", desc: "Convolutional activation heatmaps & neural feature tensor extraction" },
-    { idx: 6, title: "Confidence", sub: "94.7% Certainty", desc: "Bayesian ensemble probability distribution across category weights" },
-    { idx: 7, title: "Cyclone Directive", sub: imdClassification.split("(")[0].trim(), desc: "Operational warning issuance & NDMA Stage 4 alert directive" },
+    { idx: 5, title: "ML Inference", sub: analysis?.model_status.classification || "Not run", desc: "Convolutional activation heatmaps & neural feature tensor extraction" },
+    { idx: 6, title: "Confidence", sub: "Uncalibrated", desc: "No calibrated certainty is available for experimental models" },
+    { idx: 7, title: "Cyclone Directive", sub: imdClassification.split("(")[0].trim(), desc: "Scenario screening classification; no warning issued" },
   ];
 
   const handleTriggerAnalysis = () => {
-    onRunAnalysis(currentLat, currentLon, currentWind, currentPressure);
+    onRunAnalysis(currentLat, currentLon, currentWind, currentPressure, Object.keys(images).length ? images : undefined);
   };
 
-  const confidenceScore = analysis?.classification?.confidence
-    ? Math.round(analysis.classification.confidence * 100)
-    : analysis?.identification?.confidence
-    ? Math.round(analysis.identification.confidence * 100)
-    : 94.7;
+  const confidenceLabel = "Not calibrated";
 
   // Slider Mouse Move Handler
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -146,14 +144,13 @@ export default function AILabPage({
           <div>
             <div className="op-section-kicker">
               <Brain size={12} style={{ display: "inline", marginRight: "6px" }} />
-              OPERATIONAL MACHINE LEARNING &middot; ADT PIPELINE
+              EXPERIMENTAL ANALYSIS &middot; SCENARIO SCREENING
             </div>
             <h1 className="op-section-title" style={{ fontSize: "28px" }}>
               AI Satellite &amp; Neural Laboratory
             </h1>
             <p className="op-section-desc" style={{ marginBottom: "0" }}>
-              Visualizing the step-by-step transformation from raw geostationary radiometry into objective
-              Dvorak T-numbers, central pressure deficits, and convolutional pattern classifications.
+              Upload image channels for experimental inference, or run a labelled synthetic scenario. The diagrams below are illustrations, not observed satellite imagery.
             </p>
           </div>
 
@@ -177,6 +174,24 @@ export default function AILabPage({
           </div>
         </div>
 
+        <div role="status" className="op-technical-panel" style={{marginBottom: 16}}>
+          <strong>{analysis?.provenance?.imagery || "No analysis result"}</strong>
+          <p>{analysis?.provenance?.note || "No live satellite feed is connected. Upload imagery or run a synthetic scenario."}</p>
+          <label>Upload {selectedChannel} image (PNG/JPEG; maximum 10 MB)
+            <input type="file" accept="image/png,image/jpeg" onChange={async (event) => {
+              const file = event.target.files?.[0]; if (!file) return;
+              if (file.size > 10 * 1024 * 1024) { setUploadError("Image exceeds 10 MB"); return; }
+              const key = {IR:"infrared", WV:"water_vapor", MW:"microwave", VIS:"visible"}[selectedChannel] as keyof typeof images;
+              const reader = new FileReader();
+              reader.onload = () => { setImages(previous => ({...previous, [key]: String(reader.result)})); setUploadError(""); };
+              reader.onerror = () => setUploadError("Could not read image");
+              reader.readAsDataURL(file);
+            }} />
+          </label>
+          <span>Loaded: {Object.keys(images).join(", ") || "none"}</span>
+          {Object.keys(images).length > 0 && <button type="button" onClick={() => setImages({})}>Clear images</button>}
+          {uploadError && <p role="alert">{uploadError}</p>}
+        </div>
         {/* Interactive 7-Stage Pipeline Navigation Bar */}
         <div className="op-visual-pipeline-nav">
           {PIPELINE_STAGES.map((s) => (
@@ -226,7 +241,7 @@ export default function AILabPage({
                 ))}
               </div>
               <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "10.5px", color: "#64748b" }}>
-                SENSOR: <strong style={{ color: "#8b5cf6" }}>{currentChannelObj.sensor}</strong>
+                REFERENCE SENSOR: <strong style={{ color: "#8b5cf6" }}>{currentChannelObj.sensor}</strong>
               </div>
             </div>
 
@@ -294,15 +309,15 @@ export default function AILabPage({
 
                   {/* Stage 1 Raw Metadata */}
                   <text x="20" y="32" fill="#64748b" fontSize="10" fontFamily="'Space Mono', monospace" fontWeight="700">
-                    RAW DIGITAL COUNTS · 10-BIT {selectedChannel}
+                    ILLUSTRATIVE SCENE · {selectedChannel}
                   </text>
                   <text x="20" y="47" fill="#475569" fontSize="9" fontFamily="'Space Mono', monospace">
-                    HDF5 GEOSTATIONARY ARRAY: 256 × 256 · 15-MIN INGEST
+                    SCHEMATIC ONLY · NO LIVE SATELLITE INGEST
                   </text>
                 </svg>
 
                 <div className="op-diff-badge" style={{ top: "14px", left: "14px" }}>
-                  RAW RADIOMETRY ({selectedChannel})
+                  SCHEMATIC CHANNEL ({selectedChannel})
                 </div>
               </div>
 
@@ -449,7 +464,7 @@ export default function AILabPage({
                       <circle cx="280" cy="200" r="35" fill="#f59e0b" opacity="0.4" filter="blur(10px)" />
                       <circle cx="220" cy="230" r="30" fill="#f59e0b" opacity="0.4" filter="blur(10px)" />
                       <text x="310" y="48" fill="#ec4899" fontSize="10" fontFamily="'Space Mono', monospace" fontWeight="700">
-                        RESNET-50 LAYER 4 ATTENTION
+                        {analysis?.model_status.classification || "NOT RUN"} LAYER 4 ATTENTION
                       </text>
                       <text x="310" y="63" fill="#94a3b8" fontSize="9" fontFamily="'Space Mono', monospace">
                         GRAD-CAM FOCUS: EYEWALL TENSOR
@@ -465,7 +480,7 @@ export default function AILabPage({
                         ENSEMBLE POSTERIOR PROB
                       </text>
                       <text x="300" y="78" fill="#10b981" fontSize="9.5" fontFamily="'Space Mono', monospace">
-                        VSCS / ESCS: 94.7%
+                        Illustrative activation map
                       </text>
                       <text x="300" y="93" fill="#64748b" fontSize="9" fontFamily="'Space Mono', monospace">
                         SCS (Cat 2): 4.2%
@@ -542,7 +557,7 @@ export default function AILabPage({
                   </span>
                 </div>
                 <div style={{ color: "#10b981", fontWeight: 700 }}>
-                  CONFIDENCE: {confidenceScore}%
+                  CONFIDENCE: {confidenceLabel}
                 </div>
               </div>
             </div>
@@ -565,18 +580,18 @@ export default function AILabPage({
               <div className="op-tech-panel-header">
                 <div className="op-tech-panel-title">
                   <Activity size={14} style={{ color: "#8b5cf6" }} />
-                  <span>OBJECTIVE ADT INFERENCE</span>
+                  <span>EXPERIMENTAL SCENARIO ANALYSIS</span>
                 </div>
-                <span className="op-tech-panel-badge">RESNET-50</span>
+                <span className="op-tech-panel-badge">{analysis?.model_status.classification || "NOT RUN"}</span>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
                 <div>
-                  <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase" }}>Dvorak T-Number</div>
+                  <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase" }}>Wind-derived T proxy</div>
                   <div style={{ fontSize: "28px", fontWeight: 800, color: "#ffffff", fontFamily: "'Space Mono', monospace" }}>
                     {dvorakCI}
                   </div>
-                  <div style={{ fontSize: "10.5px", color: "#94a3b8" }}>Current Intensity (CI)</div>
+                  <div style={{ fontSize: "10.5px", color: "#94a3b8" }}>Heuristic proxy; not measured Dvorak CI</div>
                 </div>
                 <div>
                   <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase" }}>Estimated Vmax</div>
@@ -595,9 +610,9 @@ export default function AILabPage({
                 <div>
                   <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase" }}>Model Confidence</div>
                   <div style={{ fontSize: "20px", fontWeight: 700, color: "#10b981", fontFamily: "'Space Mono', monospace" }}>
-                    {confidenceScore}%
+                    {confidenceLabel}
                   </div>
-                  <div style={{ fontSize: "10.5px", color: "#94a3b8" }}>High Convective Fit</div>
+                  <div style={{ fontSize: "10.5px", color: "#94a3b8" }}>Experimental outputs; no calibrated confidence</div>
                 </div>
               </div>
 
@@ -615,12 +630,12 @@ export default function AILabPage({
                   </div>
                   {analysis?.rapid_intensification && (
                     <span style={{ fontSize: "9.5px", padding: "2px 6px", borderRadius: "3px", background: analysis.rapid_intensification.is_ri_expected ? "rgba(239,68,68,0.2)" : "rgba(16,185,129,0.2)", color: analysis.rapid_intensification.is_ri_expected ? "#ef4444" : "#10b981", fontWeight: 700 }}>
-                      RI: {(analysis.rapid_intensification.probability * 100).toFixed(0)}%
+                      RI heuristic: {(analysis.rapid_intensification.probability * 100).toFixed(0)}%
                     </span>
                   )}
                 </div>
                 <div style={{ fontSize: "10.5px", color: "#64748b", marginTop: "2px" }}>
-                  {analysis?.classification?.pattern ? `PyTorch Dvorak: ${analysis.classification.pattern.replace(/_/g, ' ').toUpperCase()}` : "Eye warming signature indicates peak intensification prior to coastal interaction."}
+                  {analysis?.classification?.pattern ? `Estimated pattern: ${analysis.classification.pattern.replace(/_/g, ' ').toUpperCase()}` : "Run an analysis to view the current method and provenance."}
                 </div>
               </div>
             </div>

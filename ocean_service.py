@@ -1,12 +1,15 @@
 import math
+import os
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import requests
 
-ERDDAP_BASE = "https://pae-paha.pacioos.hawaii.edu/erddap/griddap/hycom_global.json"
-TB_DEPTHS = [0, 10, 50, 100, 200]
+ERDDAP_BASE = os.getenv("HYCOM_ERDDAP_URL", "https://oos.soest.hawaii.edu/erddap/griddap/HYCOM_Global_3D.json")
+HYCOM_NCSS_URL = os.getenv("HYCOM_NCSS_URL", "https://ncss.hycom.org/thredds/ncss/grid/GLBy0.08/latest")
+TB_DEPTHS = [0, 10, 50, 100, 200, 300, 500, 700]
 HYCOM_DEPTH_LEVELS = [
     0, 2, 4, 6, 8, 10, 12, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90,
     100, 125, 150, 200, 250, 300, 350, 400, 500, 600, 700, 800, 900, 1000
@@ -15,7 +18,7 @@ HYCOM_DEPTH_LEVELS = [
 REQUEST_TIMEOUT = (1.0, 2.0)
 
 SEAWATER_DENSITY_KG_M3 = 1025
-SEAWATER_SPECIFIC_HEAT_J_KGC = 3850
+SEAWATER_SPECIFIC_HEAT_J_KGC = 3993
 OHC_THRESHOLD_C = 26.0
 
 
@@ -63,40 +66,71 @@ def _fetch_hycom_point(lat: float, lon: float, depth_m: float, variable: str) ->
         return None
 
 
-def fetch_live_profile(lat: float, lon: float) -> Optional[dict]:
-    temps = {}
-    salinities = {}
-
-    def _fetch_depth_data(depth: int):
-        t = _fetch_hycom_point(lat, lon, depth, "water_temp")
-        s = _fetch_hycom_point(lat, lon, depth, "salinity")
-        return depth, t, s
-
-    with ThreadPoolExecutor(max_workers=len(TB_DEPTHS)) as executor:
-        futures = [executor.submit(_fetch_depth_data, d) for d in TB_DEPTHS]
-        for future in as_completed(futures):
-            try:
-                depth, t, s = future.result()
-                if t is None:
-                    return None
-                temps[depth] = round(t, 2)
-                salinities[depth] = round(s, 2) if s is not None else None
-            except Exception:
+def _fetch_ncss_profile(lat: float, lon: float) -> Optional[dict]:
+    import csv
+    import io
+    def fetch(depth):
+        try:
+            response = requests.get(HYCOM_NCSS_URL,
+                params=[("var", "water_temp"), ("var", "salinity"), ("latitude", lat), ("longitude", lon),
+                        ("time", "present"), ("vertCoord", depth), ("accept", "csv")], timeout=(3, 12))
+            response.raise_for_status()
+            rows = list(csv.reader(io.StringIO(response.text)))
+            if len(rows) < 2:
                 return None
-
-    if len(temps) != len(TB_DEPTHS):
+            names = [h.split("[")[0].strip() for h in rows[0]]
+            row = dict(zip(names, rows[1]))
+            temperature, salinity = float(row["water_temp"]), float(row["salinity"])
+            if not (-3 <= temperature <= 40 and 0 <= salinity <= 45):
+                return None
+            return depth, temperature, salinity, row["time"]
+        except (requests.RequestException, ValueError, KeyError, IndexError):
+            return None
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        rows = list(pool.map(fetch, TB_DEPTHS))
+    rows = [row for row in rows if row is not None]
+    if len(rows) < 4 or 0 not in {row[0] for row in rows} or 700 not in {row[0] for row in rows}:
         return None
+    # A profile must come from one model time, not mixed provider updates.
+    if len({row[3] for row in rows}) != 1:
+        return None
+    depths = [r[0] for r in rows]
+    return {"source": "LIVE", "provider": "HYCOM GOFS / NCSS Global Analysis",
+            "sampled_depths_m": depths, "interpolated_depths_m": [d for d in TB_DEPTHS if d not in depths],
+            "temperature_c": {d: round(_linear_interp(d, depths, [r[1] for r in rows]), 2) for d in TB_DEPTHS},
+            "salinity_psu": {d: round(_linear_interp(d, depths, [r[2] for r in rows]), 2) for d in TB_DEPTHS},
+            "observation_time": rows[0][3], "fetched_at": datetime.now(timezone.utc).isoformat()}
 
-    sorted_temps = {d: temps[d] for d in TB_DEPTHS}
-    sorted_sals = {d: salinities[d] for d in TB_DEPTHS}
 
-    return {
-        "source": "LIVE",
-        "provider": "PacIOOS ERDDAP (HYCOM Global Ocean Forecast System)",
-        "temperature_c": sorted_temps,
-        "salinity_psu": sorted_sals,
-        "fetched_at": datetime.now(timezone.utc).isoformat(),
-    }
+def fetch_live_profile(lat: float, lon: float) -> Optional[dict]:
+    if not os.getenv("HYCOM_ERDDAP_URL"):
+        return _fetch_ncss_profile(lat, lon)
+    # ERDDAP resolves "last" to the provider's latest available model time.
+    # Retrieve the column in one request, rather than ten independent point
+    # requests to a guessed date that may not exist in the dataset.
+    selector = f"[(last)][(0):1:(700)][({lat})][({lon})]"
+    query = ",".join(variable + selector for variable in ("water_temp", "salinity"))
+    try:
+        response = requests.get(ERDDAP_BASE + "?" + query, timeout=(2, 6))
+        response.raise_for_status()
+        table = response.json()["table"]
+        columns, rows = table["columnNames"], table["rows"]
+        indices = {name: columns.index(name) for name in ("depth", "water_temp", "salinity", "time")}
+        valid = [r for r in rows if r[indices["water_temp"]] is not None and math.isfinite(float(r[indices["water_temp"]]))]
+        if not valid:
+            return None
+        valid.sort(key=lambda r: float(r[indices["depth"]]))
+        if float(valid[-1][indices["depth"]]) < 700:
+            return None
+        depths = [float(r[indices["depth"]]) for r in valid]
+        temps = [float(r[indices["water_temp"]]) for r in valid]
+        sals = [r[indices["salinity"]] for r in valid]
+        return {"source": "LIVE", "provider": "PacIOOS ERDDAP / HYCOM",
+                "temperature_c": {d: round(_linear_interp(d, depths, temps), 2) for d in TB_DEPTHS},
+                "salinity_psu": {d: round(_linear_interp(d, depths, [float(v) for v in sals]), 2) if all(v is not None for v in sals) else None for d in TB_DEPTHS},
+                "observation_time": valid[0][indices["time"]], "fetched_at": datetime.now(timezone.utc).isoformat()}
+    except (requests.RequestException, ValueError, KeyError, IndexError, TypeError):
+        return None
 
 
 def climatology_fallback_profile(lat: float, lon: float, basin: str) -> dict:
@@ -188,13 +222,16 @@ def compute_vertical_features(profile: dict) -> dict:
     }
 
 
-_OCEAN_CACHE: dict[tuple[float, float, str, bool], dict] = {}
+_OCEAN_CACHE: dict[tuple[float, float, str, bool], tuple[float, dict]] = {}
 
 
 def get_ocean_node(lat: float, lon: float, basin: str, live_first: bool = True) -> dict:
     cache_key = (round(lat, 2), round(lon, 2), basin, live_first)
     if cache_key in _OCEAN_CACHE:
-        return _OCEAN_CACHE[cache_key]
+        cached_at, cached = _OCEAN_CACHE[cache_key]
+        ttl = 900 if cached["meta"]["source"] == "LIVE" else 60
+        if time.monotonic() - cached_at < ttl:
+            return cached
 
     profile = fetch_live_profile(lat, lon) if live_first else None
     if profile is None:
@@ -211,7 +248,14 @@ def get_ocean_node(lat: float, lon: float, basin: str, live_first: bool = True) 
             "provider": profile["provider"],
             "fetched_at": profile["fetched_at"],
             "salinity_psu": profile["salinity_psu"],
+            "observation_time": profile.get("observation_time"),
+            "profile_depth_m": max(TB_DEPTHS),
+            "sampled_depths_m": profile.get("sampled_depths_m"),
+            "interpolated_depths_m": profile.get("interpolated_depths_m"),
+            "fallback_reason": "Live provider unavailable or profile incomplete" if profile["source"] != "LIVE" else None,
         },
     }
-    _OCEAN_CACHE[cache_key] = res
+    _OCEAN_CACHE[cache_key] = (time.monotonic(), res)
+    if len(_OCEAN_CACHE) > 256:
+        _OCEAN_CACHE.pop(next(iter(_OCEAN_CACHE)))
     return res

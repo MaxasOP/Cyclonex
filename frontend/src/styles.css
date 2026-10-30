@@ -6176,6 +6176,216 @@ html, body, #root {
   color: #cbd5e1;
 }
 
+/* ==========================================================================
+   FIELD OPERATIONS ATLAS - REPRESENTATIVE TACTICAL MAP WORKFLOW
+   Map-first, cartographic and evidence-led. This block intentionally overrides
+   the older purple/glass console without changing the operational data flow.
+   ========================================================================== */
+:root {
+  --atlas-paper: #f4f3ed;
+  --atlas-paper-deep: #e9e8df;
+  --atlas-ink: #18232b;
+  --atlas-ink-soft: #475761;
+  --atlas-rule: #c9cdc5;
+  --atlas-ocean: #0d6c70;
+  --atlas-ocean-deep: #084c51;
+  --atlas-sky: #75c9f1;
+}
+
+.tactical-console-container {
+  background: var(--atlas-paper);
+  color: var(--atlas-ink);
+}
+
+.tactical-panel {
+  background: var(--atlas-paper);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-color: var(--atlas-rule);
+  color: var(--atlas-ink);
+}
+
+.tactical-left-panel { width: 336px; min-width: 336px; max-width: 336px; }
+.tactical-right-panel { width: 352px; min-width: 352px; max-width: 352px; }
+
+.tactical-panel-header {
+  padding: 16px 18px 13px;
+  background: transparent;
+  border-bottom-color: var(--atlas-rule);
+}
+
+.tactical-panel-icon,
+.tactical-mode-readout { color: var(--atlas-ocean); }
+
+.tactical-panel-title {
+  color: var(--atlas-ink);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.tactical-panel-sub,
+.tactical-control-label,
+.tactical-box-label,
+.tactical-unit,
+.kpi-label,
+.kpi-sub,
+.threat-meta,
+.dossier-row span,
+.directive-desc {
+  color: var(--atlas-ink-soft);
+}
+
+.tactical-panel-body { padding: 18px; gap: 20px; }
+.tactical-control-group { gap: 9px; }
+.tactical-control-label {
+  color: var(--atlas-ink-soft);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.tactical-select,
+.tactical-input-box {
+  background: transparent;
+  border-color: var(--atlas-rule);
+  border-radius: 2px;
+  color: var(--atlas-ink);
+}
+
+.tactical-select { padding: 9px 10px; font-weight: 650; }
+.tactical-select option { background: var(--atlas-paper); color: var(--atlas-ink); }
+.tactical-input-grid { gap: 7px; }
+.tactical-input-box { padding: 8px 9px; }
+.tactical-box-input { color: var(--atlas-ink); }
+.tactical-collapse-btn {
+  border-radius: 2px;
+  border-color: var(--atlas-rule);
+  color: var(--atlas-ink-soft);
+}
+.tactical-collapse-btn:hover {
+  border-color: var(--atlas-ocean);
+  color: var(--atlas-ocean);
+  background: color-mix(in srgb, var(--atlas-ocean) 7%, transparent);
+}
+
+.tactical-recalc-btn,
+.tactical-secondary-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 38px;
+  padding: 9px 12px;
+  border-radius: 2px;
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background-color 160ms var(--ease-out-expo), border-color 160ms var(--ease-out-expo), color 160ms var(--ease-out-expo);
+}
+
+.tactical-recalc-btn {
+  background: var(--atlas-ocean);
+  border: 1px solid var(--atlas-ocean);
+  box-shadow: none;
+  color: #ffffff;
+}
+.tactical-recalc-btn:hover:not(:disabled) {
+  background: var(--atlas-ocean-deep);
+  border-color: var(--atlas-ocean-deep);
+  transform: none;
+}
+.tactical-secondary-btn {
+  margin-top: 8px;
+  background: transparent;
+  border: 1px solid var(--atlas-rule);
+  color: var(--atlas-ink);
+}
+.tactical-secondary-btn:hover {
+  border-color: var(--atlas-ocean);
+  color: var(--atlas-ocean);
+  background: color-mix(in srgb, var(--atlas-ocean) 6%, transparent);
+}
+
+.tactical-modes-grid { grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.tactical-mode-btn {
+  padding: 8px 3px;
+  border-radius: 2px;
+  border-color: var(--atlas-rule);
+  background: transparent;
+  color: var(--atlas-ink-soft);
+  font-size: 9px;
+}
+.tactical-mode-btn:hover { color: var(--atlas-ink); background: var(--atlas-paper-deep); border-color: var(--atlas-rule); }
+.tactical-console-container .tactical-mode-btn.active { background: var(--atlas-ink); border-color: var(--atlas-ink); box-shadow: none; color: #ffffff; }
+
+.tactical-layer-list { gap: 9px; }
+.tactical-layer-item { color: var(--atlas-ink-soft); }
+.tactical-layer-item input[type="checkbox"] { accent-color: var(--atlas-ocean); }
+
+.tactical-threat-card,
+.tactical-kpi-card,
+.tactical-dossier-card,
+.tactical-directive-card {
+  background: transparent;
+  border-radius: 0;
+  border-color: var(--atlas-rule);
+  box-shadow: none;
+}
+.tactical-threat-card { border-left: 3px solid var(--status-red); }
+.threat-title,
+.kpi-val,
+.dossier-row strong { color: var(--atlas-ink); }
+.threat-badge { color: var(--status-red); }
+.threat-pulse-dot { box-shadow: none; animation: none; }
+.kpi-val.cyan { color: var(--atlas-ocean); }
+.kpi-val.amber { color: var(--status-amber); }
+.kpi-val.red { color: var(--status-red); }
+.dossier-header { border-bottom-color: var(--atlas-rule); }
+.dossier-tag,
+.directive-tag { color: var(--atlas-ocean); }
+.directive-title { color: var(--status-red); }
+
+.tactical-panel-restore-btn {
+  border-radius: 2px;
+  background: var(--atlas-paper);
+  backdrop-filter: none;
+  border-color: var(--atlas-rule);
+  box-shadow: 0 3px 12px rgb(24 35 43 / 12%);
+  color: var(--atlas-ink);
+}
+.tactical-panel-restore-btn:hover { border-color: var(--atlas-ocean); color: var(--atlas-ocean); }
+
+.op-temporal-strip {
+  background: var(--atlas-paper);
+  border-top: 1px solid var(--atlas-rule);
+  box-shadow: none;
+}
+.live-status-title { color: var(--atlas-ocean); }
+.live-status-sub { color: var(--atlas-ink-soft); border-left-color: var(--atlas-rule); }
+.op-loss-stat span { color: var(--atlas-ink-soft); }
+.op-loss-stat strong { color: var(--atlas-ink); }
+
+@media (max-width: 900px) {
+  .tactical-console-container { display: block; overflow-y: auto; }
+  .tactical-left-panel,
+  .tactical-right-panel { width: 100%; min-width: 0; max-width: none; height: auto; max-height: none; border: 0; border-bottom: 1px solid var(--atlas-rule); }
+  .tactical-center-viewport { min-height: 62dvh; height: 62dvh; }
+  .tactical-right-panel { margin-bottom: 0; }
+  .op-temporal-strip { overflow-x: auto; }
+  .tactical-modes-grid { grid-template-columns: repeat(5, minmax(68px, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tactical-recalc-btn,
+  .tactical-secondary-btn,
+  .tactical-mode-btn,
+  .tactical-panel-restore-btn { transition: none; }
+}
+
 [data-theme="light"] .student-project-meta strong {
   color: #334155;
 }

@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import type { AICycloneAnalysisRequest } from "./api";
+import { FormEvent, useEffect, useMemo, useState, useRef } from "react";
 import LandingPage from "./LandingPage";
 import AILabPage from "./pages/AILabPage";
 import ForecastPage from "./pages/ForecastPage";
@@ -407,6 +408,8 @@ export default function App() {
   const [realtimeWeather, setRealtimeWeather] = useState<RealtimeWeather | null>(null);
   const [realtimeLiveEnabled, setRealtimeLiveEnabled] = useState(true);
 
+  const pipelineRequest = useRef(0);
+  const aiRequest = useRef(0);
   const [scenario, setScenario] = useState<ScenarioResult | null>(null);
   const [buildings, setBuildings] = useState<BuildingFeature[]>([]);
   const [zones, setZones] = useState<ZoneFeature[]>([]);
@@ -563,20 +566,25 @@ export default function App() {
   const [aiAnalysis, setAiAnalysis] = useState<AICycloneAnalysisResponse | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
-  async function handleRunAiAnalysis(latNum?: number, lonNum?: number, windNum?: number, presNum?: number) {
+  async function handleRunAiAnalysis(latNum?: number, lonNum?: number, windNum?: number, presNum?: number, satelliteImages?: AICycloneAnalysisRequest["satellite_images"]) {
+    const requestId = ++aiRequest.current;
     setAiLoading(true);
+    setError("");
     try {
       const res = await analyzeAICyclone({
-        latitude: latNum ?? (Number(form.lat) || 18.35),
-        longitude: lonNum ?? (Number(form.lon) || 72.98),
-        wind_speed: windNum ?? (Number(form.wind) || 120),
-        pressure: presNum ?? (Number(form.pressure) || 984),
+        satellite_images: satelliteImages,
+        latitude: latNum ?? Number(form.lat),
+        longitude: lonNum ?? Number(form.lon),
+        wind_speed: windNum ?? Number(form.wind),
+        pressure: presNum ?? Number(form.pressure),
       });
-      if (res) setAiAnalysis(res);
+      if (requestId === aiRequest.current) setAiAnalysis(res);
     } catch (e) {
-      console.error("Error running AI cyclone analysis:", e);
+      if (requestId !== aiRequest.current) return;
+      setAiAnalysis(null);
+      setError(e instanceof Error ? e.message : "AI analysis unavailable");
     } finally {
-      setAiLoading(false);
+      if (requestId === aiRequest.current) setAiLoading(false);
     }
   }
 
@@ -588,8 +596,10 @@ export default function App() {
     scenarioName: string,
     headingStr: string = "35",
     speedStr: string = "22",
-    radiusStr: string = "30"
+    radiusStr: string = "30",
+    detail200m: boolean = false
   ) {
+    const requestId = ++pipelineRequest.current;
     setLoading(true);
     setError("");
     setSelectedCell(null);
@@ -610,6 +620,7 @@ export default function App() {
         heading_deg: heading,
         speed_kph: speed,
       });
+      if (requestId !== pipelineRequest.current) return;
       setMlResult(res);
       void fetchDatasetSummary().then(setDatasetSummary);
       void handleRunAiAnalysis(lat, lon, wind, pressure);
@@ -625,24 +636,25 @@ export default function App() {
         rain_rate_mm_hr: 75,
         storm_surge_m: 2.8,
         field_radius_km: radius,
+        grid_resolution_m: detail200m ? 200 : undefined,
       });
+      if (requestId !== pipelineRequest.current) return;
       setScenario(scn);
       setBuildings([]);
       setZones([]);
       setSheltersPlan(null);
 
       void Promise.all([
-        fetchRiskGrid(scn.id).then((grid) => {
-          setScenario((prev) => (prev ? { ...prev, risk_grid: grid } : null));
-        }),
-        fetchBuildings(scn.id).then(setBuildings),
-        fetchZones(scn.id).then(setZones).catch(() => setZones([])),
-        fetchSheltersAndEvacuation(scn.id).then(setSheltersPlan).catch(() => setSheltersPlan(null)),
+
+        fetchBuildings(scn.id).then(value => { if (requestId === pipelineRequest.current) setBuildings(value); }),
+        fetchZones(scn.id).then(value => { if (requestId === pipelineRequest.current) setZones(value); }),
+        fetchSheltersAndEvacuation(scn.id).then(value => { if (requestId === pipelineRequest.current) setSheltersPlan(value); }),
       ]).catch((err) => console.error("Error fetching grid or contextual layers:", err));
     } catch (reason) {
+      if (requestId !== pipelineRequest.current) return;
       setError(reason instanceof Error ? reason.message : "Run failed.");
     } finally {
-      setLoading(false);
+      if (requestId === pipelineRequest.current) setLoading(false);
     }
   }
 
@@ -735,8 +747,8 @@ export default function App() {
 
   const mapCenter = useMemo(() => {
     return {
-      lat: Number(form.lat) || 18.35,
-      lng: Number(form.lon) || 72.98,
+      lat: Number(form.lat),
+      lng: Number(form.lon),
     };
   }, [form.lat, form.lon]);
 
@@ -748,8 +760,8 @@ export default function App() {
         { lat: mlResult.forecast_24h.centre_lat, lng: mlResult.forecast_24h.centre_lon, label: "+24h Forecast" },
       ];
     }
-    const latNum = Number(form.lat) || 18.35;
-    const lonNum = Number(form.lon) || 72.98;
+    const latNum = Number(form.lat);
+    const lonNum = Number(form.lon);
     const headingRad = (((90 - (Number(form.heading) || 35)) % 360) * Math.PI) / 180;
     const speed = Number(form.speed) || 22;
     const d6 = (speed * 6) / 111;
@@ -817,7 +829,7 @@ export default function App() {
     };
   })();
 
-  const windNum = Number(form.wind) || 120;
+  const windNum = Number(form.wind);
   const stormCategory = useMemo(() => {
     if (windNum >= 222) return { code: "SuCS", name: "Super Cyclonic Storm", tier: "SEVERE RED", color: "#ef4444" };
     if (windNum >= 166) return { code: "ESCS", name: "Extremely Severe Cyclone", tier: "SEVERE RED", color: "#ef4444" };
@@ -827,87 +839,21 @@ export default function App() {
     return { code: "DD", name: "Deep Depression", tier: "MODERATE BLUE", color: "#8b5cf6" };
   }, [windNum]);
 
-  const estPopulation = useMemo(() => {
-    const base = Math.round((windNum / 100) * 195000 + (buildings.length * 48));
-    return base > 0 ? base.toLocaleString() : "2,45,618";
-  }, [windNum, buildings.length]);
+  const estPopulation = summaryStats?.estimated_population_affected != null
+    ? `${summaryStats.estimated_population_affected.toLocaleString()} (screening estimate)` : "Unavailable";
+  const estEconomicLossCr = summaryStats?.estimated_loss_crores_inr != null
+    ? `₹${summaryStats.estimated_loss_crores_inr.toFixed(1)} Cr (screening estimate)` : "Unavailable";
+  const estSurgeHeight = scenario?.input ? `+${scenario.input.storm_surge_m ?? 0} m (scenario input)` : "Unavailable";
+  const gridResolution = scenario?.risk_grid.metadata?.grid_size_m;
+  const resolutionLabel = gridResolution ? `${gridResolution} m ${gridResolution === 200 ? "detail" : "overview"} grid` : "Risk grid (not loaded)";
 
-  const estEconomicLossCr = useMemo(() => {
-    const loss = ((windNum * windNum * 0.048) + (buildings.length * 0.012)).toFixed(1);
-    return loss ? `₹${loss} Cr` : "₹741.6 Cr";
-  }, [windNum, buildings.length]);
+  function printScreeningReport() {
+    if (!scenario) { setError("Run a scenario before printing its report."); return; }
+    navigateTo("app");
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => window.print()));
+  }
 
-  const estSurgeHeight = useMemo(() => {
-    const surge = Math.max(0.8, (windNum * 0.024) - 0.2).toFixed(1);
-    return `+${surge} m`;
-  }, [windNum]);
-
-  const activeCellInspection = useMemo(() => {
-    if (selectedCell) return selectedCell;
-    const firstFeature = scenario?.risk_grid?.features?.[0];
-    const props = firstFeature?.properties;
-    return {
-      cell_id: (firstFeature?.id as string) || "landfall-core",
-      lat: props?.lat || Number(form.lat) || 18.35,
-      lon: props?.lon || Number(form.lon) || 72.98,
-      cyclone_heading_deg: Number(form.heading) || 35,
-      relative_direction_deg: 45,
-      land_type: props?.land_type || "COASTAL LAND",
-      hazard: {
-        wind_kph: props?.wind_kph || windNum,
-        score: props?.damage_score ?? 0.84,
-      },
-      wind_force: {
-        dynamic_pressure_pa: props?.dynamic_pressure_pa || Math.round(0.613 * Math.pow(windNum / 3.6, 2)),
-        drag_coefficient: 1.3,
-        shelter_factor: props?.shelter_factor ?? 1.0,
-        modeled_wind_loading_n_m2: props?.effective_wind_loading_n_m2 || Math.round(0.613 * Math.pow(windNum / 3.6, 2) * 1.3),
-        effective_wind_loading_n_m2: props?.effective_wind_loading_n_m2 || Math.round(0.613 * Math.pow(windNum / 3.6, 2) * 1.3),
-      },
-      exposure: {
-        building_count: props?.building_count || buildings.length || 142,
-        building_density: props?.building_density || 0.42,
-        avg_building_height_m: props?.avg_building_height_m || 8.5,
-        max_building_height_m: props?.max_building_height_m || 18.0,
-        taller_building_count: tallerBuildingsCount || 12,
-        exposure_score: props?.exposure_score || 0.72,
-      },
-      obstacles: {
-        avg_upwind_height_m: props?.avg_upwind_height_m || 4.2,
-        max_upwind_height_m: 9.0,
-        obstruction_level: props?.obstruction_level || "LOW_OPEN",
-        shelter_factor: props?.shelter_factor || 1.0,
-      },
-      structure: {
-        estimated_class: props?.estimated_class || "RCC / MASONRY",
-        vulnerability_score: props?.vulnerability_score || 0.78,
-        estimated_resistance_pa: props?.estimated_resistance_pa || 300,
-        load_to_resistance_ratio: props?.load_to_resistance_ratio || 1.42,
-        data_provenance: {
-          building_footprint: props?.building_count ? "OBSERVED (OSM)" : "OBSERVED",
-          material: "INFERRED",
-          height: "INFERRED",
-          resistance_pa: "ASSUMED_SCREENING_VALUE",
-          structural_class: "INFERRED",
-          modeled: ["local_wind_field", "dynamic_pressure", "effective_wind_loading", "damage_score"],
-        },
-      },
-      damage: {
-        hazard_score: props?.damage_score || 0.84,
-        exposure_score: props?.exposure_score || 0.72,
-        vulnerability_score: props?.vulnerability_score || 0.78,
-        structural_response_score: 0.95,
-        damage_score: props?.damage_score || 0.84,
-        classification: props?.classification || "SEVERE RISK",
-        colour: props?.colour || "#ef4444",
-        description: props?.description || "Severe damage risk along coastal eyewall corridor.",
-      },
-      drivers: {
-        primary: props?.primary_driver || "HIGH_WIND_HAZARD",
-        secondary: props?.secondary_driver || "STRUCTURAL_RESPONSE_LRR",
-      },
-    } as unknown as FullCellAnalysis;
-  }, [selectedCell, scenario, form.lat, form.lon, form.heading, windNum, buildings.length, tallerBuildingsCount]);
+  const activeCellInspection = selectedCell ?? scenario?.risk_grid.features[0]?.properties.full_cell_analysis ?? null;
 
   return (
     <div className="saas-shell">
@@ -1017,15 +963,16 @@ export default function App() {
             <button
               type="button"
               className="saas-action-btn primary"
-              onClick={() => window.print()}
-              title="Export official Situation Report as PDF"
+              onClick={printScreeningReport}
+              title="Print scenario screening report; choose Save as PDF in your browser"
             >
               <IconDownload />
-              <span>Export SITREP</span>
+              <span>Print screening report</span>
             </button>
           </div>
         </header>
 
+        {error && <div role="alert" style={{padding: "12px 20px", color: "#b91c1c", background: "#fff1f2"}}>{error}</div>}
         {/* Viewport Content Router */}
         <div className="saas-page-viewport">
           {currentView === "landing" ? (
@@ -1048,10 +995,10 @@ export default function App() {
           loading={aiLoading}
           onRunAnalysis={handleRunAiAnalysis}
           stormName={presets[selectedPreset]?.name || form.name}
-          lat={Number(form.lat) || 18.35}
-          lon={Number(form.lon) || 72.98}
-          windKph={Number(form.wind) || 120}
-          pressureHpa={Number(form.pressure) || 984}
+          lat={Number(form.lat)}
+          lon={Number(form.lon)}
+          windKph={Number(form.wind)}
+          pressureHpa={Number(form.pressure)}
           onNavigateToCommand={(presetKey, customCoords) => {
             if (customCoords) {
               setForm((prev) => ({
@@ -1082,10 +1029,10 @@ export default function App() {
         <ForecastPage
           mlResult={mlResult}
           stormName={presets[selectedPreset]?.name || form.name}
-          lat={Number(form.lat) || 18.35}
-          lon={Number(form.lon) || 72.98}
-          windKph={Number(form.wind) || 120}
-          pressureHpa={Number(form.pressure) || 984}
+          lat={Number(form.lat)}
+          lon={Number(form.lon)}
+          windKph={Number(form.wind)}
+          pressureHpa={Number(form.pressure)}
           headingDeg={Number(form.heading) || 35}
           speedKph={Number(form.speed) || 22}
           onNavigateToCommand={(presetKey) => {
@@ -1130,10 +1077,10 @@ export default function App() {
       ) : currentView === "bulletins" ? (
         <BulletinsPage
           stormName={presets[selectedPreset]?.name || form.name}
-          lat={Number(form.lat) || 18.35}
-          lon={Number(form.lon) || 72.98}
-          windKph={Number(form.wind) || 120}
-          pressureHpa={Number(form.pressure) || 984}
+          lat={Number(form.lat)}
+          lon={Number(form.lon)}
+          windKph={Number(form.wind)}
+          pressureHpa={Number(form.pressure)}
           headingDeg={Number(form.heading) || 35}
           speedKph={Number(form.speed) || 22}
           mlResult={mlResult}
@@ -1162,8 +1109,8 @@ export default function App() {
                       <div className="tactical-panel-title-wrap">
                         <Sliders size={13} className="tactical-panel-icon" />
                         <div>
-                          <div className="tactical-panel-title">SIMULATION INPUTS</div>
-                          <div className="tactical-panel-sub">Cyclone Kinematics &amp; IMD Presets</div>
+                          <div className="tactical-panel-title">STORM SCENARIO</div>
+                          <div className="tactical-panel-sub">Select a reference storm or adjust its track</div>
                         </div>
                       </div>
                       <button
@@ -1179,7 +1126,7 @@ export default function App() {
                     <div className="tactical-panel-body">
                       {/* Active Cyclone Selection */}
                       <div className="tactical-control-group">
-                        <label className="tactical-control-label">ACTIVE TROPICAL CYCLONE</label>
+                        <label className="tactical-control-label">Reference storm</label>
                         <select
                           className="tactical-select"
                           value={selectedPreset}
@@ -1195,7 +1142,7 @@ export default function App() {
 
                       {/* Meteorological Forcing Inputs */}
                       <div className="tactical-control-group">
-                        <label className="tactical-control-label">METEOROLOGICAL PARAMETERS</label>
+                        <label className="tactical-control-label">Storm conditions</label>
                         <div className="tactical-input-grid">
                           <div className="tactical-input-box">
                             <span className="tactical-box-label">PEAK WIND</span>
@@ -1211,7 +1158,7 @@ export default function App() {
                           </div>
 
                           <div className="tactical-input-box">
-                            <span className="tactical-box-label">CENTRAL PRES</span>
+                            <span className="tactical-box-label">CENTRAL PRESSURE</span>
                             <div className="tactical-box-val-row">
                               <input
                                 type="number"
@@ -1224,7 +1171,7 @@ export default function App() {
                           </div>
 
                           <div className="tactical-input-box">
-                            <span className="tactical-box-label">EYE LATITUDE</span>
+                            <span className="tactical-box-label">CENTRE LATITUDE</span>
                             <div className="tactical-box-val-row">
                               <input
                                 type="number"
@@ -1238,7 +1185,7 @@ export default function App() {
                           </div>
 
                           <div className="tactical-input-box">
-                            <span className="tactical-box-label">EYE LONGITUDE</span>
+                            <span className="tactical-box-label">CENTRE LONGITUDE</span>
                             <div className="tactical-box-val-row">
                               <input
                                 type="number"
@@ -1265,7 +1212,7 @@ export default function App() {
                           </div>
 
                           <div className="tactical-input-box">
-                            <span className="tactical-box-label">FWD SPEED</span>
+                            <span className="tactical-box-label">FORWARD SPEED</span>
                             <div className="tactical-box-val-row">
                               <input
                                 type="number"
@@ -1298,35 +1245,29 @@ export default function App() {
                           {loading ? (
                             <>
                               <RefreshCw className="spin" size={13} />
-                              <span>Simulating Hydrodynamics...</span>
+                              <span>Updating scenario…</span>
                             </>
                           ) : (
                             <>
                               <Zap size={13} />
-                              <span>Update Hazard Screening</span>
+                              <span>Update risk map</span>
                             </>
                           )}
                         </button>
 
                         <button
                           type="button"
-                          className="tactical-recalc-btn"
-                          style={{
-                            marginTop: "8px",
-                            background: "linear-gradient(135deg, rgba(37, 99, 235, 0.3) 0%, rgba(124, 58, 237, 0.4) 100%)",
-                            border: "1px solid rgba(168, 85, 247, 0.4)",
-                            color: "#c084fc",
-                          }}
+                          className="tactical-secondary-btn"
                           onClick={() => navigateTo("resilience")}
                         >
                           <Sparkles size={13} />
-                          <span>Open Resilience Forecaster (Challenge 05)</span>
+                          <span>Plan community resilience</span>
                         </button>
                       </div>
 
                       {/* Analytical Hazard Modes */}
                       <div className="tactical-control-group">
-                        <label className="tactical-control-label">ANALYTICAL HAZARD MODE</label>
+                        <label className="tactical-control-label">Map layer</label>
                         <div className="tactical-modes-grid">
                           {(["DAMAGE", "WIND", "EXPOSURE", "OBSTACLES", "HIT"] as MapAnalysisMode[]).map((mode) => (
                             <button
@@ -1343,7 +1284,7 @@ export default function App() {
 
                       {/* Active Geospatial Layers */}
                       <div className="tactical-control-group">
-                        <label className="tactical-control-label">GEOSPATIAL LAYERS &amp; DEFENSES</label>
+                        <label className="tactical-control-label">Response layers</label>
                         <div className="tactical-layer-list">
                           <label className="tactical-layer-item">
                             <input
@@ -1351,7 +1292,7 @@ export default function App() {
                               checked={showShelters}
                               onChange={(e) => setShowShelters(e.target.checked)}
                             />
-                            <span>Cyclone Shelters (MPCS Network)</span>
+                            <span>Cyclone shelters</span>
                           </label>
                           <label className="tactical-layer-item">
                             <input
@@ -1359,7 +1300,7 @@ export default function App() {
                               checked={showZones}
                               onChange={(e) => setShowZones(e.target.checked)}
                             />
-                            <span>Land-Use Zones (36 Ward Sectors)</span>
+                            <span>Land-use zones</span>
                           </label>
                           <label className="tactical-layer-item">
                             <input
@@ -1367,9 +1308,14 @@ export default function App() {
                               checked={layers.advanced.physicsGrid}
                               onChange={(e) => setLayers((prev) => ({ ...prev, advanced: { ...prev.advanced, physicsGrid: e.target.checked } }))}
                             />
-                            <span>200m Physics Mesh &amp; Risk Grid</span>
+                            <span>{resolutionLabel}</span>
                           </label>
                         </div>
+                        <button type="button" className="tactical-action-btn" disabled={loading}
+                          onClick={() => { setLayers(prev => ({...prev, advanced: {...prev.advanced, physicsGrid: true}})); void runFullPipeline(form.lat, form.lon, form.wind, form.pressure, form.name, form.heading, form.speed, "6", true); }}>
+                          Inspect 200 m detail · 6 km radius
+                        </button>
+                        <p style={{fontSize: 11}}>Wider scenarios use the overview resolution shown above.</p>
                       </div>
                     </div>
                   </aside>
@@ -1434,20 +1380,20 @@ export default function App() {
                     <div className="op-temporal-strip">
                       <div className="op-telemetry-live-status">
                         <span className="live-status-dot" />
-                        <span className="live-status-title">INSAT-3DR / DWR RADAR STREAM</span>
-                        <span className="live-status-sub">TIR-1 · 15-MIN CYCLE</span>
+                        <span className="live-status-title">SCENARIO STATUS</span>
+                        <span className="live-status-sub">SCREENING OUTPUT · NOT A LIVE FEED</span>
                       </div>
 
                       <div className="op-loss-telemetry">
                         <div className="op-loss-stat">
                           <span>RISK TIER:</span>
                           <strong className="red">
-                            {summaryStats?.max_risk_score && summaryStats.max_risk_score >= 0.55 ? "SEVERE RED" : "HIGH ORANGE"}
+                            {!summaryStats ? "UNAVAILABLE" : summaryStats.max_risk_score >= 0.55 ? "SEVERE RED" : summaryStats.max_risk_score >= 0.25 ? "MODERATE" : summaryStats.max_risk_score >= 0.10 ? "LOW" : "NO MODELLED DAMAGE"}
                           </strong>
                         </div>
                         <div className="op-loss-stat">
                           <span>AFFECTED:</span>
-                          <strong>{totalCells > 0 ? totalCells.toLocaleString() : "1,976"} SECTORS</strong>
+                          <strong>{scenario ? totalCells.toLocaleString() : "Unavailable"} SECTORS</strong>
                         </div>
                         <div className="op-loss-stat">
                           <span>POPULATION:</span>
@@ -1458,8 +1404,8 @@ export default function App() {
                           <strong className="amber">{estEconomicLossCr}</strong>
                         </div>
                         <div className="op-loss-stat">
-                          <span>NDMA DIRECTIVE:</span>
-                          <strong className="red">MANDATORY IMMEDIATE</strong>
+                          <span>RESPONSE STATUS:</span>
+                          <strong className="red">PRIORITY REVIEW</strong>
                         </div>
                       </div>
 
@@ -1471,7 +1417,7 @@ export default function App() {
                           title="Port Warnings & Civil Advisory Bulletins"
                         >
                           <Bell size={12} />
-                          <span>Port Warnings</span>
+                          <span>Advisories</span>
                         </button>
                         <button
                           type="button"
@@ -1480,7 +1426,7 @@ export default function App() {
                           title="Comprehensive Validation Matrix & Provenance"
                         >
                           <BarChart3 size={12} />
-                          <span>Validation</span>
+                          <span>Methods</span>
                         </button>
                       </div>
                     </div>
@@ -1494,9 +1440,9 @@ export default function App() {
                       <div className="tactical-panel-title-wrap">
                         <Activity size={13} className="tactical-panel-icon" />
                         <div>
-                          <div className="tactical-panel-title">HAZARD SIMULATION DOSSIER</div>
+                          <div className="tactical-panel-title">IMPACT BRIEF</div>
                           <div className="tactical-panel-sub">
-                            Mode: <strong style={{ color: "#8b5cf6" }}>{analysisMode}</strong> &middot; Multi-Sensor Spatial Output
+                            Layer: <strong className="tactical-mode-readout">{analysisMode}</strong> &middot; Scenario screening output
                           </div>
                         </div>
                       </div>
@@ -1547,7 +1493,7 @@ export default function App() {
                             </div>
                             <div className="tactical-kpi-card">
                               <span className="kpi-label">EYE RADIUS (RMAX)</span>
-                              <strong className="kpi-val amber">{Math.round(Number(form.radius || 30) * 0.85)} km</strong>
+                              <strong className="kpi-val amber">{scenario?.input?.radius_max_winds_km ?? 25} km</strong>
                               <span className="kpi-sub">Zone of Maximum Hazard</span>
                             </div>
                           </div>
@@ -1567,7 +1513,7 @@ export default function App() {
                               </div>
                               <div className="dossier-row">
                                 <span>Dynamic Pressure q</span>
-                                <strong>{activeCellInspection?.wind_force?.dynamic_pressure_pa ?? 1640} Pa</strong>
+                                <strong>{activeCellInspection?.wind_force?.dynamic_pressure_pa ?? "Unavailable"} Pa</strong>
                               </div>
                               <div className="dossier-row">
                                 <span>Terrain Factor k2 (IS 875)</span>
@@ -1681,7 +1627,7 @@ export default function App() {
                             </div>
                             <div className="tactical-kpi-card">
                               <span className="kpi-label">UPWIND SHELTERING</span>
-                              <strong className="kpi-val green">Factor {activeCellInspection?.obstacles?.shelter_factor ?? 0.88}</strong>
+                              <strong className="kpi-val green">Factor {activeCellInspection?.obstacles?.shelter_factor ?? "Unavailable"}</strong>
                               <span className="kpi-sub">Obstacle Shading Factor</span>
                             </div>
                             <div className="tactical-kpi-card">
@@ -1707,7 +1653,7 @@ export default function App() {
                             <div className="dossier-rows">
                                 <div className="dossier-row">
                                   <span>Upwind Obstruction Level</span>
-                                  <strong>{activeCellInspection?.obstacles?.obstruction_level || "MODERATE_SHELTER"}</strong>
+                                  <strong>{activeCellInspection?.obstacles?.obstruction_level ?? "Unavailable"}</strong>
                                 </div>
                               <div className="dossier-row">
                                 <span>Effective Pressure Law</span>
@@ -1799,7 +1745,7 @@ export default function App() {
                           <div className="tactical-directive-card">
                             <div className="directive-tag">
                               <AlertTriangle size={12} />
-                              <span>NDMA LIFE SAFETY ADVISORY</span>
+                              <span>SCENARIO RESPONSE NOTE</span>
                             </div>
                             <div className="directive-title">TOTAL INDOORS LOCKDOWN</div>
                             <p className="directive-desc">
@@ -1818,7 +1764,7 @@ export default function App() {
                             </div>
                             <div className="tactical-kpi-card">
                               <span className="kpi-label">MAX DAMAGE RISK</span>
-                              <strong className="kpi-val red">{Math.round((activeCellInspection?.damage?.hazard_score || 0.84) * 100)}%</strong>
+                              <strong className="kpi-val red">{summaryStats ? `${Math.round(summaryStats.max_risk_score * 100)}% (index)` : "Unavailable"}</strong>
                               <span className="kpi-sub">Eyewall Landfall Corridor</span>
                             </div>
                             <div className="tactical-kpi-card">
@@ -1844,19 +1790,19 @@ export default function App() {
                             <div className="dossier-rows">
                               <div className="dossier-row">
                                 <span>Terrain Class</span>
-                                <strong>{activeCellInspection?.land_type || "COASTAL_URBAN"}</strong>
+                                <strong>{activeCellInspection?.land_type ?? "Unavailable"}</strong>
                               </div>
                               <div className="dossier-row">
                                 <span>Wind Dynamic Pressure</span>
-                                <strong>{activeCellInspection?.wind_force?.dynamic_pressure_pa || 1640} Pa</strong>
+                                <strong>{activeCellInspection?.wind_force?.dynamic_pressure_pa ?? "Unavailable"} Pa</strong>
                               </div>
                               <div className="dossier-row">
                                 <span>Modeled Wind Loading</span>
-                                <strong>{activeCellInspection?.wind_force?.modeled_wind_loading_n_m2 || 2132} N/m²</strong>
+                                <strong>{activeCellInspection?.wind_force?.modeled_wind_loading_n_m2 ?? "Unavailable"} N/m²</strong>
                               </div>
                               <div className="dossier-row">
                                 <span>Load-to-Resistance (LRR)</span>
-                                <strong className="amber">{activeCellInspection?.structure?.load_to_resistance_ratio || "1.42"}</strong>
+                                <strong className="amber">{activeCellInspection?.structure?.load_to_resistance_ratio ?? "Unavailable"}</strong>
                               </div>
                               <div className="dossier-row">
                                 <span>Governing Failure Mode</span>
@@ -1872,11 +1818,11 @@ export default function App() {
                           <div className="tactical-directive-card">
                             <div className="directive-tag">
                               <AlertTriangle size={12} />
-                              <span>NDMA DIRECTIVE</span>
+                              <span>SCENARIO RESPONSE NOTE</span>
                             </div>
-                            <div className="directive-title">MANDATORY IMMEDIATE EVACUATION</div>
+                            <div className="directive-title">PRIORITY EVACUATION REVIEW</div>
                             <p className="directive-desc">
-                              Activate cyclone shelters and initiate priority evacuation for vulnerable coastal settlements within 25 km of landfall.
+                              Confirm thresholds with the relevant local authority before activating shelters or evacuation plans. This is a scenario-screening recommendation, not an official directive.
                             </p>
                           </div>
                         </>
@@ -1885,22 +1831,22 @@ export default function App() {
                       {/* Student Project & Research Provenance Card */}
                       <div className="student-project-card">
                         <div className="student-project-header">
-                          <span className="student-team">Operational Intelligence System</span>
+                          <span className="student-team">Research prototype · method provenance</span>
                         </div>
                         <div className="student-project-title">
                           CYCLONEX · AI Multi-Source Satellite &amp; Physics Hazard System
                         </div>
                         <div className="student-project-meta">
-                          <div><strong>AI Models:</strong> 4x PyTorch CNNs (Detection, Pattern, RI, Intensity)</div>
+                          <div><strong>ML workflow:</strong> identification, pattern classification, rapid-intensification and intensity forecasting</div>
                           <div><strong>Wind Physics:</strong> Rankine Vortex + IS 875 (Part 3) Wind Loading Code</div>
-                          <div><strong>Satellite Streams:</strong> INSAT-3DR TIR-1 / ScatSat / HURSAT-B1</div>
+                          <div><strong>Satellite catalogue:</strong> INSAT-3DR, ScatSat and HURSAT-B1 inputs; availability depends on the selected run</div>
                         </div>
                       </div>
 
                       <div className="tactical-quick-actions">
-                        <button type="button" className="tactical-action-btn primary" onClick={() => window.print()}>
+                        <button type="button" className="tactical-action-btn primary" onClick={printScreeningReport}>
                           <FileText size={12} />
-                          <span>Export Official SITREP (PDF)</span>
+                          <span>Print screening report (Save as PDF)</span>
                         </button>
                         <button type="button" className="tactical-action-btn" onClick={() => navigateTo("ai-lab")}>
                           <Brain size={12} />
@@ -2012,7 +1958,7 @@ export default function App() {
                     if (presetKey) void handlePresetChange(presetKey);
                     handleSelectSection("command");
                   }}
-                  onExportSitrep={() => window.print()}
+                  onExportSitrep={printScreeningReport}
                 />
               </div>
             )}
@@ -2056,7 +2002,7 @@ export default function App() {
             speedKph={Number(form.speed)}
             lat={Number(form.lat)}
             lon={Number(form.lon)}
-            aiConfidence={mlResult?.identification?.confidence ? Number((mlResult.identification.confidence * 100).toFixed(1)) : 94.7}
+            aiConfidence={mlResult?.identification?.confidence ? Number((mlResult.identification.confidence * 100).toFixed(1)) : 0}
             onNavigateSection={(sec) => {
               if (sec === "ai") navigateTo("ai-lab");
               else if (sec === "forecast") navigateTo("forecast");
@@ -2102,7 +2048,7 @@ export default function App() {
                     </span>
                   </div>
                   <div style={{ fontSize: "11px", color: "#8295ab", marginTop: "4px" }}>
-                    Damage Probability Score: <strong style={{ color: "#ffffff" }}>{selectedCell.damage.damage_score.toFixed(4)}</strong>
+                    Damage screening index: <strong style={{ color: "#ffffff" }}>{selectedCell.damage.damage_score.toFixed(4)}</strong>
                   </div>
                 </div>
 
@@ -2168,21 +2114,21 @@ export default function App() {
           )}
 
           {/* Official NDMA SITREP Printable Viewport */}
-          <div className="official-sitrep-print-doc" aria-label="NDMA Official Situation Report">
+          <div className="official-sitrep-print-doc" aria-label="Cyclonex scenario screening report">
             <div className="sitrep-header">
               <div className="sitrep-header-emblem">
-                <div className="sitrep-emblem-badge">🇮🇳 NDMA</div>
+                <div className="sitrep-emblem-badge">CYCLONEX</div>
                 <div>
-                  <h1 className="sitrep-title">NATIONAL DISASTER MANAGEMENT AUTHORITY</h1>
-                  <div className="sitrep-subtitle">MINISTRY OF HOME AFFAIRS · GOVERNMENT OF INDIA</div>
+                  <h1 className="sitrep-title">SCENARIO SCREENING REPORT</h1>
+                  <div className="sitrep-subtitle">RESEARCH PROTOTYPE · NOT AN OFFICIAL ADVISORY</div>
                   <div className="sitrep-system">CYCLONEX GEOSPATIAL INTELLIGENCE &amp; EMERGENCY RESPONSE SYSTEM</div>
                 </div>
               </div>
               <div className="sitrep-meta-box">
-                <div><strong>DOC REF:</strong> NDMA/CYC/SITREP/{new Date().getFullYear()}/{(form.name || "STORM").replace(/[^a-zA-Z0-9]/g, "-").toUpperCase()}</div>
+                <div><strong>DOC REF:</strong> CYCLONEX/SCREENING/{new Date().getFullYear()}/{(form.name || "STORM").replace(/[^a-zA-Z0-9]/g, "-").toUpperCase()}</div>
                 <div><strong>ISSUED:</strong> {new Date().toUTCString()} ({currentTimeIST})</div>
-                <div><strong>OPERATIONAL LEVEL:</strong> <span className="sitrep-alert-badge">RED ALERT / IMMEDIATE ACTION</span></div>
-                <div><strong>RESOLUTION:</strong> 200m Spatial Precision · Multi-Source Satellite Feeds</div>
+                <div><strong>OPERATIONAL LEVEL:</strong> <span className="sitrep-alert-badge">DRAFT SCENARIO · REVIEW REQUIRED</span></div>
+                <div><strong>RESOLUTION:</strong> {resolutionLabel} · Scenario screening</div>
               </div>
             </div>
 
@@ -2193,19 +2139,19 @@ export default function App() {
               <div className="sitrep-summary-grid">
                 <div className="sitrep-stat-card">
                   <span className="sitrep-stat-label">ESTIMATED ECONOMIC LOSS</span>
-                  <strong className="sitrep-stat-val">₹ {(scenario?.risk_grid?.summary?.estimated_loss_crores_inr ?? 1131.8).toFixed(1)} Cr</strong>
+                  <strong className="sitrep-stat-val">₹ {(scenario?.risk_grid?.summary?.estimated_loss_crores_inr ?? 0).toFixed(1)} Cr</strong>
                 </div>
                 <div className="sitrep-stat-card">
                   <span className="sitrep-stat-label">POPULATION AT RISK</span>
-                  <strong className="sitrep-stat-val">{(scenario?.risk_grid?.summary?.estimated_population_affected ?? 330930).toLocaleString()}</strong>
+                  <strong className="sitrep-stat-val">{(scenario?.risk_grid?.summary?.estimated_population_affected ?? 0).toLocaleString()}</strong>
                 </div>
                 <div className="sitrep-stat-card">
                   <span className="sitrep-stat-label">EVACUATION URGENCY</span>
-                  <strong className="sitrep-stat-val">{(scenario?.risk_grid?.summary?.ndma_directives?.evacuation_urgency || "MANDATORY").replace(/_/g, " ")}</strong>
+                  <strong className="sitrep-stat-val">{(scenario?.risk_grid?.summary?.ndma_directives?.evacuation_urgency || "UNAVAILABLE").replace(/_/g, " ")}</strong>
                 </div>
                 <div className="sitrep-stat-card">
                   <span className="sitrep-stat-label">NDRF BATTALIONS</span>
-                  <strong className="sitrep-stat-val">{scenario?.risk_grid?.summary?.ndma_directives?.ndrf_battalions_recommended ?? 18} Units</strong>
+                  <strong className="sitrep-stat-val">{scenario?.risk_grid?.summary?.ndma_directives?.ndrf_battalions_recommended ?? 0} Units</strong>
                 </div>
               </div>
             </div>
@@ -2217,8 +2163,8 @@ export default function App() {
                   <tr>
                     <th>Target Cyclone System</th>
                     <td><strong>{form.name || "Active Cyclone System"}</strong></td>
-                    <th>Primary Satellite Sensor</th>
-                    <td>{selectedSource}</td>
+                    <th>Image provenance</th>
+                    <td>{aiAnalysis?.provenance?.imagery || "Not analyzed"}</td>
                   </tr>
                   <tr>
                     <th>Eye Coordinates</th>

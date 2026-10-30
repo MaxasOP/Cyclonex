@@ -47,6 +47,7 @@ export default function DocumentationPage() {
           </div>
         </div>
 
+        <p role="status">Implementation: 200 m cells are available in bounded detail mode; overview resolution is returned per run. CNNs are experimental and trained on synthetic scenes. Satellite diagrams and historical preset tracks are illustrative. Dvorak CI, damage probabilities, official directives and certified structural tolerances are not validated by this prototype.</p>
         {/* Reading Environment: Left 220px TOC + Center Reading Document */}
         <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: "48px", alignItems: "start" }}>
           
@@ -311,7 +312,7 @@ export default function DocumentationPage() {
               </p>
 
               <div className="op-formula-block">
-                RISK = HAZARD (Wind pz + Surge η) × EXPOSURE (Parcel Footprint) × VULNERABILITY (Fragility Curves)
+                D = w_H H + w_S S_response + w_E E + w_V V (uncalibrated screening weights)
               </div>
 
               <div style={{ marginTop: "16px" }}>
@@ -328,19 +329,19 @@ export default function DocumentationPage() {
                     <tr>
                       <td style={{ color: "#ef4444", fontWeight: 700 }}>D4 / D5 (Critical)</td>
                       <td>Complete roof detachment / wall collapse</td>
-                      <td>pz &gt; 1.8 kPa</td>
+                      <td>D ≥ 0.55 (screening index)</td>
                       <td>Mandatory pre-landfall evacuation</td>
                     </tr>
                     <tr>
                       <td style={{ color: "#f59e0b", fontWeight: 700 }}>D2 / D3 (Moderate)</td>
                       <td>Facade cladding shear, glazing failure</td>
-                      <td>1.2 &le; pz &le; 1.8 kPa</td>
+                      <td>0.25 ≤ D &lt; 0.55</td>
                       <td>Shelter in interior rooms</td>
                     </tr>
                     <tr>
                       <td style={{ color: "#10b981", fontWeight: 700 }}>D0 / D1 (Nominal)</td>
                       <td>Minor superficial tile displacement</td>
-                      <td>pz &lt; 1.2 kPa</td>
+                      <td>D &lt; 0.25; no damage below 0.10</td>
                       <td>Standard precautionary alert</td>
                     </tr>
                   </tbody>

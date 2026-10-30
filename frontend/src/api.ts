@@ -159,6 +159,8 @@ export type ScenarioResult = {
     heading_deg?: number;
     speed_kph?: number;
     field_radius_km?: number;
+    storm_surge_m?: number;
+    radius_max_winds_km?: number;
   };
   basin: string | null;
   ocean_node: { VF: { ocean_heat_content_kj_cm2: number }; meta: { source: string } } | null;
@@ -319,7 +321,7 @@ export type MLInferenceResult = {
   ocean_context: { tb_deg_c: number; vf_m: number; data_status?: string };
 };
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? "http://127.0.0.1:8000" : "")).replace(/\/$/, "");
 
 export async function createScenario(input: Record<string, unknown>): Promise<ScenarioResult> {
   const response = await fetch(`${apiBaseUrl}/api/v2/scenarios`, {
@@ -555,6 +557,7 @@ export interface AICycloneAnalysisRequest {
 
 export interface AICycloneAnalysisResponse {
   status: string;
+  provenance?: { imagery: string; validation: string; note: string; supplied_channels: string[]; synthetic_channels: string[] };
   active_channels: string[];
   identification: {
     cyclone_detected: boolean;
@@ -629,10 +632,13 @@ export async function analyzeAICyclone(data: AICycloneAnalysisRequest): Promise<
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      const problem = await response.json().catch(() => null);
+      throw new Error(problem?.detail || "Cyclone analysis unavailable");
+    }
     return response.json() as Promise<AICycloneAnalysisResponse>;
-  } catch {
-    return null;
+  } catch (error) {
+    throw error instanceof Error ? error : new Error("Cyclone analysis unavailable");
   }
 }
 
@@ -742,13 +748,15 @@ export interface EvacuationRouteOption {
   name: string;
   distance_km: number;
   travel_time_minutes: number;
-  flood_risk_level: "LOW" | "MODERATE" | "HIGH";
+  flood_risk_level: "LOW" | "MODERATE" | "HIGH" | "UNKNOWN";
   passability: string;
   route_type: "Fastest" | "Safest" | "Flood-avoiding" | "Capacity-aware";
   trade_off_explanation: string;
 }
 
 export interface EvacuationAssessment {
+  status?: string;
+  notice?: string;
   recommended_routes: EvacuationRouteOption[];
   estimated_evacuee_target: number;
   assigned_shelter_count: number;
@@ -768,7 +776,7 @@ export interface ProvenanceRecord {
 }
 
 export interface SystemStatus {
-  meteorology: "LIVE" | "CACHED" | "SIMULATION";
+  meteorology: "LIVE" | "CACHED" | "SIMULATION" | "SCENARIO_INPUT";
   gee_sentinel1: "CONNECTED" | "CACHED" | "SIMULATION";
   gee_srtm: "CONNECTED" | "CACHED";
   gee_dynamic_world: "CONNECTED" | "CACHED" | "SIMULATION";
@@ -844,18 +852,18 @@ export interface DroneInspectionReport {
   asset_name: string;
   image_caption: string;
   damage_severity: "CRITICAL" | "SEVERE" | "MODERATE" | "MINOR";
-  structural_integrity_pct: number;
+  structural_integrity_pct: number | null;
   detected_defects: string[];
-  critical_failure_probability: number;
+  critical_failure_probability: number | null;
   repair_priority: string;
-  estimated_repair_hours: number;
+  estimated_repair_hours: number | null;
   emergency_dispatch_crew: string;
   mitigation_recommendation: string;
   inspection_timestamp: string;
   drone_telemetry: {
-    altitude_agl_m: number;
+    altitude_agl_m: number | null;
     sensor: string;
-    gimbal_pitch_deg: number;
+    gimbal_pitch_deg: number | null;
     gps_fix: string;
     survey_flight_speed_ms?: number;
   };

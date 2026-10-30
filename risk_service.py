@@ -34,7 +34,16 @@ class ScenarioInput(BaseModel):
     field_radius_km: float = Field(default=25.0, ge=0.2, le=500.0)
     coastal_exposure_factor: float = Field(default=0.7, ge=0, le=1)
     assumed_vulnerability_score: float = Field(default=0.8, ge=0, le=1)
+    radius_max_winds_km: float = Field(default=25.0, ge=1.0, le=100.0)
     include_ocean_node: bool = True
+    grid_resolution_m: int | None = Field(default=None, ge=200, le=20000)
+
+    @field_validator("grid_resolution_m")
+    @classmethod
+    def supported_grid_resolution(cls, value):
+        if value is not None and value % 200:
+            raise ValueError("Grid resolution must be a multiple of 200 metres.")
+        return value
 
     @field_validator("center_lat", "center_lon")
     @classmethod
@@ -176,7 +185,7 @@ def evaluate_cell_full(
     upwind_max_height_m: float = 0.0,
 ) -> dict[str, Any]:
     radius_m = scenario.field_radius_km * 1000.0
-    rmw_m = radius_m * 0.18
+    rmw_m = scenario.radius_max_winds_km * 1000.0
 
     distance_m = math.hypot(x_m, y_m)
 
@@ -505,7 +514,11 @@ def create_risk_grid(scenario: ScenarioInput) -> dict[str, Any]:
     base_grid = settings.grid_size_m
     # Automatically scale grid cell resolution so total cell count stays between 1,500 and 2,800 cells
     # for smooth 60fps browser map rendering without freezing or Leaflet layer dropping.
-    if radius_m <= 6_000.0:
+    if scenario.grid_resolution_m is not None:
+        grid = scenario.grid_resolution_m
+        if math.pi * (radius_m / grid) ** 2 > 12000:
+            raise ValueError("Requested grid exceeds 12,000 cells. Reduce the radius (200 m detail supports up to 12 km) or select overview resolution.")
+    elif radius_m <= 6_000.0:
         grid = base_grid
     else:
         calculated_step = radius_m / 26.0
@@ -567,7 +580,7 @@ def create_risk_grid(scenario: ScenarioInput) -> dict[str, Any]:
     cell_lat = scenario.center_lat + np.degrees((sel_my - center_y) / earth_r)
 
     # Wind field — Holland-Rankine + right-of-track asymmetry (vectorised).
-    rmw_m = radius_m * 0.18
+    rmw_m = scenario.radius_max_winds_km * 1000.0
     vmax = scenario.max_wind_kph
     intensity_ratio = float(np.clip((vmax - 60.0) / 180.0, 0.0, 1.0))
     holland_b = 0.8 + 0.4 * intensity_ratio
@@ -888,17 +901,17 @@ def create_risk_grid(scenario: ScenarioInput) -> dict[str, Any]:
                 "estimated_resistance_pa": float(ec),
                 "load_to_resistance_ratio": lr,
                 "data_provenance": {
-                    "building_footprint": "ESTIMATED" if bc == 0 else "OSM_DERIVED",
+                    "building_footprint": "NOT_OBSERVED" if bc == 0 else "ESTIMATED_FROM_ZONE",
                     "material": "MIXED",
                     "height": "ESTIMATED",
                     "resistance_pa": "IS875_SCREENING_VALUE",
-                    "structural_class": "INFERRED" if bc == 0 else "MAPPED",
+                    "structural_class": "INFERRED",
                     "modeled": ["local_wind_field", "dynamic_pressure", "effective_wind_loading", "damage_score"],
                 },
             },
             "damage": {
                 "formula": "D = w_H*H + w_S*S_resp + w_E*E + w_V*V",
-                "formula_note": "Official Additive HEV model incorporating wind, surge, rain, and pressure deficit.",
+                "formula_note": "Uncalibrated additive screening model with assumed vulnerability.",
                 "hazard_score": float(hazard_score_list[i]),
                 "exposure_score": es,
                 "vulnerability_score": vs,
@@ -923,6 +936,7 @@ def create_risk_grid(scenario: ScenarioInput) -> dict[str, Any]:
                 },
                 "properties": {
                     "cell_id": cell_id,
+                    "full_cell_analysis": cell_data,
                     "grid_size_m": grid,
                     "lat": float(clat),
                     "lon": float(cl),
@@ -938,7 +952,7 @@ def create_risk_grid(scenario: ScenarioInput) -> dict[str, Any]:
                     "wind_speed": wk,
                     "pressure": scenario.central_pressure_hpa,
                     "cyclone_pattern": getattr(scenario, "cyclone_pattern", "mature_eye"),
-                    "ai_confidence": getattr(scenario, "ai_confidence", 0.91),
+                    "ai_confidence": None,
                     "wind_ms": wm,
                     "wind_direction_deg": float(wd),
                     "bearing_from_eye_deg": float(bd),
@@ -1020,6 +1034,7 @@ def create_risk_grid(scenario: ScenarioInput) -> dict[str, Any]:
             "storm_speed_kph": scenario.speed_kph,
             "actual_grid_size_m": grid,
             "grid_auto_scaled": grid != settings.grid_size_m,
+            "resolution_mode": "DETAIL_200M" if grid == 200 else "OVERVIEW",
             "estimated_loss_crores_inr": est_loss_crores,
             "estimated_population_affected": est_pop_at_risk,
             "ndma_directives": {
@@ -1032,6 +1047,8 @@ def create_risk_grid(scenario: ScenarioInput) -> dict[str, Any]:
         },
         "metadata": {
             "grid_size_m": grid,
+            "resolution_mode": "DETAIL_200M" if grid == 200 else "OVERVIEW",
+            "requested_grid_size_m": scenario.grid_resolution_m,
             "crs": "LOCAL_TANGENT_PLANE_METERS (GeoJSON output: EPSG:4326)",
             "model_type": "spatial_damage_screening_v2",
             "limitation": "Risk and damage classes are scenario-screening estimates, not engineering damage certificates.",
@@ -1082,6 +1099,11 @@ def _classify_land_array(lat_arr, lon_arr, dist_arr, rmw_m):
     for (w, s, e, n) in _INDIA_LAND_BOXES:
         in_box = (lon >= w) & (lon <= e) & (lat >= s) & (lat <= n)
         out = np.where(in_box & (out == "OCEAN"), "INLAND_RURAL", out)
+
+    marine_exclusion = (in_bob & (lat < coast_lat)) | (in_arb & (lon < coast_lon) & (lat < 23.0))
+    for w, south, east, north in _OCEAN_BOXES:
+        marine_exclusion |= (lon >= w) & (lon <= east) & (lat >= south) & (lat <= north)
+    out = np.where(marine_exclusion, "OCEAN", out)
 
     # Coastal zone = land within 1.5 × RMW of the eye
     coastal = (out == "INLAND_RURAL") & (dist_arr < rmw_m * 1.5)

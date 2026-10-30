@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import math
 import os
+from geo import destination
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -52,6 +53,7 @@ from canonical_models import (
 )
 
 # API Keys & Secrets (Server-side only)
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or ""
 GEE_CREDENTIALS = os.getenv("GEE_SERVICE_ACCOUNT") or os.getenv("GOOGLE_APPLICATION_CREDENTIALS") or ""
 
@@ -175,7 +177,7 @@ class GoogleEarthEngineFeeds:
 
     @staticmethod
     def get_gee_catalog_layers(basin: str, simulate_offline: bool = False) -> List[Dict[str, Any]]:
-        status = "SIMULATION" if simulate_offline else ("LIVE" if GEE_CREDENTIALS else "CACHED")
+        status = "SIMULATION" if simulate_offline else "CATALOG_ONLY"
         now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
         return [
@@ -187,7 +189,7 @@ class GoogleEarthEngineFeeds:
                 "polarization": "VV + VH Dual-Pol",
                 "pass_direction": "DESCENDING",
                 "resolution": "10m Spatial Ground Resolution",
-                "observation_timestamp": now_str,
+                "observation_timestamp": None,
                 "observation_age": "2.4 hours ago",
                 "status": status,
                 "provenance": "ESA Copernicus / Google Earth Engine Planetary Computer",
@@ -202,7 +204,7 @@ class GoogleEarthEngineFeeds:
                 "resolution": "30m 1-Arc-Second Global",
                 "observation_timestamp": "Baseline Topography",
                 "observation_age": "Static Baseline Topography",
-                "status": "LIVE" if GEE_CREDENTIALS and not simulate_offline else "CACHED",
+                "status": status,
                 "provenance": "NASA JPL / USGS / Google Earth Engine",
                 "processing_pipeline": "Hydro-conditioned DEM -> D8 Flow Direction -> Slope Gradient Extraction -> Coastal Lowland Mask",
                 "utility": "Hydrodynamic runoff slope, barrier elevations & storm surge contour limits",
@@ -213,7 +215,7 @@ class GoogleEarthEngineFeeds:
                 "gee_collection": "GOOGLE/DYNAMICWORLD/V1",
                 "instrument": "Sentinel-2 Multi-Spectral Derived 9-Class AI",
                 "resolution": "10m Near Real-Time",
-                "observation_timestamp": now_str,
+                "observation_timestamp": None,
                 "observation_age": "Bi-weekly Cloud-Filtered Composite",
                 "status": status,
                 "provenance": "World Resources Institute / Google / ESA",
@@ -226,7 +228,7 @@ class GoogleEarthEngineFeeds:
                 "gee_collection": "NOAA/VIIRS/DNB/MONTHLY_V1/VCMSLCFG",
                 "instrument": "VIIRS Day/Night Band Radiometer",
                 "resolution": "500m Nocturnal Radiance",
-                "observation_timestamp": now_str,
+                "observation_timestamp": None,
                 "observation_age": "Daily Nocturnal Orbit",
                 "status": status,
                 "provenance": "NOAA / NASA Earth Science Data / Google Earth Engine",
@@ -615,7 +617,7 @@ class RuleEngine:
 
         return GeminiDecisionIntelligence(
             engine_source="Disaster-management-aligned rule-based fallback (Engine v2.4)",
-            confidence_score=0.942,
+            confidence_score=0.0,
             resilience_rating=rating,
             urgency_level=urgency,
             executive_summary=(
@@ -670,7 +672,7 @@ class GeminiMultimodalReasoningEngine:
             try:
                 critical_count = sum(1 for i in infra_items if i.overall_vulnerability == "CRITICAL")
                 prompt_text = f"""
-                You are Gemini 3.7 Flash, acting as the Lead AI Disaster Operations & Resilience Commander for the Bay of Bengal & Coastal APAC.
+                You draft scenario-screening recommendations for review. These are simulated hazards and reference assets, not verified observations or official directives. Never claim live satellite ingestion, actual funding or dispatch.
                 Analyze the following cyclone track & infrastructure vulnerability telemetry:
                 - Storm: {storm_name} at ({eye_lat}°N, {eye_lon}°E)
                 - Intensity: Peak Sustained Winds {max_wind_kmh} km/h, Central Pressure {central_pressure_hpa} hPa
@@ -693,10 +695,11 @@ class GeminiMultimodalReasoningEngine:
                    - "priority": "CRITICAL" | "HIGH"
                 5. "reasoning_steps": Array of 3 concise XAI points
                 """
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
                 resp = requests.post(
                     url,
-                    json={"contents": [{"parts": [{"text": prompt_text}]}]},
+                    headers={"x-goog-api-key": GEMINI_API_KEY},
+                    json={"contents": [{"parts": [{"text": prompt_text}]}], "generationConfig": {"responseMimeType": "application/json"}},
                     timeout=7.0
                 )
                 if resp.status_code == 200:
@@ -726,8 +729,8 @@ class GeminiMultimodalReasoningEngine:
                     ]
 
                     return GeminiDecisionIntelligence(
-                        engine_source="Gemini 3.7 Flash Multimodal Reasoning Engine (Live Model Ingestion)",
-                        confidence_score=0.965,
+                        engine_source=f"Gemini API ({GEMINI_MODEL}; scenario inputs only)",
+                        confidence_score=0.0,
                         resilience_rating=parsed.get("resilience_rating", "RED_HIGH_CONSEQUENCE"),
                         urgency_level=parsed.get("urgency_level", "MANDATORY_EVACUATION"),
                         executive_summary=parsed.get("executive_summary", ""),
@@ -831,86 +834,14 @@ class EvacuationRoutingEngine:
     """Generates trade-off-aware evacuation routes and capacity assignment."""
 
     @staticmethod
-    def compute_evacuation_assessment(eye_lon: float, surge_height_m: float) -> EvacuationAssessment:
-        is_east_coast = eye_lon >= 78.0
-
-        if is_east_coast:
-            routes = [
-                EvacuationRouteOption(
-                    route_id="route-fast",
-                    name="Direct Highway 53 Corridor",
-                    distance_km=14.2,
-                    travel_time_minutes=24,
-                    flood_risk_level="HIGH" if surge_height_m >= 2.0 else "MODERATE",
-                    passability="RISK OF SURGE OVERTOPPING AT KM 18",
-                    route_type="Fastest",
-                    trade_off_explanation="Fastest point-to-point transit time, but traverses vulnerable low-lying culverts subject to saltwater backflow.",
-                ),
-                EvacuationRouteOption(
-                    route_id="route-safe",
-                    name="Cuttack-Paradip Elevated Ridge Route",
-                    distance_km=20.6,
-                    travel_time_minutes=38,
-                    flood_risk_level="LOW",
-                    passability="100% CLEAR (+7.2m MSL Ridge)",
-                    route_type="Safest",
-                    trade_off_explanation="Adds 6.4 km and 14 minutes, but maintains continuous +7.2m MSL terrain clearance with zero flood risk.",
-                ),
-                EvacuationRouteOption(
-                    route_id="route-flood-avoid",
-                    name="Inland Agricultural Sluice Bypass",
-                    distance_km=17.8,
-                    travel_time_minutes=32,
-                    flood_risk_level="LOW",
-                    passability="PASSABLE (Minor Ponding)",
-                    route_type="Flood-avoiding",
-                    trade_off_explanation="Bypasses primary estuary overtopping zones with moderate travel time penalty.",
-                ),
-                EvacuationRouteOption(
-                    route_id="route-capacity",
-                    name="Ersama High-Elevation Multi-Purpose Citadel Express",
-                    distance_km=22.4,
-                    travel_time_minutes=41,
-                    flood_risk_level="LOW",
-                    passability="PASSABLE FOR HEAVY BUSES",
-                    route_type="Capacity-aware",
-                    trade_off_explanation="Routes directly to 2,500-bed reinforced citadel with high operational readiness.",
-                ),
-            ]
-        else:
-            routes = [
-                EvacuationRouteOption(
-                    route_id="route-w-fast",
-                    name="SH-47 Coastal Highway Direct",
-                    distance_km=12.5,
-                    travel_time_minutes=22,
-                    flood_risk_level="HIGH",
-                    passability="ESTUARY CAUSEWAY OVERTOPPING",
-                    route_type="Fastest",
-                    trade_off_explanation="Fastest link, but cut off during peak storm surge crest.",
-                ),
-                EvacuationRouteOption(
-                    route_id="route-w-safe",
-                    name="Mumbai-Goa NH-66 via Pen Ridge",
-                    distance_km=21.2,
-                    travel_time_minutes=40,
-                    flood_risk_level="LOW",
-                    passability="100% PASSABLE",
-                    route_type="Safest",
-                    trade_off_explanation="Elevated ridge bypass ensuring zero coastal water intrusion.",
-                ),
-            ]
-
+    def compute_evacuation_assessment(eye_lon: float, surge_height_m: float, eye_lat: float = 20.4) -> EvacuationAssessment:
+        from routing_service import road_routes
+        result = road_routes(eye_lat, eye_lon)
         return EvacuationAssessment(
-            recommended_routes=routes,
-            estimated_evacuee_target=48000,
-            assigned_shelter_count=12,
-            shelter_capacity_margin_pct=34.5,
-            bottleneck_warnings=[
-                "Culvert Km 18.4 on coastal arterial faces saltwater overtopping by T-4 hours",
-                "Ensure mass evacuation buses conclude journeys before sustained winds reach 65 km/h",
-            ],
-            transit_evacuation_window_hours=6.0,
+            status=result["status"], source=result["source"], notice=result["notice"],
+            recommended_routes=[EvacuationRouteOption(**r) for r in result["routes"]],
+            estimated_evacuee_target=0, assigned_shelter_count=0, shelter_capacity_margin_pct=0,
+            bottleneck_warnings=[result["notice"]], transit_evacuation_window_hours=0,
         )
 
 
@@ -975,6 +906,7 @@ class CycloneResilienceService:
         # 5. Evacuation Routing & Shelter Assignment
         evacuation_data = EvacuationRoutingEngine.compute_evacuation_assessment(
             eye_lon=eye_lon,
+            eye_lat=eye_lat,
             surge_height_m=surge_data["peak_surge_height_m"],
         )
 
@@ -1002,7 +934,7 @@ class CycloneResilienceService:
             f"1. STORM SURGE HAZARD: A storm surge crest of +{surge_data['peak_surge_height_m']} meters is modeled to breach coastal revetments within {surge_data['inundation_reach_km']} km of the eye. All low-lying settlements within 5 km of the high-tide line must complete evacuation to stilted MPCS refuges immediately.\n"
             f"2. POWER INFRASTRUCTURE: Pre-trip coastal 220kV/132kV transmission feeders 2 hours prior to gale force onset to prevent explosive transformer salt-arc flashovers. Engage mobile diesel pumpouts at coastal substations.\n"
             f"3. ARTERIAL EVACUATION HIGHWAYS: Low-lying culverts along arterial routes are facing flash flood overtopping ({surge_data['projected_24h_rainfall_mm']} mm 24h precipitation). Divert non-emergency traffic to elevated ridge bypasses.\n"
-            f"4. PARAMETRIC LIQUIDITY: Parametric Smart Trigger has released ₹{parametric_data['disbursed_liquidity_inr_cr']} Crores in automated pre-landfall emergency funding for shelter provisions and fuel logistics."
+            f"4. PARAMETRIC LIQUIDITY: Parametric Smart Trigger simulates an allocation of ₹{parametric_data['disbursed_liquidity_inr_cr']} Crores in hypothetical pre-landfall emergency funding for shelter provisions and fuel logistics."
         )
 
         multilingual_advisories = {
@@ -1059,6 +991,9 @@ class CycloneResilienceService:
             ),
         }
 
+        multilingual_advisories = {key: "SCENARIO DRAFT — NOT AN OFFICIAL WARNING. No dispatch or financial transfer occurred.\n\n" + value for key, value in multilingual_advisories.items()}
+        advisory_en = multilingual_advisories["en"]
+
         # 8. Dynamic Timeline Schedule (T-24h to T+24h)
         dynamic_timeline = [
             {"phase": "T - 24 Hours", "title": "Early Anticipatory Monitoring", "action": "Activate District Emergency Operations Center (DEOC); initiate joint IMD/GEE forecast track ingestion."},
@@ -1100,31 +1035,31 @@ class CycloneResilienceService:
                 observation_timestamp=time_now,
                 model_version="GEE-Connector-v1.8",
                 processing_latency_ms=35,
-                status="LIVE" if GEE_CREDENTIALS and not simulate_failure_gee else "CACHED",
+                status="SIMULATION",
             ),
             ProvenanceRecord(
                 output_domain="Decision Intelligence",
                 data_sources=["Gemini 3.7 Flash Multimodal Reasoning", "NDMA/SDMA Disaster Rules"],
                 dataset_collection="Google GenAI / RuleEngine v2.4",
                 observation_timestamp=time_now,
-                model_version="Gemini-3.7-Flash-Disaster-Commander",
+                model_version=GEMINI_MODEL,
                 processing_latency_ms=latency_ms,
-                status="LIVE" if GEMINI_API_KEY and not simulate_failure_gemini else "MODEL_ESTIMATE",
+                status="LIVE" if gemini_intel.engine_source.startswith("Gemini API") else "MODEL_ESTIMATE",
             ),
         ]
 
         # 10. System Health Status
         system_status = SystemStatus(
-            meteorology="SIMULATION" if simulate_failure_weather else "LIVE",
-            gee_sentinel1="SIMULATION" if simulate_failure_gee else ("CONNECTED" if GEE_CREDENTIALS else "CACHED"),
-            gee_srtm="CACHED",
-            gee_dynamic_world="SIMULATION" if simulate_failure_gee else ("CONNECTED" if GEE_CREDENTIALS else "CACHED"),
-            gee_viirs="SIMULATION" if simulate_failure_gee else ("CONNECTED" if GEE_CREDENTIALS else "CACHED"),
-            ml_engine="ACTIVE",
-            gemini_ai="FALLBACK" if simulate_failure_gemini or not GEMINI_API_KEY else "ACTIVE",
-            rule_engine="ACTIVE" if simulate_failure_gemini or not GEMINI_API_KEY else "STANDBY",
+            meteorology="SIMULATION" if simulate_failure_weather else "SCENARIO_INPUT",
+            gee_sentinel1="SIMULATION" if simulate_failure_gee else "SIMULATION",
+            gee_srtm="SIMULATION",
+            gee_dynamic_world="SIMULATION" if simulate_failure_gee else "SIMULATION",
+            gee_viirs="SIMULATION" if simulate_failure_gee else "SIMULATION",
+            ml_engine="FALLBACK",
+            gemini_ai="ACTIVE" if gemini_intel.engine_source.startswith("Gemini API") else "FALLBACK",
+            rule_engine="STANDBY" if gemini_intel.engine_source.startswith("Gemini API") else "ACTIVE",
             database="ACTIVE",
-            routing_engine="ACTIVE",
+            routing_engine="ACTIVE" if evacuation_data.status == "AVAILABLE" else "FALLBACK",
             tts_speech="READY",
         )
 
@@ -1158,12 +1093,10 @@ class CycloneResilienceService:
                 ),
             },
             motion={"headingDeg": heading_deg, "forwardSpeedKmh": forward_speed_kmh},
-            forecast=[
-                ForecastPoint(hour=6, lat=round(eye_lat + 0.6, 2), lon=round(eye_lon - 0.4, 2), max_wind_kmh=round(max_wind_kmh + 5, 1), central_pressure_hpa=round(central_pressure_hpa - 3, 1), uncertainty_radius_km=18.0),
-                ForecastPoint(hour=12, lat=round(eye_lat + 1.2, 2), lon=round(eye_lon - 0.8, 2), max_wind_kmh=round(max_wind_kmh + 10, 1), central_pressure_hpa=round(central_pressure_hpa - 6, 1), uncertainty_radius_km=28.0),
-                ForecastPoint(hour=24, lat=round(eye_lat + 2.3, 2), lon=round(eye_lon - 1.5, 2), max_wind_kmh=round(max_wind_kmh - 15, 1), central_pressure_hpa=round(central_pressure_hpa + 12, 1), uncertainty_radius_km=42.0),
-                ForecastPoint(hour=48, lat=round(eye_lat + 4.1, 2), lon=round(eye_lon - 2.8, 2), max_wind_kmh=round(max_wind_kmh - 55, 1), central_pressure_hpa=round(central_pressure_hpa + 28, 1), uncertainty_radius_km=75.0),
-            ],
+            forecast=[ForecastPoint(hour=h, lat=destination(eye_lat, eye_lon, heading_deg, forward_speed_kmh*h)[0],
+                                    lon=destination(eye_lat, eye_lon, heading_deg, forward_speed_kmh*h)[1],
+                                    max_wind_kmh=max_wind_kmh, central_pressure_hpa=central_pressure_hpa,
+                                    uncertainty_radius_km=0) for h in (6,12,24,48)],
             landfall=LandfallEstimate(
                 eta_hours=round(max(4.0, (140.0 / max(5.0, forward_speed_kmh))), 1),
                 location_name="Coastal Landfall Target Corridor",
@@ -1190,16 +1123,16 @@ class CycloneResilienceService:
                 uncertainty_range_m="±0.4m",
             ),
             confidence=PredictionConfidence(
-                score=0.94,
-                uncertainty_description="Model uncertainty estimate based on multi-source track consensus (IMD/JTWC)",
-                prediction_interval="90% ensemble track corridor",
+                score=0.0,
+                uncertainty_description="Uncalibrated scenario estimate; no measured confidence available",
+                prediction_interval="NOT_CALIBRATED",
             ),
             source=DataSourceStatus(
-                meteorological="LIVE" if not simulate_failure_weather else "SIMULATION",
+                meteorological="SIMULATION",
                 storm_track="CACHED",
-                satellite_feeds="LIVE" if GEE_CREDENTIALS and not simulate_failure_gee else "CACHED",
+                satellite_feeds="SIMULATION",
                 terrain_srtm="CACHED",
-                provider="IMD / JTWC / GEE Multi-Sensor Ingest",
+                provider="User-selected historical scenario; satellite catalogue only",
             ),
         )
 
@@ -1249,7 +1182,7 @@ class CycloneResilienceService:
                     "road_diversion_action": "Pre-stage heavy clearing equipment at 5 km intervals; divert non-emergency traffic to elevated ridge bypasses.",
                     "medical_shelter_action": "Elevate portable oxygen concentrators and trauma supplies above +3.0m datum; lock dual diesel generator fuel reserves.",
                     "automated_advisory_action": "Automated dispatch of multilingual NDMA/SDMA warning directives across 6 coastal Indian languages with voice TTS broadcast.",
-                    "parametric_liquidity_action": f"Automated sub-12-min wire payout of ₹{parametric_data['disbursed_liquidity_inr_cr']} Cr into District Disaster Relief accounts.",
+                    "parametric_liquidity_action": f"Simulation only: hypothetical allocation of ₹{parametric_data['disbursed_liquidity_inr_cr']} Cr ; no transfer is executed.",
                 },
             },
             # Canonical Unified Architecture
@@ -1338,22 +1271,53 @@ class DroneDamageInspectionEngine:
         sample_id: Optional[str] = None,
         image_base64: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Inspects drone image of critical asset, combining Gemini Vision (if available) with deterministic diagnostic fallback."""
-        key = sample_id or ("sample-substation-flood" if "pwr" in asset_id else "sample-culvert-breach" if "rd" in asset_id else "sample-hospital-roof")
-        base_data = cls.SAMPLES.get(key, cls.SAMPLES["sample-substation-flood"]).copy()
-        
-        base_data["inspected_asset_id"] = asset_id
-        base_data["inspection_timestamp"] = datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC")
-        base_data["drone_telemetry"] = {
-            "altitude_agl_m": 45.0,
-            "sensor": "Zenmuse H20T 20MP RGB + Radiometric Thermal Sensor",
-            "gimbal_pitch_deg": -45.0,
-            "gps_fix": "RTK Differential Fix (±2cm horizontal accuracy)",
-            "survey_flight_speed_ms": 3.2,
-        }
-        base_data["engine"] = "Gemini-3.7-Flash-Vision" if GEMINI_API_KEY else "CycloneX-Deterministic-CV-v2.1"
-        base_data["status"] = "success"
-        return base_data
+        """Analyze an actual image, or return an explicitly selected demonstration."""
+        from copy import deepcopy
+        import base64
+        import io
+        from PIL import Image
+        if image_base64:
+            encoded = image_base64.split(",", 1)[-1]
+            try:
+                raw = base64.b64decode(encoded, validate=True)
+                if len(raw) > 10 * 1024 * 1024:
+                    raise ValueError("Image exceeds 10 MB")
+                with Image.open(io.BytesIO(raw)) as image:
+                    mime = Image.MIME.get(image.format, "image/jpeg")
+                    image.verify()
+            except Exception as exc:
+                raise ValueError("Invalid image. Supply a base64 PNG or JPEG, maximum 10 MB.") from exc
+            if not GEMINI_API_KEY:
+                raise RuntimeError("Image analysis unavailable: configure GEMINI_API_KEY. Sample reports are available only by explicitly selecting a sample.")
+            prompt = ("Inspect this image for visible damage only. Do not invent telemetry, structural capacity, failure probabilities, repair duration or deployment of crews. "
+                      "Return JSON: asset_name, image_caption, damage_severity (CRITICAL/SEVERE/MODERATE/MINOR), detected_defects (array of strings), "
+                      "repair_priority, mitigation_recommendation. State uncertainties and recommend an on-site inspection. Asset reference: " + asset_id)
+            try:
+                response = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
+                    headers={"x-goog-api-key": GEMINI_API_KEY},
+                    json={"contents": [{"parts": [{"text": prompt}, {"inline_data": {"mime_type": mime, "data": encoded}}]}],
+                          "generationConfig": {"responseMimeType": "application/json"}}, timeout=(3, 25))
+                response.raise_for_status()
+                report = json.loads(response.json()["candidates"][0]["content"]["parts"][0]["text"])
+                if not isinstance(report.get("detected_defects"), list) or report.get("damage_severity") not in ("CRITICAL", "SEVERE", "MODERATE", "MINOR"):
+                    raise ValueError("Invalid vision response")
+            except (requests.RequestException, ValueError, KeyError, IndexError, TypeError) as exc:
+                raise RuntimeError("Image analysis provider unavailable or returned an invalid report. No sample result was substituted.") from exc
+            report.update({"engine": f"Gemini API ({GEMINI_MODEL})", "provenance": "USER_IMAGE_UNVALIDATED_AI_ASSESSMENT",
+                           "structural_integrity_pct": None, "critical_failure_probability": None, "estimated_repair_hours": None,
+                           "emergency_dispatch_crew": "No crew dispatched"})
+        elif sample_id:
+            if sample_id not in cls.SAMPLES:
+                raise ValueError("Unknown sample_id")
+            report = deepcopy(cls.SAMPLES[sample_id])
+            report.update({"engine": "DEMONSTRATION_SAMPLE", "provenance": "DEMONSTRATION_SAMPLE", "notice": "Illustrative sample report; no drone image was analyzed."})
+        else:
+            raise ValueError("Supply image_base64 or explicitly select a sample_id.")
+        report.update({"status": "success", "inspected_asset_id": asset_id,
+                       "inspection_timestamp": datetime.now(timezone.utc).isoformat(),
+                       "drone_telemetry": {"altitude_agl_m": None, "sensor": "Not supplied", "gimbal_pitch_deg": None,
+                                           "gps_fix": "Not supplied", "survey_flight_speed_ms": None}})
+        return report
 
 
 # ---------------------------------------------------------------------------
@@ -1369,14 +1333,16 @@ def generate_cap_alert_xml(
     affected_blocks: Optional[List[str]] = None,
 ) -> str:
     """Generates standard OASIS Common Alerting Protocol (CAP v1.2) XML payload compliant with NDMA SACHET."""
+    from xml.sax.saxutils import escape
+    storm_name = escape(storm_name)
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
-    blocks_str = ", ".join(affected_blocks or ["Paradip Municipality", "Ersama Block", "Kujang Block", "Dhamra Port Sector"])
+    blocks_str = escape(", ".join(affected_blocks or [f"Scenario area near {eye_lat}, {eye_lon}"]))
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
   <identifier>CYCLONEX-ALERT-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M')}-001</identifier>
-  <sender>NDMA-IN/CYCLONEX-EARLY-WARNING</sender>
+  <sender>CYCLONEX-RESEARCH-PROTOTYPE</sender>
   <sent>{now_iso}</sent>
-  <status>Actual</status>
+  <status>Exercise</status>
   <msgType>Alert</msgType>
   <scope>Public</scope>
   <info>
@@ -1384,16 +1350,16 @@ def generate_cap_alert_xml(
     <event>Severe Cyclonic Storm &amp; Coastal Surge Inundation Warning</event>
     <urgency>Immediate</urgency>
     <severity>Extreme</severity>
-    <certainty>Observed</certainty>
+    <certainty>Possible</certainty>
     <eventCode>
       <valueName>NDMA-SACHET</valueName>
       <value>CYCLONE-RED-ALERT</value>
     </eventCode>
-    <headline>RED ALERT: Cyclone {storm_name} approaching with +{peak_surge_m}m peak surge and {max_wind_kmh} km/h winds</headline>
+    <headline>SCENARIO EXERCISE: Cyclone {storm_name} approaching with +{peak_surge_m}m peak surge and {max_wind_kmh} km/h winds</headline>
     <description>Severe cyclonic circulation center located at {eye_lat}N, {eye_lon}E with maximum sustained winds of {max_wind_kmh} km/h. Astronomical tide coupling is causing coastal surge overtopping reaching +{peak_surge_m} meters MSL. Coastal sectors {blocks_str} face extreme inundation.</description>
-    <instruction>Mandatory evacuation within 5 km of coast line. De-energize high-voltage power lines. Divert traffic from coastal arterial roads to elevated ridge bypass corridors. Seek refuge in designated Multi-Purpose Cyclone Shelters (MPCS).</instruction>
-    <web>https://cyclonex.gov.in/resilience</web>
-    <contact>National Disaster Management Authority (NDMA) Tactical Operations Room: 1070</contact>
+    <instruction>EXERCISE ONLY. Confirm all scenario estimates with the responsible authority before taking operational action.</instruction>
+    <web>https://cyclonex.vercel.app/#resilience</web>
+    <contact>Research prototype; no official alert has been issued.</contact>
     <area>
       <areaDesc>{blocks_str} Coastal Sectors</areaDesc>
       <circle>{eye_lat},{eye_lon},45.0</circle>

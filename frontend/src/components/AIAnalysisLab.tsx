@@ -51,11 +51,11 @@ export default function AIAnalysisLab({
 
   const detectionConfidence = analysis?.identification?.confidence
     ? (analysis.identification.confidence * 100).toFixed(1)
-    : "96.4";
+    : "Unavailable";
   const patternClass = analysis?.classification?.pattern?.replace(/_/g, " ").toUpperCase() || "MATURE EYEWALL";
   const patternConfidence = analysis?.classification?.confidence
     ? (analysis.classification.confidence * 100).toFixed(1)
-    : "94.7";
+    : "Unavailable";
 
   return (
     <div className="ai-analysis-workspace">
@@ -218,7 +218,7 @@ export default function AIAnalysisLab({
                 strokeWidth="1.5"
               />
               <text x="194" y="184" fill="#10b981" fontSize="11" fontFamily="monospace" fontWeight="bold">
-                EYE_CORE (Conf: 96.4%)
+                ILLUSTRATIVE EYE CORE
               </text>
             </svg>
 
@@ -331,7 +331,7 @@ export default function AIAnalysisLab({
                 <div className="check-item">
                   <span className="check-label">Inference Model</span>
                   <strong className="check-val green">
-                    PyTorch ResNet/CNN
+                    Experimental CNN / heuristic
                   </strong>
                 </div>
               </div>

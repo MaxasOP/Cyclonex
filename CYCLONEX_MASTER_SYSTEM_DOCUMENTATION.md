@@ -1,3 +1,5 @@
+> Historical design / presentation document. Proposed capabilities below are not a deployment status report. See README.md and runtime provenance for current behavior and limitations.
+
 # CYCLONEX: Master Technical Architecture & Scientific Manual
 ## Complete End-to-End System Specifications, AI/ML Formulations, Datasets, Physics Engines & Operational Defense Guide
 

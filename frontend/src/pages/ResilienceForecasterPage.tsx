@@ -132,7 +132,7 @@ const STORM_PRESETS: StormPreset[] = [
 const LANG_CONFIG: Record<IndianLang, { label: string; native: string; speechCode: string }> = {
   en: { label: "English", native: "English", speechCode: "en-IN" },
   hi: { label: "Hindi", native: "हिन्दी", speechCode: "hi-IN" },
-  or: { label: "Odia", native: "ଓଡ଼ିଆ", speechCode: "hi-IN" }, // OSDMA fallback
+  or: { label: "Odia", native: "ଓଡ଼ିଆ", speechCode: "or-IN" },
   bn: { label: "Bengali", native: "বাংলা", speechCode: "bn-IN" },
   gu: { label: "Gujarati", native: "ગુજરાતી", speechCode: "gu-IN" },
   mr: { label: "Marathi", native: "मराठी", speechCode: "mr-IN" },
@@ -142,6 +142,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
   onNavigateToCommand,
   onNavigateToAILab,
 }) => {
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState<boolean>(true);
   const [data, setData] = useState<ResilienceAssessmentResult | null>(null);
   const [selectedPresetId, setSelectedPresetId] = useState<string>("dana");
@@ -195,6 +196,8 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
     overrideDeployCountermeasure = deployCountermeasure
   ) => {
     setIsRefreshing(true);
+    setData(null);
+    setError("");
     const res = await fetchResilienceAssessment({
       storm_name: preset.name,
       eye_lat: preset.lat,
@@ -214,6 +217,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
         setSelectedInfraId(res.critical_infrastructure[0].id);
       }
     }
+    if (!res) setError("Assessment unavailable. Check the backend connection and retry.");
     setLoading(false);
     setIsRefreshing(false);
   };
@@ -238,6 +242,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
       sample_id: sampleKey,
     });
     setDroneReport(report);
+    if (!report) setError("Image analysis unavailable. No report was substituted.");
     setDroneLoading(false);
   };
 
@@ -299,7 +304,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
     if (!activeAdvisoryText) return;
 
     window.speechSynthesis.cancel();
-    const textSnippet = activeAdvisoryText.slice(0, 350);
+    const textSnippet = activeAdvisoryText;
     const utterance = new SpeechSynthesisUtterance(textSnippet);
     utterance.lang = LANG_CONFIG[selectedLang]?.speechCode || "en-IN";
     utterance.rate = 0.95;
@@ -316,6 +321,8 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
     <div className="op-showcase-root">
       <div className="op-showcase-container">
         
+        <p role="status">Scenario screening with reference infrastructure. Satellite entries are a catalogue, not connected observations. Routes have no verified flood clearance. No advisory, shelter allocation or payment is dispatched.</p>
+        {error && <p role="alert">{error}</p>}
         {/* System Health Status Center Banner */}
         <div
           style={{
@@ -339,22 +346,22 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
               SYSTEM HEALTH:
             </span>
             <span style={{ color: data?.system_status?.meteorology === "LIVE" ? "#34d399" : "#fbbf24" }}>
-              ● MET: {data?.system_status?.meteorology || "LIVE"}
+              ● MET: {data?.system_status?.meteorology || "NOT_CHECKED"}
             </span>
             <span style={{ color: data?.system_status?.gee_sentinel1 === "CONNECTED" ? "#34d399" : "#a78bfa" }}>
-              ● GEE SATELLITE: {data?.system_status?.gee_sentinel1 || "CACHED"}
+              ● GEE SATELLITE: {data?.system_status?.gee_sentinel1 || "NOT_CHECKED"}
             </span>
             <span style={{ color: "#34d399" }}>
-              ● ML ENGINE: {data?.system_status?.ml_engine || "ACTIVE"}
+              ● ML ENGINE: {data?.system_status?.ml_engine || "NOT_CHECKED"}
             </span>
             <span style={{ color: data?.system_status?.gemini_ai === "ACTIVE" ? "#c084fc" : "#f59e0b" }}>
-              ● GEMINI: {data?.system_status?.gemini_ai || "ACTIVE"}
+              ● GEMINI: {data?.system_status?.gemini_ai || "NOT_CHECKED"}
             </span>
             <span style={{ color: data?.system_status?.rule_engine === "ACTIVE" ? "#f59e0b" : "#64748b" }}>
-              ● RULE ENGINE: {data?.system_status?.rule_engine || "STANDBY"}
+              ● RULE ENGINE: {data?.system_status?.rule_engine || "NOT_CHECKED"}
             </span>
             <span style={{ color: "#34d399" }}>
-              ● TTS VOICE: {data?.system_status?.tts_speech || "READY"}
+              ● TTS VOICE: {("speechSynthesis" in window ? "BROWSER_SUPPORTED" : "UNSUPPORTED")}
             </span>
           </div>
 
@@ -546,7 +553,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                     }}
                   >
                     <Sparkles size={11} />
-                    Gemini 3.7 Flash Decision Intelligence
+                    Decision support · Gemini API or rules
                   </span>
                   <span
                     style={{
@@ -580,7 +587,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 </h1>
                 <p style={{ color: "#94a3b8", fontSize: "13.5px", margin: 0, maxWidth: "860px", lineHeight: "1.5" }}>
                   AI-powered predictive risk and vulnerability modeling platform utilizing Google Earth Engine (GEE) satellite feeds,
-                  real-time meteorological data, and Gemini 3.7 Flash multimodal reasoning. Simulates storm surges, rainfall damage pathways,
+                  real-time meteorological data, and optional Gemini API reasoning. Simulates storm surges, rainfall damage pathways,
                   critical infrastructure exposure (power grids, roads, shelters), and automated early-warning advisory dispatches.
                 </p>
               </div>
@@ -867,7 +874,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
           <div className="saas-live-stat">
             <span className="saas-live-label">AI Decision Confidence</span>
             <span className="saas-live-val" style={{ color: "#a855f7" }}>
-              {data ? `${(data.gemini_multimodal_advisory.confidence_score * 100).toFixed(1)}%` : "Loading..."}
+              {data ? data.gemini_multimodal_advisory.confidence_score > 0 ? `${(data.gemini_multimodal_advisory.confidence_score * 100).toFixed(1)}% (uncalibrated)` : "Not calibrated" : "Loading..."}
             </span>
           </div>
         </div>
@@ -1277,6 +1284,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
               </div>
             )}
 
+            {data?.evacuation?.notice && <p role="status">Routing: {data.evacuation.status}. {data.evacuation.notice}</p>}
             {/* Evacuation Routing Options (Fastest vs Safest Trade-Offs) */}
             <div
               style={{
@@ -1340,7 +1348,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   GOOGLE EARTH ENGINE (GEE) SATELLITE PIPELINE
                 </span>
                 <span style={{ fontSize: "10.5px", color: "#34d399", background: "rgba(16, 185, 129, 0.1)", padding: "2px 6px", borderRadius: "4px" }}>
-                  4 Collections Active
+                  4 Catalogue References
                 </span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "11px" }}>
@@ -1374,7 +1382,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <Cpu size={16} color="#c084fc" />
                   <span style={{ fontSize: "13px", fontWeight: 700, color: "#ffffff" }}>
-                    {data?.gemini_multimodal_advisory?.source || "Gemini 3.7 Flash Decision Intelligence"}
+                    {data?.gemini_multimodal_advisory?.source || "Decision support · Gemini API or rules"}
                   </span>
                 </div>
                 <span style={{ fontSize: "11px", color: "#c084fc", background: "rgba(168, 85, 247, 0.15)", padding: "2px 8px", borderRadius: "10px" }}>
@@ -1487,10 +1495,10 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                     }}
                   >
                     {isSpeaking ? <VolumeX size={12} className="animate-pulse" /> : <Volume2 size={12} />}
-                    <span>{isSpeaking ? "⏹️ Stop Voice" : "🔊 Broadcast Voice Warning"}</span>
+                    <span>{isSpeaking ? "⏹️ Stop Voice" : "🔊 Play draft on this device"}</span>
                   </button>
 
-                  {/* Copy Alert Button */}
+                  {/* Copy draft Button */}
                   <button
                     type="button"
                     onClick={handleCopyDispatch}
@@ -1508,7 +1516,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                     }}
                   >
                     {copied ? <CheckCircle2 size={12} color="#10b981" /> : <Copy size={12} />}
-                    <span>{copied ? "Copied" : "Copy Alert"}</span>
+                    <span>{copied ? "Copied" : "Copy draft"}</span>
                   </button>
                 </div>
               </div>
@@ -1726,10 +1734,10 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   <Camera size={20} color="#c084fc" />
                   <div>
                     <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#ffffff", margin: 0 }}>
-                      AERIAL DRONE DAMAGE RECONNAISSANCE · MULTIMODAL AI INSPECTION
+                      DAMAGE IMAGE REVIEW · SAMPLES & EXPERIMENTAL ANALYSIS
                     </h2>
                     <span style={{ fontSize: "11px", color: "#94a3b8" }}>
-                      Autonomous UAV low-altitude damage verification cross-referenced with Gemini 3.7 Flash Vision
+                      Choose a demonstration sample or upload an image for optional Gemini analysis. No drone telemetry is assumed.
                     </span>
                   </div>
                 </div>
@@ -1742,6 +1750,20 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 </button>
               </div>
 
+              <label>Upload damage image (PNG/JPEG, maximum 10 MB)
+                <input type="file" accept="image/png,image/jpeg" onChange={event => {
+                  const file = event.target.files?.[0]; if (!file) return;
+                  if (file.size > 10 * 1024 * 1024) { setError("Image exceeds 10 MB"); return; }
+                  const reader = new FileReader();
+                  reader.onload = async () => { setDroneLoading(true); setDroneReport(null); setError("");
+                    const report = await inspectDroneDamage({asset_id: selectedInfraId, image_base64: String(reader.result)});
+                    setDroneReport(report); setDroneLoading(false);
+                    if (!report) setError("Image analysis unavailable. Configure the image provider on the backend; no sample was substituted.");
+                  };
+                  reader.readAsDataURL(file);
+                }} />
+              </label>
+              {error && <p role="alert">{error}</p>}
               {/* Sample Preset Selector */}
               <div style={{ display: "flex", gap: "8px", marginBottom: "18px", flexWrap: "wrap" }}>
                 {[
@@ -1769,6 +1791,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 ))}
               </div>
 
+              {droneReport?.engine === "DEMONSTRATION_SAMPLE" && <p role="status">Demonstration sample. No image analyzed, telemetry observed, or crew dispatched.</p>}
               {droneLoading ? (
                 <div style={{ padding: "40px", textAlign: "center", color: "#c084fc" }}>
                   <RefreshCw size={24} className="animate-spin" style={{ margin: "0 auto 10px auto" }} />
@@ -1855,22 +1878,22 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                         DAMAGE SEVERITY: {droneReport.damage_severity}
                       </span>
                       <span style={{ fontSize: "10.5px", color: "#94a3b8" }}>
-                        ENGINE: <strong style={{ color: "#c084fc" }}>{droneReport.engine}</strong>
+                        REPORT SOURCE: <strong style={{ color: "#c084fc" }}>{droneReport.engine}</strong>
                       </span>
                     </div>
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", fontSize: "11px" }}>
                       <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px", borderRadius: "4px" }}>
                         <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>INTEGRITY</span>
-                        <strong style={{ color: "#ffffff", fontSize: "13px" }}>{droneReport.structural_integrity_pct}%</strong>
+                        <strong style={{ color: "#ffffff", fontSize: "13px" }}>{droneReport.structural_integrity_pct == null ? "Not measured" : `${droneReport.structural_integrity_pct}% (sample)`}</strong>
                       </div>
                       <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px", borderRadius: "4px" }}>
                         <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>FAIL PROB</span>
-                        <strong style={{ color: "#ef4444", fontSize: "13px" }}>{Math.round(droneReport.critical_failure_probability * 100)}%</strong>
+                        <strong style={{ color: "#ef4444", fontSize: "13px" }}>{droneReport.critical_failure_probability == null ? "Not calibrated" : `${Math.round(droneReport.critical_failure_probability * 100)}% (sample)`}</strong>
                       </div>
                       <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px", borderRadius: "4px" }}>
                         <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>EST. REPAIR</span>
-                        <strong style={{ color: "#8b5cf6", fontSize: "13px" }}>{droneReport.estimated_repair_hours} hrs</strong>
+                        <strong style={{ color: "#8b5cf6", fontSize: "13px" }}>{droneReport.estimated_repair_hours == null ? "Not estimated" : `${droneReport.estimated_repair_hours} hrs (sample)`}</strong>
                       </div>
                     </div>
 

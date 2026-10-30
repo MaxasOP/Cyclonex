@@ -67,6 +67,10 @@ class MultiSourceSatelliteSynthesizer:
         size: int = IMAGE_SIZE,
     ) -> Dict[str, np.ndarray]:
         """Generate physically consistent 4-channel satellite scene arrays."""
+        import hashlib
+        seed_data = f"{wind_kph}:{pressure_hpa}:{heading_deg}:{shear_magnitude_kt}:{size}".encode()
+        rng = np.random.default_rng(int.from_bytes(hashlib.sha256(seed_data).digest()[:8], "big"))
+
         y, x = np.ogrid[:size, :size]
         center = size / 2.0
         x_norm = (x - center) / center
@@ -96,7 +100,7 @@ class MultiSourceSatelliteSynthesizer:
         # Eyewall ring
         if is_mature:
             eyewall_mask = (r >= eye_radius_norm * 0.7) & (r <= eye_radius_norm * 2.2)
-            tb_k[eyewall_mask] = 195.0 + 15.0 * np.random.normal(0, 0.2, size=tb_k[eyewall_mask].shape)
+            tb_k[eyewall_mask] = 195.0 + 15.0 * rng.normal(0, 0.2, size=tb_k[eyewall_mask].shape)
             # Warm eye core
             eye_mask = r < eye_radius_norm * 0.7
             eye_warmth = 288.0 + (wind_kph / 250.0) * 12.0
@@ -105,7 +109,7 @@ class MultiSourceSatelliteSynthesizer:
         # Outer spiral bands
         outer_mask = (r > eye_radius_norm * 2.2) & (r < 0.95)
         tb_k[outer_mask] -= spiral_intensity[outer_mask] * 45.0
-        tb_k = np.clip(tb_k + np.random.normal(0, 1.5, size=(size, size)), 185.0, 305.0)
+        tb_k = np.clip(tb_k + rng.normal(0, 1.5, size=(size, size)), 185.0, 305.0)
 
         # 4. Channel 1: Water Vapor (6.7 µm)
         wv_k = tb_k * 0.92 + 12.0
@@ -121,7 +125,7 @@ class MultiSourceSatelliteSynthesizer:
             eyewall_ring = (r >= eye_radius_norm * 0.8) & (r <= eye_radius_norm * 2.0)
             mw_convection[eyewall_ring] = 0.90 + 0.10 * np.sin(theta[eyewall_ring] * 4.0)
         mw_convection[cdo_mask] += 0.45 * spiral_intensity[cdo_mask]
-        mw_convection = np.clip(mw_convection + np.random.normal(0, 0.05, size=(size, size)), 0.0, 1.0)
+        mw_convection = np.clip(mw_convection + rng.normal(0, 0.05, size=(size, size)), 0.0, 1.0)
 
         # 6. Channel 3: Visible Albedo (0.65 µm)
         vis_albedo = np.clip(1.0 - (tb_k - 185.0) / 115.0, 0.05, 0.98)

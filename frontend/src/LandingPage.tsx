@@ -446,7 +446,7 @@ export default function LandingPage({
                 <td><span style={{ color: "#8b5cf6", fontWeight: 700 }}>02 · ANALYZE</span></td>
                 <td><strong>AI Satellite &amp; Neural Lab</strong></td>
                 <td>Automated Dvorak Technique (ADT), cloud-top gradient analysis, convolutional regression</td>
-                <td>Current Intensity (T-Number), central pressure deficit (ΔP), 94.7% confidence</td>
+                <td>Current Intensity (T-Number), central pressure deficit (ΔP), uncalibrated confidence</td>
                 <td style={{ textAlign: "right" }}>
                   <button type="button" className="op-table-link" onClick={() => navigate("ai-lab")}>Neural &rarr;</button>
                 </td>
@@ -708,7 +708,7 @@ export default function LandingPage({
                     <span>ACTIVE INFERENCE TELEMETRY: NISARGA</span>
                   </div>
                   <span className="op-tech-panel-badge" style={{ background: "rgba(16, 185, 129, 0.1)", color: "#10b981", borderColor: "#10b981" }}>
-                    94.7% CONFIDENCE
+                    EXPERIMENTAL SCREENING
                   </span>
                 </div>
 

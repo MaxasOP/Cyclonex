@@ -12,6 +12,7 @@ import io
 import json
 import math
 import os
+import numpy as np
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -107,10 +108,12 @@ class SatelliteDataPreprocessor:
         try:
             if img_data.startswith("data:image"):
                 img_data = img_data.split(",")[1]
-            raw_bytes = base64.b64decode(img_data)
+            raw_bytes = base64.b64decode(img_data, validate=True)
+            if len(raw_bytes) > 10 * 1024 * 1024:
+                return None
             img = Image.open(io.BytesIO(raw_bytes)).convert("L")
             img = img.resize((self.image_size, self.image_size))
-            pixels = list(img.getdata())
+            pixels = np.asarray(img).reshape(-1).tolist()
             grid = [
                 [pixels[r * self.image_size + c] / 255.0 for c in range(self.image_size)]
                 for r in range(self.image_size)
@@ -309,6 +312,8 @@ class AICycloneService:
         """Report live loading status and metadata of all 4 PyTorch AI models."""
         return {
             "torch_available": HAS_TORCH,
+            "validation": "EXPERIMENTAL_SYNTHETIC_TRAINING_ONLY",
+            "missing_runtime_notice": None if HAS_TORCH else "Optional PyTorch runtime is not installed; analysis uses explicitly labelled heuristics.",
             "device": "cpu",
             "models": {
                 "detection_and_locator": {
@@ -379,10 +384,10 @@ class AICycloneService:
         lon = req.longitude
         wind = req.wind_speed
         pressure = req.pressure
-        heading = req.heading or 315.0
-        speed = req.speed or 22.0
-        sst = req.sst or 29.2
-        shear = req.shear or 10.5
+        heading = req.heading if req.heading is not None else 315.0
+        speed = req.speed if req.speed is not None else 22.0
+        sst = req.sst if req.sst is not None else 29.2
+        shear = req.shear if req.shear is not None else 10.5
 
         # 1. Multi-Source Satellite Scene Generation & Calibration
         scene = MultiSourceSatelliteSynthesizer.generate_calibrated_scene(
@@ -393,6 +398,14 @@ class AICycloneService:
             size=IMAGE_SIZE,
         )
         tensor_np = scene["normalized_tensor_4ch"]
+        supplied = req.satellite_images.model_dump(exclude_none=True) if req.satellite_images else {}
+        channel_order = ["infrared", "water_vapor", "microwave", "visible"]
+        for channel, encoded in supplied.items():
+            decoded = self.preprocessor.decode_and_resize(encoded)
+            if decoded is None:
+                raise ValueError(f"Invalid {channel} image: supply a base64-encoded image (maximum 10 MB).")
+            tensor_np[channel_order.index(channel)] = np.asarray(decoded, dtype=np.float32)
+        image_source = "USER_SUPPLIED" if len(supplied) == 4 else "MIXED_USER_AND_SYNTHETIC" if supplied else "SYNTHETIC_SCENARIO"
         tensor = torch.tensor(tensor_np, dtype=torch.float32).unsqueeze(0) if HAS_TORCH else None
 
         active_channels = ["infrared_10.8um", "water_vapor_6.7um", "microwave_89ghz", "visible_0.65um"]
@@ -433,7 +446,9 @@ class AICycloneService:
                 probabilities[cls] = pat_conf if cls == selected_pattern else round((1.0 - pat_conf) / (len(PATTERN_CLASSES) - 1), 4)
 
         # Quantitative Dvorak Feature Extraction from calibrated IR Brightness Temperature
-        dvorak_metrics = SatelliteFeatureExtractor.extract_dvorak_features(scene["ir_tb_k"])
+        # Display pixels have no physical radiometric calibration. Never derive a
+        # measured brightness temperature or Dvorak CI from an uploaded PNG/JPEG.
+        dvorak_metrics = SatelliteFeatureExtractor.extract_dvorak_features(scene["ir_tb_k"]) if not supplied else {}
 
         # 4. Rapid Intensification (RI) Prediction
         is_ri = False
@@ -464,15 +479,12 @@ class AICycloneService:
         dw48 = round(32.0 * ri_mult, 1)
         dp48 = round(-26.0 * ri_mult, 1)
 
-        heading_rad = math.radians(heading)
-        d_lat_6h = round(((speed * 6.0) / 111.0) * math.cos(heading_rad), 4)
-        d_lon_6h = round(((speed * 6.0) / 111.0) * math.sin(heading_rad), 4)
-        d_lat_12h = round(((speed * 12.0) / 111.0) * math.cos(heading_rad), 4)
-        d_lon_12h = round(((speed * 12.0) / 111.0) * math.sin(heading_rad), 4)
-        d_lat_24h = round(((speed * 24.0) / 111.0) * math.cos(heading_rad), 4)
-        d_lon_24h = round(((speed * 24.0) / 111.0) * math.sin(heading_rad), 4)
-        d_lat_48h = round(((speed * 48.0) / 111.0) * math.cos(heading_rad), 4)
-        d_lon_48h = round(((speed * 48.0) / 111.0) * math.sin(heading_rad), 4)
+        from geo import destination
+        offsets = []
+        for hours in (6, 12, 24, 48):
+            target_lat, target_lon = destination(lat, lon, heading, speed * hours)
+            offsets.extend((target_lat - lat, (target_lon - lon + 180) % 360 - 180))
+        d_lat_6h, d_lon_6h, d_lat_12h, d_lon_12h, d_lat_24h, d_lon_24h, d_lat_48h, d_lon_48h = offsets
 
         if HAS_TORCH and self.intensity_model and tensor is not None:
             with torch.no_grad():
@@ -505,24 +517,41 @@ class AICycloneService:
             {"hours": 48, "latitude": round(center_lat + d_lat_48h, 4), "longitude": round(center_lon + d_lon_48h, 4), "wind_speed_kmh": w48, "pressure_hpa": p48, "uncertainty_km": 88.0},
         ]
 
+        for point in track_forecast:
+            point["latitude"] = max(-90.0, min(90.0, point["latitude"]))
+            point["longitude"] = (point["longitude"] + 180.0) % 360.0 - 180.0
+
         # 6. Grad-CAM Explainability Map
         grad_cam_map = self.generate_grad_cam(tensor, target_class_idx) if tensor is not None else []
 
+        model_flags = {
+            "detection": self.detection_model is not None,
+            "classification": self.pattern_model is not None,
+            "rapid_intensification": self.ri_model is not None,
+            "intensity": self.intensity_model is not None,
+        }
         return {
             "status": "success",
+            "provenance": {
+                "imagery": image_source,
+                "supplied_channels": list(supplied),
+                "synthetic_channels": [c for c in channel_order if c not in supplied],
+                "validation": "NOT_VALIDATED_ON_OBSERVED_SATELLITE_STORMS",
+                "note": "Experimental checkpoints trained on synthetic scenes. Forecasts and confidence scores are uncalibrated screening estimates.",
+            },
             "active_channels": active_channels,
             "identification": {
                 "cyclone_detected": cyclone_detected,
                 "confidence": det_conf,
                 "center": {"latitude": center_lat, "longitude": center_lon},
-                "method": "PyTorch Detection CNN + Center Regressor",
+                "method": "Experimental PyTorch CNN" if model_flags["detection"] else "Wind/pressure threshold heuristic",
             },
             "classification": {
                 "pattern": selected_pattern,
                 "confidence": pat_conf,
                 "probabilities": probabilities,
                 "dvorak": dvorak_metrics,
-                "method": "4-Channel PyTorch Dvorak Pattern CNN",
+                "method": "Experimental 4-channel PyTorch CNN" if model_flags["classification"] else "Wind-based pattern heuristic",
             },
             "rapid_intensification": {
                 "probability": ri_prob,
@@ -545,20 +574,17 @@ class AICycloneService:
             },
             "track_forecast": track_forecast,
             "explainability": {
-                "method": "Grad-CAM (Layer 4 Activation Gradients)",
+                "method": "Grad-CAM (experimental model)" if self.pattern_model is not None else "UNAVAILABLE: pattern model not loaded",
                 "target_class": selected_pattern,
                 "attention_grid_28x28": grad_cam_map,
             },
             "risk_integration": {
-                "grid_updated": True,
-                "building_risk_updated": True,
-                "storm_surge_updated": True,
+                "grid_updated": False,
+                "building_risk_updated": False,
+                "storm_surge_updated": False,
             },
             "model_status": {
-                "detection": "READY (PyTorch)",
-                "classification": "READY (PyTorch)",
-                "rapid_intensification": "READY (PyTorch)",
-                "intensity": "READY (PyTorch)",
+                **{key: "LOADED_EXPERIMENTAL" if loaded else "HEURISTIC_FALLBACK" for key, loaded in model_flags.items()},
             },
         }
 

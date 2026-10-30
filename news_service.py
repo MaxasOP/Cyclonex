@@ -17,34 +17,9 @@ import requests
 from storage import get_connection
 
 DEFAULT_NEWS_SOURCES = [
-    {
-        "id": "src_imd_bulletin",
-        "name": "IMD Tropical Cyclone Warning Bulletin",
-        "url": "https://mausam.imd.gov.in/responsive/cyclone.php",
-        "scrape_type": "html",
-        "active": 1,
-    },
-    {
-        "id": "src_reliefweb",
-        "name": "ReliefWeb Cyclone & Flood Updates",
-        "url": "https://reliefweb.int/updates?advanced-search=(C125)&search=cyclone",
-        "scrape_type": "html",
-        "active": 1,
-    },
-    {
-        "id": "src_ndtv_weather",
-        "name": "NDTV Weather & Disaster News",
-        "url": "https://www.ndtv.com/topic/cyclone",
-        "scrape_type": "html",
-        "active": 1,
-    },
-    {
-        "id": "src_bbc_weather",
-        "name": "BBC World News - Extreme Weather",
-        "url": "https://www.bbc.com/news/topics/cz4pr2gd557t",
-        "scrape_type": "html",
-        "active": 1,
-    },
+    {"id": "src_gdacs_rss", "name": "GDACS Global Disaster Alerts", "url": "https://www.gdacs.org/xml/rss.xml", "scrape_type": "rss", "active": 1},
+    {"id": "src_bbc_rss", "name": "BBC Science & Environment", "url": "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml", "scrape_type": "rss", "active": 1},
+    {"id": "src_imd_rsmc", "name": "IMD RSMC Tropical Cyclone Bulletins", "url": "https://rsmcnewdelhi.imd.gov.in/", "scrape_type": "html", "active": 1},
 ]
 
 
@@ -82,87 +57,16 @@ def init_news_tables() -> None:
         )
         conn.commit()
 
-        # Seed default sources if table is empty
-        cursor = conn.execute("SELECT COUNT(*) as count FROM news_sources;")
-        row = cursor.fetchone()
-        if row and row["count"] == 0:
+        conn.execute("CREATE TABLE IF NOT EXISTS app_migrations (name TEXT PRIMARY KEY)")
+        if not conn.execute("SELECT 1 FROM app_migrations WHERE name='news_sources_v2'").fetchone():
             now = datetime.now(timezone.utc).isoformat()
+            # Migrate once, so removing a default feed remains effective.
+            conn.execute("UPDATE news_sources SET active=0 WHERE id IN ('src_imd_bulletin','src_reliefweb','src_ndtv_weather','src_bbc_weather')")
             for src in DEFAULT_NEWS_SOURCES:
-                conn.execute(
-                    """
-                    INSERT INTO news_sources (id, name, url, scrape_type, active, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?);
-                    """,
-                    (src["id"], src["name"], src["url"], src["scrape_type"], src["active"], now),
-                )
-            conn.commit()
-            # Seed initial sample cyclone articles so UI has rich news immediately
-            seed_initial_articles(conn, now)
-
-
-def seed_initial_articles(conn: Any, now: str) -> None:
-    """Pre-populate realistic initial news articles for Bay of Bengal / Arabian Sea cyclones."""
-    initial_articles = [
-        (
-            "art_01",
-            "src_imd_bulletin",
-            "IMD Tropical Cyclone Warning Bulletin",
-            "Red Alert Issued for Coastal Odisha & Bengal: Severe Cyclonic Storm Approaching Landfall",
-            "https://mausam.imd.gov.in/responsive/cyclone.php",
-            "India Meteorological Department (IMD) projects sustained wind speeds up to 165 km/h with high storm surge of 3.5m during landfall near Digha-Puri sector.",
-            now,
-            "CRITICAL",
-            "Bay of Bengal",
-            now,
-        ),
-        (
-            "art_02",
-            "src_reliefweb",
-            "ReliefWeb Cyclone & Flood Updates",
-            "NDRF Deploys 45 Battalions Along East Coast as Cyclonic System Intensifies into Super Cyclone",
-            "https://reliefweb.int/updates",
-            "National Disaster Response Force and Indian Coast Guard have evacuated over 250,000 residents from vulnerable coastal wards to designated MPCS multipurpose shelters.",
-            now,
-            "SEVERE",
-            "Odisha / WB Coast",
-            now,
-        ),
-        (
-            "art_03",
-            "src_ndtv_weather",
-            "NDTV Weather & Disaster News",
-            "Port Warning Signal 10 Hoisted at Paradeep and Dhamra; Fishermen Advised Not to Venture into Sea",
-            "https://www.ndtv.com/topic/cyclone",
-            "Sea conditions remain rough to phenomenal. Power distribution utilities initiate precautionary grid shutdown along coastal districts.",
-            now,
-            "HIGH",
-            "Paradeep Port",
-            now,
-        ),
-        (
-            "art_04",
-            "src_bbc_weather",
-            "BBC World News - Extreme Weather",
-            "Climate Models Indicate Rapid Intensification of Tropical Disturbances in North Indian Ocean",
-            "https://www.bbc.com/news/topics/cz4pr2gd557t",
-            "Subsurface Ocean Heat Content exceeding 85 kJ/cm2 in the central Bay of Bengal provides high thermal energy fuel for rapid storm development.",
-            now,
-            "MODERATE",
-            "Climate / Ocean Energy",
-            now,
-        ),
-    ]
-
-    for art in initial_articles:
-        conn.execute(
-            """
-            INSERT OR IGNORE INTO news_articles
-            (id, source_id, source_name, title, url, snippet, published_at, impact_level, cyclone_tag, scraped_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-            """,
-            art,
-        )
-    conn.commit()
+                conn.execute("INSERT OR IGNORE INTO news_sources (id,name,url,scrape_type,active,created_at) VALUES (?,?,?,?,?,?)",
+                             (src["id"], src["name"], src["url"], src["scrape_type"], src["active"], now))
+            conn.execute("INSERT INTO app_migrations(name) VALUES ('news_sources_v2')")
+        conn.commit()
 
 
 def get_news_sources() -> list[dict[str, Any]]:
@@ -240,7 +144,7 @@ def get_news_articles(
     with get_connection() as conn:
         sql = "SELECT id, source_id, source_name, title, url, snippet, published_at, impact_level, cyclone_tag, scraped_at FROM news_articles"
         params: list[Any] = []
-        conditions: list[str] = []
+        conditions: list[str] = ["id NOT IN ('art_01','art_02','art_03','art_04','art_05')", "title NOT LIKE 'Latest Advisory Update from %'"]
 
         if query:
             conditions.append("(title LIKE ? OR snippet LIKE ? OR cyclone_tag LIKE ?)")
@@ -289,115 +193,91 @@ def classify_article_impact(text: str) -> tuple[str, str]:
     return impact, tag
 
 
+_SCRAPE_RESULTS: dict[str, dict] = {}
+
+
 def scrape_source(source_id: str, source_name: str, url: str, scrape_type: str) -> int:
-    """Scrape cyclone news from a single website or RSS feed URL."""
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) CYCLONEX Research Scraper/2.0",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    }
-    
+    """Persist only source-provided headlines. Never invent a bulletin."""
+    from hashlib import sha256
+    from urllib.parse import urljoin, urlparse
+    from email.utils import parsedate_to_datetime
+    from html.parser import HTMLParser
+
+    now = datetime.now(timezone.utc).isoformat()
+    articles = []
     try:
-        resp = requests.get(url, headers=headers, timeout=8)
-        if resp.status_code != 200:
-            print(f"Scrape warning for {source_name}: HTTP {resp.status_code}")
-            return 0
-
+        resp = requests.get(url, headers={"User-Agent": "CYCLONEX/2.2 (research news reader)"}, timeout=(3, 8))
+        resp.raise_for_status()
         content = resp.text
-        now = datetime.now(timezone.utc).isoformat()
-        scraped_count = 0
-
-        articles_to_insert = []
-
-        # RSS / XML Parsing
-        if "xml" in resp.headers.get("Content-Type", "").lower() or "<rss" in content.lower() or "<feed" in content.lower() or scrape_type == "rss":
-            try:
-                root = ET.fromstring(content)
-                items = root.findall(".//item") or root.findall(".//{http://www.w3.org/2005/Atom}entry")
-                for item in items[:15]:
-                    title_elem = item.find("title") or item.find("{http://www.w3.org/2005/Atom}title")
-                    link_elem = item.find("link") or item.find("{http://www.w3.org/2005/Atom}link")
-                    desc_elem = item.find("description") or item.find("{http://www.w3.org/2005/Atom}summary")
-
-                    title = title_elem.text.strip() if title_elem is not None and title_elem.text else ""
-                    article_url = link_elem.text.strip() if link_elem is not None and link_elem.text else url
-                    if link_elem is not None and "href" in link_elem.attrib:
-                        article_url = link_elem.attrib["href"]
-                    snippet = desc_elem.text.strip() if desc_elem is not None and desc_elem.text else title
-
-                    # Strip HTML tags from snippet
-                    snippet = re.sub("<[^<]+?>", "", snippet)
-                    snippet = html.unescape(snippet)[:280]
-
-                    if title and any(k in (title + snippet).lower() for k in ["cyclone", "storm", "wind", "rain", "weather", "flood", "warning", "landfall", "depression"]):
-                        impact, tag = classify_article_impact(title + " " + snippet)
-                        art_id = f"art_{hash(article_url) & 0xffffffff}"
-                        articles_to_insert.append((art_id, source_id, source_name, title, article_url, snippet, now, impact, tag, now))
-            except Exception as e:
-                print(f"RSS parse error for {source_name}: {e}")
-
-        # Standard HTML parsing fallback using regex/DOM structure
-        if not articles_to_insert:
-            # Find news headlines and links via regex
-            headline_pattern = re.compile(r'<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', re.IGNORECASE | re.DOTALL)
-            matches = headline_pattern.findall(content)
-
-            for href, anchor_text in matches:
-                clean_text = re.sub(r'<[^>]+>', '', anchor_text).strip()
-                clean_text = html.unescape(clean_text)
-                
-                # Check for cyclone relevance and sufficient length
-                if len(clean_text) > 25 and any(k in clean_text.lower() for k in ["cyclone", "storm", "landfall", "depression", "wind", "rain", "imd", "warning", "coast", "flood", "alert", "evacuation"]):
-                    full_href = href if href.startswith("http") else (url.rstrip("/") + "/" + href.lstrip("/"))
-                    impact, tag = classify_article_impact(clean_text)
-                    art_id = f"art_{hash(full_href + clean_text[:20]) & 0xffffffff}"
-                    snippet = f"News update from {source_name}: {clean_text[:220]}..."
-                    articles_to_insert.append((art_id, source_id, source_name, clean_text[:180], full_href, snippet, now, impact, tag, now))
-                    if len(articles_to_insert) >= 10:
-                        break
-
-        # If no custom articles matched live regex, generate a structured news bulletin from the page content context
-        if not articles_to_insert and len(content) > 100:
-            impact, tag = classify_article_impact(content[:2000])
-            summary_snippet = f"Live news scan completed for {source_name}. Site is active and monitoring atmospheric pressure and storm developments."
-            art_id = f"art_{hash(url + source_name) & 0xffffffff}"
-            articles_to_insert.append(
-                (art_id, source_id, source_name, f"Latest Advisory Update from {source_name}", url, summary_snippet, now, impact, tag, now)
-            )
-
+        is_xml = scrape_type == "rss" or "xml" in resp.headers.get("Content-Type", "")
+        def relevant(title, snippet=""):
+            return any(word in (title + " " + snippet).lower() for word in ("cyclone", "storm", "flood", "landfall", "hurricane", "typhoon", "heavy rain", "tropical depression"))
+        def add(title, link, snippet, published=""):
+            title = html.unescape(re.sub(r"<[^>]+>", "", title)).strip()
+            link = urljoin(url, link)
+            if not title or urlparse(link).scheme not in ("http", "https") or not relevant(title, snippet):
+                return
+            impact, tag = classify_article_impact(title + " " + snippet)
+            art_id = "live_" + sha256(link.encode()).hexdigest()[:24]
+            articles.append((art_id, source_id, source_name, title[:250], link, html.unescape(re.sub(r"<[^>]+>", "", snippet))[:500], published, impact, tag, now))
+        if is_xml:
+            root = ET.fromstring(content)
+            for item in root.findall(".//item") + root.findall(".//{http://www.w3.org/2005/Atom}entry"):
+                def child(name, atom=None):
+                    elem = item.find(name)
+                    if elem is None:
+                        elem = item.find("{http://www.w3.org/2005/Atom}" + (atom or name))
+                    return elem
+                def value(elem):
+                    return "".join(elem.itertext()).strip() if elem is not None else ""
+                link = child("link")
+                published = value(child("pubDate", "published")) or value(child("updated"))
+                if published:
+                    try:
+                        published = parsedate_to_datetime(published).isoformat()
+                    except (ValueError, TypeError):
+                        try:
+                            published = datetime.fromisoformat(published.replace("Z", "+00:00")).isoformat()
+                        except ValueError:
+                            published = ""
+                add(value(child("title")), link.get("href", "") or value(link) if link is not None else url,
+                    value(child("description", "summary")), published)
+        else:
+            class Links(HTMLParser):
+                def __init__(self):
+                    super().__init__(); self.href = None; self.text = []
+                def handle_starttag(self, tag, attrs):
+                    if tag == "a":
+                        self.href = dict(attrs).get("href"); self.text = []
+                def handle_data(self, data):
+                    if self.href is not None:
+                        self.text.append(data)
+                def handle_endtag(self, tag):
+                    if tag == "a" and self.href is not None:
+                        title = " ".join(self.text)
+                        if len(title) > 25:
+                            add(title, self.href, "")
+                        self.href = None
+            Links().feed(content)
         with get_connection() as conn:
-            for art in articles_to_insert:
-                conn.execute(
-                    """
-                    INSERT OR REPLACE INTO news_articles
-                    (id, source_id, source_name, title, url, snippet, published_at, impact_level, cyclone_tag, scraped_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-                    """,
-                    art,
-                )
+            for article in articles[:50]:
+                conn.execute("INSERT OR REPLACE INTO news_articles (id,source_id,source_name,title,url,snippet,published_at,impact_level,cyclone_tag,scraped_at) VALUES (?,?,?,?,?,?,?,?,?,?)", article)
             conn.commit()
-            scraped_count = len(articles_to_insert)
-
-        return scraped_count
-    except Exception as err:
-        print(f"Error scraping news source {source_name} ({url}): {err}")
+        _SCRAPE_RESULTS[source_id] = {"status": "OK" if articles else "NO_RELEVANT_ARTICLES", "scraped_articles": len(articles[:50])}
+        return len(articles[:50])
+    except (requests.RequestException, ET.ParseError, ValueError) as exc:
+        _SCRAPE_RESULTS[source_id] = {"status": "UNAVAILABLE", "scraped_articles": 0, "error": type(exc).__name__}
         return 0
 
 
 def scrape_all_active_sources() -> dict[str, Any]:
-    """Scrape news from all active news sources in database."""
-    sources = get_news_sources()
-    total_new = 0
-    results = []
-
-    for src in sources:
-        if src.get("active"):
-            count = scrape_source(src["id"], src["name"], src["url"], src.get("scrape_type", "html"))
-            total_new += count
-            results.append({"source": src["name"], "scraped_articles": count})
-
-    return {
-        "status": "success",
-        "total_scraped_articles": total_new,
-        "source_breakdown": results,
-        "scraped_at": datetime.now(timezone.utc).isoformat(),
-    }
+    from concurrent.futures import ThreadPoolExecutor
+    sources = [s for s in get_news_sources() if s.get("active")]
+    def run(src):
+        scrape_source(src["id"], src["name"], src["url"], src.get("scrape_type", "html"))
+        return {"source": src["name"], **_SCRAPE_RESULTS[src["id"]]}
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        results = list(executor.map(run, sources))
+    total = sum(item["scraped_articles"] for item in results)
+    return {"status": "success" if total else "no_new_articles" if any(r["status"] != "UNAVAILABLE" for r in results) else "unavailable",
+            "total_scraped_articles": total, "source_breakdown": results, "scraped_at": datetime.now(timezone.utc).isoformat()}

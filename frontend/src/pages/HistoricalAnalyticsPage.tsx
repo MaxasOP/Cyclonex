@@ -37,8 +37,8 @@ export default function HistoricalAnalyticsPage({
       peakWind: "120 km/h",
       minPressure: "984 hPa",
       category: "Very Severe Cyclonic Storm",
-      trackError24h: "14.2 km",
-      modelAccuracy: "96.4%",
+      trackError24h: "Not validated",
+      modelAccuracy: "Not validated",
       notes: "First cyclone to strike Maharashtra coast near Mumbai since 1891; severe roof structural failure in rural Alibaug.",
       trackPath: "M 130,280 Q 150,220 180,180 T 205,145",
       nodes: [
@@ -59,8 +59,8 @@ export default function HistoricalAnalyticsPage({
       peakWind: "140 km/h",
       minPressure: "965 hPa",
       category: "Very Severe Cyclonic Storm",
-      trackError24h: "18.5 km",
-      modelAccuracy: "94.8%",
+      trackError24h: "Not validated",
+      modelAccuracy: "Not validated",
       notes: "Extremely long-lived Arabian Sea system (13 days); extensive power grid destruction across Saurashtra.",
       trackPath: "M 110,320 Q 120,240 140,160 T 165,95",
       nodes: [
@@ -81,8 +81,8 @@ export default function HistoricalAnalyticsPage({
       peakWind: "185 km/h",
       minPressure: "950 hPa",
       category: "Extremely Severe Cyclonic Storm",
-      trackError24h: "15.8 km",
-      modelAccuracy: "95.9%",
+      trackError24h: "Not validated",
+      modelAccuracy: "Not validated",
       notes: "Parallel trajectory along the Konkan coast; massive offshore oil barge emergencies and widespread infrastructure damage.",
       trackPath: "M 120,330 Q 135,230 160,150 T 175,115",
       nodes: [
@@ -103,8 +103,8 @@ export default function HistoricalAnalyticsPage({
       peakWind: "165 km/h",
       minPressure: "950 hPa",
       category: "Super Cyclonic Storm",
-      trackError24h: "19.8 km",
-      modelAccuracy: "95.2%",
+      trackError24h: "Not validated",
+      modelAccuracy: "Not validated",
       notes: "Costliest cyclone in North Indian Ocean history (over ₹1.02 lakh crore loss); widespread storm surge in Sundarbans.",
       trackPath: "M 320,310 Q 330,220 340,150 T 350,90",
       nodes: [
@@ -125,8 +125,8 @@ export default function HistoricalAnalyticsPage({
       peakWind: "175 km/h",
       minPressure: "937 hPa",
       category: "Extremely Severe Cyclonic Storm",
-      trackError24h: "16.1 km",
-      modelAccuracy: "97.1%",
+      trackError24h: "Not validated",
+      modelAccuracy: "Not validated",
       notes: "Catastrophic damage in Puri & Bhubaneswar; test of massive 1.2M person evacuation protocol.",
       trackPath: "M 300,330 Q 315,240 330,170 T 340,120",
       nodes: [
@@ -152,13 +152,13 @@ export default function HistoricalAnalyticsPage({
           <div>
             <div className="op-section-kicker">
               <BarChart3 size={12} style={{ display: "inline", marginRight: "6px" }} />
-              NOAA IBTRACS v04 &middot; HINDCAST VERIFICATION MATRIX
+              HISTORICAL REFERENCE PRESETS &middot; ILLUSTRATIVE TRACKS
             </div>
             <h1 className="op-section-title" style={{ fontSize: "28px" }}>
               Historical Analytics &amp; Basin Hindcasts
             </h1>
             <p className="op-section-desc" style={{ marginBottom: "0" }}>
-              Spatial best-track analysis across Arabian Sea and Bay of Bengal benchmark cyclones. Select any historical
+              Reference presets and schematic tracks across Arabian Sea and Bay of Bengal cyclones. These are not a verified hindcast evaluation. Select any historical
               system to inspect trajectory kinematics, landfall pressure profiles, and synchronized intensity curves.
             </p>
           </div>

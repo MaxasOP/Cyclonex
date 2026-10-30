@@ -152,10 +152,11 @@ class EvacuationRouteOption(BaseModel):
     name: str
     distance_km: float
     travel_time_minutes: int
-    flood_risk_level: Literal["LOW", "MODERATE", "HIGH"]
+    flood_risk_level: Literal["LOW", "MODERATE", "HIGH", "UNKNOWN"]
     passability: str
     route_type: Literal["Fastest", "Safest", "Flood-avoiding", "Capacity-aware"]
     trade_off_explanation: str
+    geometry: Optional[Dict[str, Any]] = None
 
 
 class ShelterReadinessIndex(BaseModel):
@@ -167,6 +168,9 @@ class ShelterReadinessIndex(BaseModel):
 
 
 class EvacuationAssessment(BaseModel):
+    status: str = "UNAVAILABLE"
+    source: str = "OSRM_ROAD_NETWORK"
+    notice: str = "No verified shelter allocation or flood clearance."
     recommended_routes: List[EvacuationRouteOption]
     estimated_evacuee_target: int
     assigned_shelter_count: int
@@ -250,7 +254,7 @@ class ProvenanceRecord(BaseModel):
 
 
 class SystemStatus(BaseModel):
-    meteorology: Literal["LIVE", "CACHED", "SIMULATION"] = "LIVE"
+    meteorology: Literal["LIVE", "CACHED", "SIMULATION", "SCENARIO_INPUT"] = "SCENARIO_INPUT"
     gee_sentinel1: Literal["CONNECTED", "CACHED", "SIMULATION"] = "CACHED"
     gee_srtm: Literal["CONNECTED", "CACHED", "SIMULATION"] = "CACHED"
     gee_dynamic_world: Literal["CONNECTED", "CACHED", "SIMULATION"] = "CACHED"

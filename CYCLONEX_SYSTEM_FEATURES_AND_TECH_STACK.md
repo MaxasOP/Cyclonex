@@ -1,3 +1,5 @@
+> Historical design / presentation document. Proposed capabilities below are not a deployment status report. See README.md and runtime provenance for current behavior and limitations.
+
 # CYCLONEX: System Features, Machine Learning Engine, Training, Output Mapping & Technology Stack Architecture
 
 **Smart India Hackathon (SIH 2024)**  

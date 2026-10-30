@@ -75,7 +75,7 @@ export default function NewsPanel({
     setStatusMsg("Scraping configured news websites...");
     try {
       const res = await triggerNewsScrape();
-      setStatusMsg(`Scraped ${res.total_scraped_articles} new cyclone articles!`);
+      setStatusMsg(res.status === "unavailable" ? "News providers unavailable. No bulletins were generated." : `Retrieved ${res.total_scraped_articles} source articles. ${res.source_breakdown?.filter((s: {status?: string}) => s.status === "UNAVAILABLE").length || 0} sources unavailable.`);
       await loadArticles();
       await loadSources();
     } catch (err) {

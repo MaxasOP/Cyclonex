@@ -124,7 +124,7 @@ const API_ENDPOINTS = [
   {
     method: "POST" as const,
     path: "/api/ai/analyze-cyclone",
-    description: "Execute Automated Dvorak Technique (ADT) and ResNet inference on coordinate/intensity parameters.",
+    description: "Run experimental CNN or heuristic screening; inspect the returned image provenance and model status.",
     samplePayload: `{\n  "lat": 18.35,\n  "lon": 72.98,\n  "wind_kph": 120,\n  "pressure_hpa": 984\n}`,
     sampleResponse: `{\n  "dvorak_t_number": 4.5,\n  "raw_adt": 4.38,\n  "eye_temp_c": -38.2,\n  "cloud_top_c": -74.8,\n  "confidence": 0.947,\n  "category": "VSCS"\n}`,
   },

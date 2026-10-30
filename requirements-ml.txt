@@ -1,0 +1,5 @@
+# Optional experimental CNN inference. Install CPU wheels on a service with
+# sufficient RAM; the core service runs without torch and reports that state.
+-r requirements.txt
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.6.0,<3

@@ -143,7 +143,7 @@ export default function HistoricalAnalyticsWorkspace({
         <div className="analytics-kpi-tile">
           <span className="kpi-label">DETECTION F1 ACCURACY</span>
           <strong className="kpi-value green">
-            {metrics?.identification_f1 ? `${(metrics.identification_f1 * 100).toFixed(1)}%` : "96.4%"}
+            {metrics?.identification_f1 ? `${(metrics.identification_f1 * 100).toFixed(1)}%` : "Unavailable"}
           </strong>
           <span className="kpi-sub">PyTorch CNN + Random Forest</span>
         </div>
@@ -151,7 +151,7 @@ export default function HistoricalAnalyticsWorkspace({
         <div className="analytics-kpi-tile">
           <span className="kpi-label">CLASSIFICATION MACRO-F1</span>
           <strong className="kpi-value cyan">
-            {metrics?.pattern_f1 ? `${(metrics.pattern_f1 * 100).toFixed(1)}%` : "94.7%"}
+            {metrics?.pattern_f1 ? `${(metrics.pattern_f1 * 100).toFixed(1)}%` : "Unavailable"}
           </strong>
           <span className="kpi-sub">6 Dvorak structural stages</span>
         </div>

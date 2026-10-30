@@ -3,6 +3,7 @@ from typing import Literal, Optional, List, Dict, Any
 
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field, HttpUrl
 
 from baseline_model import BASELINE_PIPELINE
@@ -43,8 +44,9 @@ from ai_cyclone_service import ai_service, CycloneAnalysisRequest
 app = FastAPI(
     title="CYCLONEX Ocean Data Service",
     description="Fetches subsurface ocean TB/VF data and provides satellite-based cyclone ML endpoints.",
-    version="0.2.0",
+    version="0.3.0",
 )
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 @app.middleware("http")
@@ -174,6 +176,9 @@ def health():
 
     return {
         "status": "ok",
+        "version": "0.3.0",
+        "revision": __import__("os").getenv("RENDER_GIT_COMMIT", "local"),
+        "ai_models": ai_service.get_models_status(),
         "integrations": {
             "google_maps": "configured"
             if settings.google_maps_browser_api_key
@@ -215,7 +220,10 @@ def _containing_risk_cell(point: tuple[float, float], features: list[dict]) -> d
 @app.post("/api/ai/analyze-cyclone")
 def analyze_cyclone_ai(req: CycloneAnalysisRequest):
     """Multi-source satellite AI identification, pattern classification & intensity/track prediction."""
-    res = ai_service.analyze_cyclone(req)
+    try:
+        res = ai_service.analyze_cyclone(req)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     
     # Connect directly to risk engine to update 200m spatial damage grid & risk layers
     try:
@@ -225,14 +233,15 @@ def analyze_cyclone_ai(req: CycloneAnalysisRequest):
             center_lon=req.longitude,
             max_wind_kph=req.wind_speed,
             central_pressure_hpa=req.pressure,
-            heading_deg=315.0,
-            speed_kph=25.0,
+            heading_deg=req.heading if req.heading is not None else 315.0,
+            speed_kph=req.speed if req.speed is not None else 22.0,
             rain_rate_mm_hr=75.0,
             storm_surge_m=2.8,
             field_radius_km=30.0,
         )
         scn_res = create_scenario(scn_input)
         res["scenario_id"] = scn_res["id"]
+        res["risk_integration"]["grid_updated"] = True
     except Exception as e:
         print(f"[AI ENDPOINT WARN] Could not trigger scenario risk engine: {e}")
 
@@ -256,7 +265,10 @@ def create_scenario(scenario: ScenarioInput):
             ocean_node = get_ocean_node(scenario.center_lat, scenario.center_lon, basin, live_first=False)
     t2 = time.time()
 
-    record = new_scenario_record(scenario, basin, ocean_node)
+    try:
+        record = new_scenario_record(scenario, basin, ocean_node)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     t3 = time.time()
     
     if len(SCENARIOS) >= 10:
@@ -311,25 +323,13 @@ def get_scenario_cell(scenario_id: str, cell_id: str):
     # Reconstruct ScenarioInput
     scn_in = ScenarioInput(**scenario["input"])
 
-    # First check if coordinates are encoded in the cell_id: cell-X-Y
-    parts = cell_id.split("-")
-    if len(parts) >= 3 and parts[0] == "cell":
-        try:
-            x_m = float(parts[1])
-            y_m = float(parts[2])
-            _, inverse = local_metric_transforms(scn_in.center_lon, scn_in.center_lat)
-            cell_lon, cell_lat = inverse(x_m, y_m)
-            result = evaluate_cell_full(x_m, y_m, cell_lon, cell_lat, scn_in)
-            result["cell_id"] = cell_id
-            return result
-        except Exception:
-            pass
-
     # Otherwise scan features if available
     grid = scenario.get("risk_grid", {})
     for f in grid.get("features", []):
         if f.get("id") == cell_id or f.get("properties", {}).get("cell_id") == cell_id:
             props = f.get("properties", {})
+            if props.get("full_cell_analysis"):
+                return props["full_cell_analysis"]
             lat = props.get("lat", scn_in.center_lat)
             lon = props.get("lon", scn_in.center_lon)
             forward, _ = local_metric_transforms(scn_in.center_lon, scn_in.center_lat)
@@ -363,17 +363,12 @@ def get_scenario_buildings(scenario_id: str):
     print(f"[TIMING] Building bbox extraction: {t1-t0:.3f}s", flush=True)
 
     try:
-        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
-        with ThreadPoolExecutor(max_workers=1) as _executor:
-            _future = _executor.submit(fetch_buildings, south, west, north, east)
-            try:
-                buildings = _future.result(timeout=4)
-                t2 = time.time()
-                print(f"[TIMING] fetch_buildings completed: {t2-t1:.2f}s", flush=True)
-            except FuturesTimeoutError:
-                t2 = time.time()
-                print(f"[TIMING] fetch_buildings TIMEOUT after 4s", flush=True)
-                buildings = {"type": "FeatureCollection", "features": []}
+        # The adapter owns bounded HTTP timeouts and cached fallbacks. A second
+        # shorter timeout used to discard valid results while still waiting for
+        # the worker thread to finish on context-manager exit.
+        from copy import deepcopy
+        buildings = deepcopy(fetch_buildings(south, west, north, east))
+        t2 = time.time()
         for building in buildings["features"]:
             cell = _containing_risk_cell(_building_centroid(building), features)
             if cell is None:
@@ -391,7 +386,7 @@ def get_scenario_buildings(scenario_id: str):
                     "damage_score": risk.get("damage_score"),
                     "classification": risk.get("classification"),
                     "display_colour": risk.get("colour", "#d4483b"),
-                    "colour_source": "containing_200m_risk_cell",
+                    "colour_source": "containing_risk_cell",
                     "wind_kph": risk.get("wind_kph", 145),
                     "dynamic_pressure_pa": risk.get("dynamic_pressure_pa", 1250),
                     "load_to_resistance_ratio": risk.get("load_to_resistance_ratio", 0.65),
@@ -750,12 +745,12 @@ def validation_dashboard():
             "GRID_STATUS": {
                 "status": "PASS",
                 "label": "PASS",
-                "details": "Local tangent-plane 200m × 200m grid (40,000 m² cell area verified).",
+                "details": "200 m detail grids are supported for bounded extents. Wider scenarios use labelled overview cells; inspect the returned grid_size_m.",
             },
             "BUILDING_ALIGNMENT": {
                 "status": "PASS",
-                "label": "PASS",
-                "details": "OpenStreetMap vector footprint spatial join (EPSG:4326).",
+                "label": "PROVIDER_DEPENDENT",
+                "details": "Partial footprint coverage; check request metadata for live, cached or unavailable state.",
             },
             "OBSTACLE_STATUS": {
                 "status": "PASS",
@@ -959,34 +954,21 @@ def api_get_realtime_weather(
     except Exception as e:
         print(f"Open-meteo live fallback used: {e}")
 
-    now_iso = datetime.now(timezone.utc).isoformat()
-    return {
-        "source": "CYCLONEX_REALTIME_ENGINE",
-        "lat": lat,
-        "lon": lon,
-        "timestamp": now_iso,
-        "wind_speed_kph": 142.5,
-        "wind_gusts_kph": 178.0,
-        "wind_direction_deg": 315,
-        "surface_pressure_hpa": 956.2,
-        "precipitation_mm": 48.5,
-        "temperature_c": 26.4,
-        "humidity_pct": 94,
-        "status": "REALTIME_SIMULATED_SYNC",
-    }
+    raise HTTPException(status_code=503, detail="Live weather provider unavailable. No simulated telemetry was substituted.")
 
 
 # =========================================================
 # AI / ML SATELLITE CYCLONE IDENTIFICATION & CLASSIFICATION
 # =========================================================
 
-@app.post("/api/ai/analyze-cyclone")
 @app.post("/api/v2/ai-cyclone/analyze")
 def api_analyze_cyclone(req: CycloneAnalysisRequest):
     """Execute AI/ML Satellite Analysis: Detection, Dvorak Pattern, Prediction & RI."""
     try:
         result = ai_service.analyze_cyclone(req)
         return result
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
     except Exception as e:
         print(f"[AI SERVICE ERROR] {e}", flush=True)
         raise HTTPException(status_code=500, detail=f"AI inference error: {str(e)}")
@@ -1026,7 +1008,7 @@ class ResilienceAssessmentRequest(BaseModel):
 
 class DroneInspectionRequest(BaseModel):
     asset_id: str = "pwr-01"
-    sample_id: Optional[str] = "sample-substation-flood"
+    sample_id: Optional[str] = None
     image_base64: Optional[str] = None
 
 
@@ -1095,6 +1077,10 @@ def api_inspect_drone_damage(req: DroneInspectionRequest):
             sample_id=req.sample_id,
             image_base64=req.image_base64,
         )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
     except Exception as e:
         print(f"[DRONE INSPECTION ERROR] {e}", flush=True)
         raise HTTPException(status_code=500, detail=str(e))
