@@ -6,6 +6,7 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 600,
     rollupOptions: {
+      input: ["index.html", "app/index.html", "docs/index.html"],
       output: {
         manualChunks: {
           // Split vendor libraries into separate chunks

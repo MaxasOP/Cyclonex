@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cyclonex Documentation | Risk Grids and Data Sources</title>
+  <meta name="description" content="Learn how Cyclonex builds cyclone risk grids, labels weather and ocean data, and handles experimental forecasts and routing.">
+  <link rel="canonical" href="https://cyclonex.vercel.app/docs">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/public-pages.css">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Cyclonex">
+  <meta property="og:title" content="Cyclonex Documentation | Risk Grids and Data Sources">
+  <meta property="og:description" content="Learn how Cyclonex builds cyclone risk grids, labels weather and ocean data, and handles experimental forecasts and routing.">
+  <meta property="og:url" content="https://cyclonex.vercel.app/docs">
+  <meta property="og:image" content="https://cyclonex.vercel.app/earth-blue-marble.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+  <header><a href="/">Cyclonex</a><nav aria-label="Main navigation"><a href="/docs">Documentation</a><a href="/app">Dashboard</a></nav></header>
+  <main>
+    <h1>Cyclonex methodology and data sources</h1>
+    <h2>Risk grids and cell inspection</h2>
+    <p>The dashboard estimates local winds and structural loading from a storm scenario. The 200 m detail view covers a bounded area, while wider runs use coarser cells. The map displays the resolution for each run. Cell inspection shows the calculation behind each screening index.</p>
+    <h2>Weather, ocean and building data</h2>
+    <p>Open-Meteo supplies weather conditions. HYCOM supplies ocean profiles when available. Cyclonex labels climatology estimates when a live profile is unavailable. Building footprints come from bundled reference data or OpenStreetMap queries, with coverage and height assumptions that vary by location.</p>
+    <h2>Forecasts and image analysis</h2>
+    <p>The baseline forecast uses a small reference storm dataset. The experimental satellite models use synthetic training scenes, and their output requires validation on observed storms. The AI Lab identifies the input source and whether a model or heuristic generated the output.</p>
+    <h2>Evacuation routing and reports</h2>
+    <p>Road routes depend on provider availability. Confirm road closures, flood conditions and shelter occupancy with local authorities before relying on a route. Printable reports and CAP exports are scenario exercises.</p>
+    <p><a href="/app#docs">Open the detailed methodology in the dashboard</a></p>
+</main>
+</body>
+</html>

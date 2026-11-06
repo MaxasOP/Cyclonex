@@ -1,19 +1,38 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="google-site-verification" content="VCBmtD7GlhFh-NGe_74Lz9iO0vcnGW3AXmlqJtr9aYY" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0c0a1a" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="description" content="CYCLONEX — Autonomous Satellite-to-Grid Cyclone Damage and Land Impact Intelligence Engine. Real-time satellite feature extraction, 6-24h physics-informed track forecasting, and 200m structural hazard screening." />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <title>CYCLONEX — Satellite Cyclone Damage &amp; Land Impact Intelligence</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cyclonex | Cyclone Risk Mapping and Scenario Analysis</title>
+  <meta name="description" content="Explore cyclone wind and damage scenarios, inspect 200 m detail grids, and check weather and ocean data provenance.">
+  <link rel="canonical" href="https://cyclonex.vercel.app/">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/public-pages.css">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Cyclonex">
+  <meta property="og:title" content="Cyclonex | Cyclone Risk Mapping and Scenario Analysis">
+  <meta property="og:description" content="Explore cyclone wind and damage scenarios, inspect 200 m detail grids, and check weather and ocean data provenance.">
+  <meta property="og:url" content="https://cyclonex.vercel.app/">
+  <meta property="og:image" content="https://cyclonex.vercel.app/earth-blue-marble.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="google-site-verification" content="VCBmtD7GlhFh-NGe_74Lz9iO0vcnGW3AXmlqJtr9aYY" />
+  <script>
+    if (location.hash) {
+      location.replace("/app" + location.search + location.hash);
+    }
+  </script>
+</head>
+<body>
+  <header><a href="/">Cyclonex</a><nav aria-label="Main navigation"><a href="/docs">Documentation</a><a href="/app">Dashboard</a></nav></header>
+  <main>
+    <h1>Cyclone risk mapping and scenario analysis</h1>
+    <p>Cyclonex is a research tool for exploring how tropical cyclone scenarios could affect coastal areas. Set a storm's position, wind speed, pressure and motion to see modeled wind and damage across a map.</p>
+    <p><a class="button" href="/app">Open the cyclone dashboard</a></p>
+    <h2>Explore modeled impacts</h2>
+    <p>Use overview grids for wider areas or select 200 m detail for a bounded area. Inspect a cell to see the assumptions and calculations behind its damage screening index.</p>
+    <h2>Check the source of each result</h2>
+    <p>Cyclonex connects to Open-Meteo for weather and HYCOM for ocean profiles. It labels ocean climatology fallbacks and distinguishes experimental satellite analysis from observed data.</p>
+    <p><a href="/docs">Read the methodology and limitations</a></p>
+</main>
+</body>
 </html>
