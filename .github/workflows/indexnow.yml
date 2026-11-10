@@ -1,0 +1,69 @@
+name: Notify IndexNow after production deployment
+
+on:
+  deployment_status:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  notify-indexnow:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+       (github.event.deployment.environment == 'Production' ||
+        github.event.deployment.environment == 'production'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Notify IndexNow about published sitemap URLs
+        env:
+          SITE: https://cyclonex.vercel.app
+          INDEXNOW_KEY: a4b1e80d95fc7362c8d143ef0a98265b
+        run: |
+          python3 - <<'PY'
+          import os, json, time, urllib.request, urllib.error, xml.etree.ElementTree as ET
+          from urllib.parse import urlsplit
+
+          site = os.environ["SITE"].rstrip("/")
+          key = os.environ["INDEXNOW_KEY"]
+          host = urlsplit(site).netloc
+          key_url = f"{site}/{key}.txt"
+          for attempt in range(20):
+              try:
+                  with urllib.request.urlopen(key_url, timeout=15) as resp:
+                      if resp.read().decode().strip() == key:
+                          break
+              except (urllib.error.URLError, TimeoutError):
+                  pass
+              print(f"Production verification key not ready: attempt {attempt+1}/20")
+              time.sleep(15)
+          else:
+              raise SystemExit("Production verification key unavailable; not submitting.")
+
+          with urllib.request.urlopen(f"{site}/sitemap.xml", timeout=30) as resp:
+              root = ET.fromstring(resp.read())
+          ns = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+          urls = []
+          for loc in root.findall(".//s:url/s:loc", ns):
+              if loc.text:
+                  u = loc.text.strip()
+                  parsed = urlsplit(u)
+                  if parsed.scheme == "https" and parsed.netloc == host and not parsed.fragment:
+                      urls.append(u)
+          urls = sorted(set(urls))
+          if not urls:
+              raise SystemExit("No matching URLs found in production sitemap.")
+          if len(urls) > 10000:
+              raise SystemExit("More than 10,000 URLs; batching required.")
+          data = json.dumps({"host":host,"key":key,"keyLocation":key_url,"urlList":urls}).encode()
+          request = urllib.request.Request("https://api.indexnow.org/indexnow", data=data,
+              headers={"Content-Type":"application/json; charset=utf-8"}, method="POST")
+          try:
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  print(f"IndexNow HTTP {response.status}: {len(urls)} URLs notified.")
+          except urllib.error.HTTPError as exc:
+              print(f"IndexNow HTTP {exc.code}: {exc.read().decode(errors='replace')[:500]}")
+              raise
+          PY
