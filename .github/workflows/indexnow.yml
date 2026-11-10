@@ -1,19 +1,15 @@
 name: Notify IndexNow after production deployment
 
 on:
-  deployment_status:
-  workflow_dispatch:
+  repository_dispatch:
+    types: [vercel.deployment.success]
 
 permissions:
   contents: read
 
 jobs:
   notify-indexnow:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.deployment_status.state == 'success' &&
-       (github.event.deployment.environment == 'Production' ||
-        github.event.deployment.environment == 'production'))
+    if: github.event.client_payload.environment == 'production'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
