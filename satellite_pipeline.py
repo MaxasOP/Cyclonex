@@ -143,7 +143,7 @@ class MultiSourceSatelliteSynthesizer:
             "wv_k": wv_k,
             "mw": mw_convection,
             "vis": vis_albedo,
-            "normalized_tensor_4ch": np.stack([norm_ir, norm_wv, norm_mw, norm_vis], axis=0),
+            "normalized_tensor_4ch": np.stack([norm_ir, norm_wv, norm_mw, norm_vis], axis=0).astype(np.float32, copy=False),
         }
 
 

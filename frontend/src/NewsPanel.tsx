@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   fetchNewsArticles,
   fetchNewsSources,
@@ -33,26 +33,30 @@ export default function NewsPanel({
   const [statusMsg, setStatusMsg] = useState("");
 
   // Admin form state
+  const [adminToken, setAdminToken] = useState("");
   const [newSourceName, setNewSourceName] = useState("");
   const [newSourceUrl, setNewSourceUrl] = useState("");
   const [newScrapeType, setNewScrapeType] = useState("html");
 
   useEffect(() => {
+    if (!isOpen) setAdminToken("");
     if (isOpen) {
       loadArticles();
       loadSources();
     }
   }, [isOpen, selectedTag]);
 
+  const latestSearch = useRef(0);
   const loadArticles = async () => {
+    const request = ++latestSearch.current;
     setLoading(true);
     try {
       const data = await fetchNewsArticles(searchQuery, selectedTag);
-      setArticles(data);
+      if (request === latestSearch.current) setArticles(data);
     } catch (err) {
-      console.error("Failed to load articles:", err);
+      if (request === latestSearch.current) { setArticles([]); setStatusMsg("News articles unavailable. Retry to reconnect."); }
     } finally {
-      setLoading(false);
+      if (request === latestSearch.current) setLoading(false);
     }
   };
 
@@ -93,7 +97,7 @@ export default function NewsPanel({
     setLoading(true);
     setStatusMsg("Adding source & scraping news...");
     try {
-      await addNewsSource(newSourceName, newSourceUrl, newScrapeType);
+      await addNewsSource(newSourceName, newSourceUrl, newScrapeType, adminToken.trim());
       setNewSourceName("");
       setNewSourceUrl("");
       setStatusMsg("News website source added successfully!");
@@ -110,11 +114,11 @@ export default function NewsPanel({
   const handleDeleteSource = async (id: string) => {
     if (!confirm("Are you sure you want to remove this news website source?")) return;
     try {
-      await deleteNewsSource(id);
+      await deleteNewsSource(id, adminToken.trim());
       await loadSources();
       await loadArticles();
     } catch (err) {
-      console.error("Failed to delete source:", err);
+      setStatusMsg(err instanceof Error ? err.message : "Could not delete this source.");
     }
   };
 
@@ -134,7 +138,7 @@ export default function NewsPanel({
   };
 
   return (
-    <div className="fixed inset-y-0 right-0 w-full sm:w-[480px] md:w-[540px] bg-slate-950/95 backdrop-blur-md border-l border-cyan-500/30 text-white shadow-2xl z-50 flex flex-col transition-all duration-300">
+    <div role="dialog" aria-label="Cyclone news" className="news-drawer fixed inset-y-0 right-0 w-full sm:w-[480px] md:w-[540px] bg-slate-950/95 backdrop-blur-md border-l border-cyan-500/30 text-white shadow-2xl z-50 flex flex-col transition-all duration-300">
       {/* Header */}
       <div className="p-4 bg-slate-900/90 border-b border-cyan-500/20 flex flex-col gap-3">
         <div className="flex items-center justify-between">
@@ -148,7 +152,7 @@ export default function NewsPanel({
             </h2>
           </div>
           <button
-            onClick={onClose}
+            aria-label="Close news" onClick={onClose}
             className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -158,19 +162,19 @@ export default function NewsPanel({
         </div>
 
         {/* Real-time Weather Ticker */}
-        {realtimeWeather && (
+        {realtimeWeather ? (
           <div className="bg-slate-800/80 rounded-lg p-2.5 text-xs flex items-center justify-between border border-cyan-500/20">
             <div className="flex items-center gap-2">
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
-              <span className="font-semibold text-emerald-400">REALTIME FEED:</span>
+              <span className="font-semibold text-emerald-400">Weather source:</span>
               <span className="text-slate-300">{realtimeWeather.status}</span>
             </div>
             <div className="flex gap-3 text-cyan-300 font-mono">
-              <span>💨 {realtimeWeather.wind_speed_kph} km/h</span>
-              <span>📉 {realtimeWeather.surface_pressure_hpa} hPa</span>
+              <span>Wind: {realtimeWeather.wind_speed_kph == null ? "Unavailable" : realtimeWeather.wind_speed_kph + " km/h"}</span>
+              <span>Pressure: {realtimeWeather.surface_pressure_hpa == null ? "Unavailable" : realtimeWeather.surface_pressure_hpa + " hPa"}</span>
             </div>
           </div>
-        )}
+        ) : <p role="status">Current weather unavailable.</p>}
 
         {/* Tab Selection */}
         <div className="flex bg-slate-800/50 p-1 rounded-lg border border-slate-700">
@@ -322,6 +326,9 @@ export default function NewsPanel({
                 Grant permission to scrape cyclone & weather news from custom websites or RSS feeds.
               </p>
 
+              <label>Admin token (hosted source changes)
+                <input type="password" autoComplete="off" value={adminToken} onChange={e => setAdminToken(e.target.value)} />
+              </label>
               <form onSubmit={handleAddSource} className="space-y-3">
                 <div>
                   <label className="block text-[10px] font-semibold text-slate-300 uppercase mb-1">

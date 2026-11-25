@@ -116,7 +116,7 @@ export default function AICyclonePanel({ analysis, loading, onAnalyze }: AICyclo
             {classification.pattern.replace("_", " ")}
           </div>
           <div style={{ fontSize: "0.7rem", color: "#475569", marginTop: "2px" }}>
-            Confidence: {(classification.confidence * 100).toFixed(0)}%
+            Confidence: {classification.confidence == null ? "Unavailable" : (classification.confidence * 100).toFixed(0) + "% (uncalibrated)"}
           </div>
         </div>
 

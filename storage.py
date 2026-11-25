@@ -8,18 +8,19 @@ Prevents in-memory eviction 404s and protects against Overpass API rate limits.
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-DB_PATH = Path(__file__).resolve().parent / "cyclonex_data.db"
+DB_PATH = Path(os.environ.get("CYCLONEX_DB_PATH") or Path(__file__).resolve().with_name("cyclonex_data.db"))
 
 
 @contextmanager
 def get_connection():
-    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+    conn = sqlite3.connect(str(DB_PATH), timeout=15)
     conn.row_factory = sqlite3.Row
     try:
         with conn:
@@ -32,6 +33,7 @@ def init_db() -> None:
     """Initialize database tables with WAL mode for fast concurrent reads."""
     with get_connection() as conn:
         conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("BEGIN IMMEDIATE")
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS scenarios (
@@ -59,6 +61,8 @@ def init_db() -> None:
             );
             """
         )
+        if "ml_provenance_json" not in {r["name"] for r in conn.execute("PRAGMA table_info(scenarios)")}:
+            conn.execute("ALTER TABLE scenarios ADD COLUMN ml_provenance_json TEXT")
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS zone_cache (

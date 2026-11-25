@@ -41,93 +41,29 @@ export default function ForecastPage({
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [hoveredRadius, setHoveredRadius] = useState<number>(28); // km from eye
 
-  // Compute waypoint steps dynamically
-  const headingRad = (((90 - headingDeg) % 360) * Math.PI) / 180;
-  const d6 = (speedKph * 6) / 111;
-  const d12 = (speedKph * 12) / 111;
-  const d24 = (speedKph * 24) / 111;
-
-  const waypoints = [
-    {
-      horizon: 0 as const,
-      label: "0h (Observed)",
-      lat: lat,
-      lon: lon,
-      wind: windKph,
-      pressure: pressureHpa,
-      uncertaintyKm: 10,
-      stage: "Active Observed",
-      speed: speedKph,
-      heading: headingDeg,
-      x: 140,
-      y: 260,
-    },
-    {
-      horizon: 6 as const,
-      label: "+6h Horizon",
-      lat: mlResult?.forecast_6h?.centre_lat ?? Number((lat + d6 * Math.sin(headingRad)).toFixed(2)),
-      lon: mlResult?.forecast_6h?.centre_lon ?? Number((lon + d6 * Math.cos(headingRad)).toFixed(2)),
-      wind: mlResult?.forecast_6h?.max_wind_kph ?? Math.round(windKph * 1.05),
-      pressure: mlResult?.forecast_6h?.central_pressure_hpa ?? Math.round(pressureHpa - 4),
-      uncertaintyKm: 16.93,
-      stage: "Very Severe Cyclonic Storm",
-      speed: speedKph,
-      heading: headingDeg,
-      x: 210,
-      y: 205,
-    },
-    {
-      horizon: 12 as const,
-      label: "+12h Horizon",
-      lat: mlResult?.forecast_12h?.centre_lat ?? Number((lat + d12 * Math.sin(headingRad)).toFixed(2)),
-      lon: mlResult?.forecast_12h?.centre_lon ?? Number((lon + d12 * Math.cos(headingRad)).toFixed(2)),
-      wind: mlResult?.forecast_12h?.max_wind_kph ?? Math.round(windKph * 1.10),
-      pressure: mlResult?.forecast_12h?.central_pressure_hpa ?? Math.round(pressureHpa - 8),
-      uncertaintyKm: 34.14,
-      stage: "Peak Intensity Corridor",
-      speed: speedKph,
-      heading: headingDeg,
-      x: 290,
-      y: 150,
-    },
-    {
-      horizon: 24 as const,
-      label: "+24h Landfall",
-      lat: mlResult?.forecast_24h?.centre_lat ?? Number((lat + d24 * Math.sin(headingRad)).toFixed(2)),
-      lon: mlResult?.forecast_24h?.centre_lon ?? Number((lon + d24 * Math.cos(headingRad)).toFixed(2)),
-      wind: mlResult?.forecast_24h?.max_wind_kph ?? Math.round(windKph * 0.92),
-      pressure: mlResult?.forecast_24h?.central_pressure_hpa ?? Math.round(pressureHpa + 6),
-      uncertaintyKm: 58.74,
-      stage: "Projected Landfall Sector",
-      speed: speedKph,
-      heading: headingDeg,
-      x: 390,
-      y: 110,
-    },
-  ];
-
-  // Derive active coastal sector label from storm coordinates
-  const getCoastalSector = (targetLat: number, targetLon: number) => {
-    if (targetLon > 80) {
-      if (targetLat >= 20) return "ODISHA / WB COAST";
-      if (targetLat >= 14) return "ANDHRA PRADESH COAST";
-      return "TAMIL NADU COAST";
-    } else {
-      if (targetLat >= 20.5) return "GUJARAT / SAURASHTRA";
-      if (targetLat >= 15) return "MAHARASHTRA / GOA";
-      return "KARNATAKA / KERALA";
-    }
-  };
-
-  const coastalSector = getCoastalSector(lat, lon);
-
+  const points = [{horizon: 0 as const, label: "0h scenario input", lat, lon, wind: windKph,
+    pressure: pressureHpa, uncertaintyKm: null as number | null, stage: "Scenario input"},
+    ...([6, 12, 24] as const).flatMap(horizon => {
+      const forecast = mlResult?.[`forecast_${horizon}h`];
+      if (!forecast) return [];
+      return [{horizon, label: `+${horizon}h`, lat: forecast.centre_lat, lon: forecast.centre_lon,
+        wind: forecast.max_sustained_wind_kph, pressure: forecast.central_pressure_hpa,
+        uncertaintyKm: forecast.track_uncertainty_km, stage: forecast.method ?? mlResult?.model_provenance.model_name ?? "Baseline"}];
+    })];
+  // North-up local projection, unwrapping longitudes across the date line.
+  const offsets = points.map(p => ({
+    x: (((p.lon - lon + 540) % 360) - 180) * Math.cos(lat * Math.PI / 180),
+    y: lat - p.lat,
+  }));
+  const extent = Math.max(0.01, ...offsets.map(p => Math.max(Math.abs(p.x), Math.abs(p.y))));
+  const waypoints = points.map((p, i) => ({...p, x: 250 + offsets[i].x * 125 / extent, y: 200 + offsets[i].y * 125 / extent}));
   // Current active waypoint values
   const currentWp = waypoints.find(w => w.horizon === selectedHorizon) || waypoints[0];
 
   // Playback timer loop
   useEffect(() => {
     let timer: ReturnType<typeof setInterval> | null = null;
-    if (isPlaying) {
+    if (isPlaying && mlResult) {
       timer = setInterval(() => {
         setSelectedHorizon(prev => {
           if (prev === 0) return 6;
@@ -140,7 +76,7 @@ export default function ForecastPage({
     return () => {
       if (timer) clearInterval(timer);
     };
-  }, [isPlaying]);
+  }, [isPlaying, mlResult]);
 
   // Holland 1980 Radial Wind Calculation
   // V(r) = sqrt( (B/rho) * (Rmax/r)^B * (Pn - Pc) * exp(-(Rmax/r)^B) )
@@ -148,7 +84,7 @@ export default function ForecastPage({
     if (rKm <= 0) return 0;
     const B = 1.25;
     const Rmax = 28;
-    const dP = (1008 - currentWp.pressure) * 100; // Pa
+    const dP = Math.max(0, 1008 - currentWp.pressure) * 100; // Pa
     const rho = 1.15; // kg/m^3
     const ratio = Rmax / rKm;
     const expTerm = Math.exp(-Math.pow(ratio, B));
@@ -171,11 +107,10 @@ export default function ForecastPage({
               ATMOSPHERIC DYNAMICS &middot; HOLLAND 1980 SOLVER
             </div>
             <h1 className="op-section-title" style={{ fontSize: "28px" }}>
-              Ensemble Trajectory &amp; Radial Wind Field
+              Forecast Trajectory &amp; Radial Wind Field
             </h1>
             <p className="op-section-desc" style={{ marginBottom: "0" }}>
-              Animated forward track simulation showing spatial progression from current observation to coastal landfall,
-              coupled with the parametric Holland 1980 radial velocity profile.
+              Track points use the returned scenario forecast. The radial profile illustrates the Holland model with fixed parameters.
             </p>
           </div>
 
@@ -184,6 +119,7 @@ export default function ForecastPage({
             <button
               type="button"
               className="op-btn-primary"
+              disabled={!mlResult}
               onClick={() => setIsPlaying(!isPlaying)}
               style={{ padding: "8px 14px", fontSize: "12px" }}
             >
@@ -194,6 +130,7 @@ export default function ForecastPage({
               {([0, 6, 12, 24] as const).map(h => (
                 <button
                   key={h}
+                  disabled={h !== 0 && !mlResult}
                   type="button"
                   className={`op-layer-tab ${selectedHorizon === h ? "active" : ""}`}
                   onClick={() => {
@@ -202,7 +139,7 @@ export default function ForecastPage({
                   }}
                   style={{ padding: "4px 10px", fontSize: "11px" }}
                 >
-                  {h === 0 ? "NOW (0h)" : `+${h}h`}
+                  {h === 0 ? "Input (0h)" : `+${h}h`}
                 </button>
               ))}
             </div>
@@ -244,7 +181,7 @@ export default function ForecastPage({
                   <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--accent-cyan)" }} />
                   <span style={{ color: "var(--text-primary)", fontWeight: 700 }}>TRAJECTORY SIMULATION · {stormName.toUpperCase()}</span>
                 </div>
-                <div>FORWARD SPEED: {speedKph} km/h · HEADING: {headingDeg}° (NW)</div>
+                <div>FORWARD SPEED: {speedKph} km/h · HEADING: {headingDeg}°</div>
               </div>
 
               {/* Trajectory SVG Engine */}
@@ -257,34 +194,7 @@ export default function ForecastPage({
                 <rect width="500" height="400" fill="var(--bg-surface)" />
                 <rect width="500" height="400" fill="url(#navGrid)" />
 
-                {/* Coastline Polygon */}
-                <path
-                  d="M 370,0 Q 360,90 350,150 T 380,260 Q 400,320 440,400 L 500,400 L 500,0 Z"
-                  fill="var(--bg-surface-elevated)"
-                  stroke="var(--border-medium)"
-                  strokeWidth="1.5"
-                />
-                <text x="390" y="50" fill="var(--text-muted)" fontSize="9" fontFamily="var(--font-mono)">{coastalSector}</text>
-                <text x="390" y="70" fill="var(--status-red)" fontSize="9" fontWeight="bold" fontFamily="var(--font-mono)">PROJECTED LANDFALL</text>
-
-                {/* Uncertainty Cone Polygon */}
-                <polygon
-                  points="140,260 210,185 290,120 420,70 380,150 290,180 210,225"
-                  fill="rgba(79, 70, 229, 0.06)"
-                  stroke="rgba(79, 70, 229, 0.35)"
-                  strokeWidth="1"
-                  strokeDasharray="4 3"
-                />
-
-                {/* Forecast Path Line */}
-                <path
-                  d="M 140,260 L 210,205 L 290,150 L 390,110"
-                  fill="none"
-                  stroke="var(--accent-cyan)"
-                  strokeWidth="2.5"
-                  className="op-stream-flow-line"
-                />
-
+                <polyline points={waypoints.map(w => `${w.x},${w.y}`).join(" ")} stroke="var(--accent-cyan)" fill="none" strokeWidth="2.5" />
                 {/* Waypoint Nodes */}
                 {waypoints.map(w => {
                   const isActive = w.horizon === selectedHorizon;
@@ -314,18 +224,8 @@ export default function ForecastPage({
 
                 {/* Active Storm Cyclone Center with Concentric Wind Rings */}
                 <g transform={`translate(${currentWp.x}, ${currentWp.y})`}>
-                  {/* Outer R34 Gale Radius Ring (60px) */}
-                  <circle cx="0" cy="0" r="60" fill="none" stroke="var(--accent-cyan)" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
-                  {/* R50 Storm Radius Ring (38px) */}
-                  <circle cx="0" cy="0" r="38" fill="none" stroke="var(--status-amber)" strokeWidth="1.2" opacity="0.8" />
-                  {/* Rmax Ring (18px) */}
-                  <circle cx="0" cy="0" r="18" fill="rgba(220, 38, 38, 0.15)" stroke="var(--status-red)" strokeWidth="2" />
-                  {/* Eye Center */}
-                  <circle cx="0" cy="0" r="3" fill="var(--text-primary)" />
-
-                  {/* Heading Vector Arrow */}
-                  <line x1="0" y1="0" x2="22" y2="-22" stroke="var(--text-primary)" strokeWidth="2" />
-                  <polygon points="22,-22 14,-22 22,-14" fill="var(--text-primary)" />
+                  <circle r="9" fill="none" stroke="var(--accent-cyan)" strokeWidth="2" />
+                  <path d="M0,0 V-22 M-4,-17 L0,-22 L4,-17" fill="none" stroke="var(--text-primary)" transform={`rotate(${headingDeg})`}/>
                 </g>
               </svg>
 
@@ -357,7 +257,7 @@ export default function ForecastPage({
 
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--text-muted)", padding: "0 4px" }}>
               <span>Use Play button or click waypoints to observe forecast track evolution</span>
-              <span style={{ color: "var(--accent-cyan)" }}>Ensemble Model: ECMWF IFS + GFS Blended Track</span>
+              <span style={{ color: "var(--accent-cyan)" }}>{mlResult?.model_provenance.model_name ?? "Forecast unavailable"}</span>
             </div>
           </div>
 
@@ -408,7 +308,7 @@ export default function ForecastPage({
                   <div style={{ fontSize: "22px", fontWeight: 800, color: "var(--status-amber)", fontFamily: "var(--font-mono)" }}>
                     {calculatedPressureAtHover} <span style={{ fontSize: "12px" }}>kPa</span>
                   </div>
-                  <div style={{ fontSize: "10px", color: "var(--text-secondary)" }}>IS:875 Facade Load</div>
+                  <div style={{ fontSize: "10px", color: "var(--text-secondary)" }}>Dynamic pressure estimate</div>
                 </div>
               </div>
 
@@ -423,29 +323,15 @@ export default function ForecastPage({
                   <line x1="25" y1="75" x2="290" y2="75" stroke="var(--border-medium)" strokeWidth="1" />
                   <line x1="25" y1="10" x2="25" y2="75" stroke="var(--border-medium)" strokeWidth="1" />
 
-                  {/* Velocity Curve */}
-                  <path
-                    d="M 25,73 Q 55,70 75,18 Q 120,40 180,56 T 290,68"
-                    fill="none"
-                    stroke="#8b5cf6"
-                    strokeWidth="2.5"
-                  />
-
-                  {/* Peak Point */}
-                  <circle cx="75" cy="18" r="3.5" fill="#ef4444" />
-                  <text x="80" y="24" fill="#ef4444" fontSize="8.5" fontFamily="'Space Mono', monospace">Vmax: {currentWp.wind} km/h</text>
-
-                  {/* Dynamic Hover Point on Curve */}
                   {(() => {
-                    const normX = Math.min(280, Math.max(30, 25 + (hoveredRadius / 160) * 260));
-                    const windRatio = calculatedWindAtHover / (currentWp.wind || 120);
-                    const normY = 75 - (windRatio * 57);
-                    return (
-                      <g>
-                        <circle cx={normX} cy={normY} r="4" fill="#f59e0b" stroke="#ffffff" strokeWidth="1.5" />
-                        <line x1={normX} y1={normY} x2={normX} y2="75" stroke="#f59e0b" strokeWidth="1" strokeDasharray="2 2" />
-                      </g>
-                    );
+                    const peak = calcHollandWind(28);
+                    const y = (r: number) => 75 - 57 * calcHollandWind(r) / Math.max(peak, 1);
+                    const x = (r: number) => 25 + 260 * r / 160;
+                    return <g>
+                      <polyline points={Array.from({length: 161}, (_, r) => `${x(r)},${y(r)}`).join(" ")} fill="none" stroke="#8b5cf6" strokeWidth="2.5"/>
+                      <text x="80" y="12" fill="#ef4444" fontSize="9">Profile peak {peak} km/h</text>
+                      <circle cx={x(hoveredRadius)} cy={y(hoveredRadius)} r="4" fill="#f59e0b"/>
+                    </g>;
                   })()}
                 </svg>
               </div>
@@ -459,7 +345,7 @@ export default function ForecastPage({
             {/* Launch to Full Tactical Map */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "rgba(56, 189, 248, 0.05)", border: "1px solid rgba(56, 189, 248, 0.2)", borderRadius: "3px" }}>
               <div>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: "#ffffff" }}>View Live in Tactical Map</div>
+                <div style={{ fontSize: "11px", fontWeight: 700, color: "#ffffff" }}>View in tactical map</div>
                 <div style={{ fontSize: "10px", color: "#64748b" }}>Inspect 3D city buildings under active wind load</div>
               </div>
               <button
@@ -480,10 +366,10 @@ export default function ForecastPage({
           <div className="op-tech-panel-header" style={{ marginBottom: "10px" }}>
             <div className="op-tech-panel-title">
               <Clock size={13} style={{ color: "#8b5cf6" }} />
-              <span>ENSEMBLE WAYPOINTS SCHEDULE</span>
+              <span>FORECAST WAYPOINTS</span>
             </div>
             <span style={{ fontSize: "11px", fontFamily: "'Space Mono', monospace", color: "#64748b" }}>
-              BASIN: ARABIAN SEA (NIO)
+              {mlResult?.model_provenance.uncertainty_status ?? "Model unavailable"}
             </span>
           </div>
 
@@ -494,8 +380,8 @@ export default function ForecastPage({
                 <th>COORDINATES</th>
                 <th>MAX WIND (Vmax)</th>
                 <th>CENTRAL PRESSURE</th>
-                <th>UNCERTAINTY ENVELOPE</th>
-                <th>OPERATIONAL STAGE</th>
+                <th>TRACK ERROR ESTIMATE</th>
+                <th>METHOD</th>
               </tr>
             </thead>
             <tbody>
@@ -514,7 +400,7 @@ export default function ForecastPage({
                   <td style={{ fontFamily: "'Space Mono', monospace" }}>{w.lat}°N, {w.lon}°E</td>
                   <td style={{ fontFamily: "'Space Mono', monospace", color: "#8b5cf6" }}>{w.wind} km/h</td>
                   <td style={{ fontFamily: "'Space Mono', monospace", color: "#f59e0b" }}>{w.pressure} hPa</td>
-                  <td style={{ fontFamily: "'Space Mono', monospace" }}>± {w.uncertaintyKm} km</td>
+                  <td style={{ fontFamily: "'Space Mono', monospace" }}>{w.uncertaintyKm == null ? "Unavailable" : w.uncertaintyKm + " km"}</td>
                   <td style={{ color: w.horizon === 24 ? "#f43f5e" : "#cbd5e1", fontWeight: w.horizon === 24 ? 700 : "normal" }}>
                     {w.stage}
                   </td>

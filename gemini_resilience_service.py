@@ -1,25 +1,10 @@
-"""Track-Based Cyclone Impact & Infrastructure Vulnerability Forecaster (Theme: Resilience).
-
-Complete Gap Closure, Integration & Production-Ready Implementation for CYCLONEX:
-- Canonical CycloneState & Central ResilienceAssessment integration
-- Real / Abstracted Google Earth Engine (GEE) multi-sensor satellite pipeline (Sentinel-1 SAR, SRTM DEM, Dynamic World LULC, VIIRS Nighttime Lights)
-- Physics-informed storm surge & spatial inundation modeling
-- Complete causal rainfall damage pathway (Rainfall -> Saturation -> Runoff -> Drainage -> Flood -> Asset Impact)
-- Common Vulnerability Engine for Power Grids, Arterial Roads (Passability & Alternate Routes), and Medical Shelters (Readiness Index)
-- Gemini 3.7 Flash Decision Intelligence (Evidence -> Reasoning -> Action) with Disaster-management-aligned RuleEngine fallback
-- Failure simulation mode for graceful degradation testing
-- Evacuation planning (Fastest, Safest, Flood-avoiding, Capacity-aware trade-offs)
-- Multilingual advisory bulletins across 6 coastal Indian languages (EN, HI, OR, BN, GU, MR)
-- Parametric Liquidity Simulation with clear fintech disclaimer
-- Full Data Provenance & System Health Center Status
-"""
-
+"""Scenario-based resilience screening, reference assets, and optional Gemini review."""
 from __future__ import annotations
 
 import json
 import math
 import os
-from geo import destination
+from geo import destination, distance_km, projected_landfall, coast_distance_within
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -87,7 +72,7 @@ class StormSurgeAndRunoffModel:
         wind_stress_surge_m = round(0.00155 * (wind_ms ** 2), 2)
 
         total_peak_surge_m = round(min(7.5, ib_surge_m + wind_stress_surge_m), 2)
-        surge_inundation_radius_km = round(min(65.0, 18.0 + (max_wind_kmh / 140.0) * 22.0), 1)
+        surge_inundation_radius_km = round(min(65.0, 14.0 * total_peak_surge_m), 1)
 
         # Astronomical tide coupling (e.g. spring high tide vs neap tide)
         astronomical_tide_m = 1.40  # Spring high tide reference for coastal India
@@ -95,75 +80,49 @@ class StormSurgeAndRunoffModel:
 
         # 3. Complete Causal Rainfall Damage Pathway
         # Forward speed modulation: slower storm dumps significantly more precipitation over a fixed basin
-        forward_factor = max(0.8, 22.0 / max(5.0, forward_speed_kmh))
         projected_24h_rainfall_mm = round(rain_rate_mm_hr * (24.0 / max(1.0, forward_speed_kmh / 15.0)) * 0.9, 1)
 
         soil_saturation = (
-            "SATURATED (100% Infiltration Capacity Reached)" if projected_24h_rainfall_mm > 300
-            else "HIGH (78% Saturated)" if projected_24h_rainfall_mm > 180
-            else "MODERATE"
+            "SATURATED (scenario assumption)" if projected_24h_rainfall_mm > 300
+            else "HIGH (scenario assumption)" if projected_24h_rainfall_mm > 180
+            else "MODERATE" if projected_24h_rainfall_mm > 50 else "LOW"
         )
         runoff_coeff = 0.88 if projected_24h_rainfall_mm > 250 else 0.72
 
         flash_flood_risk_level = (
             "EXTREME" if projected_24h_rainfall_mm > 350
             else "HIGH" if projected_24h_rainfall_mm > 200
-            else "MODERATE"
+            else "MODERATE" if projected_24h_rainfall_mm > 50 else "LOW"
         )
 
         # Spatial Inundation Grid & Administrative Exposure
-        max_flood_depth_m = round(max(0.6, total_peak_surge_m * 0.65), 2)
+        max_flood_depth_m = round(total_peak_surge_m * 0.65, 2)
         total_affected_area_km2 = round(surge_inundation_radius_km * 28.5, 1)
 
         # Virtual Countermeasure Modulation (Inflatable Dam & Sandbag Barrier at Coastal Outlets)
         if deploy_countermeasure:
             surge_inundation_radius_km = round(surge_inundation_radius_km * 0.70, 1)  # 30% reduction in inundation reach
-            max_flood_depth_m = round(max(0.18, max_flood_depth_m - 0.75), 2)
+            max_flood_depth_m = round(max(0.0, max_flood_depth_m - 0.75), 2)
             total_affected_area_km2 = round(total_affected_area_km2 * 0.68, 1)
 
-        is_east_coast = eye_lon >= 78.0
-        affected_blocks = (
-            ["Paradip Municipality", "Ersama Block", "Kujang Block", "Dhamra Port Sector", "Mahakalapada"]
-            if is_east_coast
-            else ["Alibaug Municipal Council", "Pen Coastal Block", "Roha Lowlands", "Murud Rural", "Uran Estuary"]
-        )
-
-        primary_pathways = [
-            {
-                "name": "Estuary Tidal Channel Alpha",
-                "capacity_utilization": "142% (OVERTOPPING)" if not deploy_countermeasure else "88% (CONTAINED BY MOBILE DAM)",
-                "risk": "CRITICAL" if not deploy_countermeasure else "MODERATE",
-                "estimated_culvert_inundation_m": 1.45 if not deploy_countermeasure else 0.45,
-            },
-            {
-                "name": "Coastal Lowland Drainage Canal 04",
-                "capacity_utilization": "118% (BACKFLOW RISK)" if not deploy_countermeasure else "82% (PROTECTED)",
-                "risk": "HIGH" if not deploy_countermeasure else "MODERATE",
-                "estimated_culvert_inundation_m": 0.95 if not deploy_countermeasure else 0.30,
-            },
-            {
-                "name": "Inland Agricultural Sluice Bypass",
-                "capacity_utilization": "74% (MARGINAL)",
-                "risk": "MODERATE",
-                "estimated_culvert_inundation_m": 0.40 if not deploy_countermeasure else 0.20,
-            },
-        ]
-
         return {
+            "method": "Uncalibrated coastal scenario with assumed shelf geometry, tide, and runoff. Reach and depth are sensitivity estimates.",
+            "rain_rate_mm_hr": rain_rate_mm_hr,
             "peak_surge_height_m": total_peak_surge_m,
             "inverted_barometer_component_m": round(ib_surge_m, 2),
             "wind_stress_component_m": round(wind_stress_surge_m, 2),
-            "astronomical_tide_phase": "SPRING_HIGH_TIDE (+1.4m)",
+            "astronomical_tide_phase": "ASSUMED_HIGH_TIDE (+1.4m)",
             "composite_peak_water_level_m": composite_peak_water_level_m,
             "inundation_reach_km": surge_inundation_radius_km,
             "max_flood_depth_m": max_flood_depth_m,
             "total_affected_area_km2": total_affected_area_km2,
-            "affected_administrative_blocks": affected_blocks,
+            "affected_administrative_blocks": [],
             "projected_24h_rainfall_mm": projected_24h_rainfall_mm,
             "soil_saturation_index": soil_saturation,
             "runoff_coefficient": runoff_coeff,
+            "modeled_runoff_mm": round(projected_24h_rainfall_mm * runoff_coeff, 1),
             "flash_flood_risk_level": flash_flood_risk_level,
-            "primary_drainage_pathways": primary_pathways,
+            "primary_drainage_pathways": [],
             "countermeasure_deployed": deploy_countermeasure,
         }
 
@@ -178,7 +137,6 @@ class GoogleEarthEngineFeeds:
     @staticmethod
     def get_gee_catalog_layers(basin: str, simulate_offline: bool = False) -> List[Dict[str, Any]]:
         status = "SIMULATION" if simulate_offline else "CATALOG_ONLY"
-        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
         return [
             {
@@ -187,12 +145,12 @@ class GoogleEarthEngineFeeds:
                 "gee_collection": "COPERNICUS/S1_GRD",
                 "instrument": "C-SAR (5.405 GHz)",
                 "polarization": "VV + VH Dual-Pol",
-                "pass_direction": "DESCENDING",
+                "pass_direction": "Collection dependent",
                 "resolution": "10m Spatial Ground Resolution",
                 "observation_timestamp": None,
-                "observation_age": "2.4 hours ago",
+                "observation_age": None,
                 "status": status,
-                "provenance": "ESA Copernicus / Google Earth Engine Planetary Computer",
+                "provenance": "ESA Copernicus / Google Earth Engine catalogue",
                 "processing_pipeline": "Calibrate (Sigma0) -> Lee Speckle Filter (5x5) -> Otsu Dual-Pol Water Thresholding",
                 "utility": "All-weather cloud-penetrating flood water extents & tidal coastal surface roughness",
             },
@@ -202,8 +160,8 @@ class GoogleEarthEngineFeeds:
                 "gee_collection": "USGS/SRTMGL1_003",
                 "instrument": "C-band InSAR Space Shuttle Radar",
                 "resolution": "30m 1-Arc-Second Global",
-                "observation_timestamp": "Baseline Topography",
-                "observation_age": "Static Baseline Topography",
+                "observation_timestamp": None,
+                "observation_age": None,
                 "status": status,
                 "provenance": "NASA JPL / USGS / Google Earth Engine",
                 "processing_pipeline": "Hydro-conditioned DEM -> D8 Flow Direction -> Slope Gradient Extraction -> Coastal Lowland Mask",
@@ -216,7 +174,7 @@ class GoogleEarthEngineFeeds:
                 "instrument": "Sentinel-2 Multi-Spectral Derived 9-Class AI",
                 "resolution": "10m Near Real-Time",
                 "observation_timestamp": None,
-                "observation_age": "Bi-weekly Cloud-Filtered Composite",
+                "observation_age": None,
                 "status": status,
                 "provenance": "World Resources Institute / Google / ESA",
                 "processing_pipeline": "DeepLab-v3+ Multi-Spectral Inference -> Mangrove Bioshield Buffer & Parcel Density Classifier",
@@ -229,7 +187,7 @@ class GoogleEarthEngineFeeds:
                 "instrument": "VIIRS Day/Night Band Radiometer",
                 "resolution": "500m Nocturnal Radiance",
                 "observation_timestamp": None,
-                "observation_age": "Daily Nocturnal Orbit",
+                "observation_age": None,
                 "status": status,
                 "provenance": "NOAA / NASA Earth Science Data / Google Earth Engine",
                 "processing_pipeline": "Lunar Radiance Normalization -> Pre-event Baseline Ratio -> Potential Blackout Anomaly Mask",
@@ -463,8 +421,14 @@ class CriticalInfrastructureRegistry:
         # Common Vulnerability Scoring Engine
         items: List[InfrastructureRisk] = []
         for a in raw_assets:
-            passability = a.get("passability_status")
-            details = dict(a.get("details", {}))
+            if distance_km(eye_lat, eye_lon, a["lat"], a["lon"]) > 100:
+                continue
+            details = {**a.get("details", {}), "source": "Illustrative regional asset and design assumptions; field condition unknown."}
+            details.pop("traffic_status", None)
+            passability = None
+            if a["category"] == "ARTERIAL_ROAD":
+                passability = "MODELED_FLOOD_EXPOSURE" if surge_height_m >= a["flood_threshold_m"] else "UNVERIFIED"
+
 
             # Wind exposure %: relative to design threshold
             wind_exp = min(100.0, round((max_wind_kmh / a["design_threshold_wind_kmh"]) * 100.0, 1))
@@ -475,11 +439,11 @@ class CriticalInfrastructureRegistry:
             # Virtual Countermeasure Modulation (Sandbag revetments, mobile dams, silicone flashover washes)
             if deploy_countermeasure:
                 if a["asset_id"] in ("rd-01", "rd-01-w"):
-                    passability = "PASSABLE_PROTECTED"
+                    passability = "SIMULATED_BARRIER_UNVERIFIED"
                     flood_exp = min(flood_exp, 28.0)
                     details["countermeasure_status"] = "PROTECTED: Inflatable flood barrier & sandbag dikes deployed at Km 18.4 culvert. Defended against surge overtopping."
                 elif a["asset_id"] in ("pwr-01", "pwr-01-w"):
-                    flood_exp = 22.0
+                    flood_exp = min(flood_exp, 22.0)
                     details["countermeasure_status"] = "PROTECTED: Mobile coffer dam & silicone anti-arc coating active. Flood exposure suppressed to 22%."
 
             # Marine salt spray exposure %: exponential decay with distance from coast
@@ -513,10 +477,14 @@ class CriticalInfrastructureRegistry:
                     overall_vulnerability=overall,
                     estimated_failure_risk=fail_risk,
                     passability_status=passability,
-                    alternate_route=a.get("alternate_route"),
+                    alternate_route={**a["alternate_route"], "passability": "UNVERIFIED reference alternative"} if a.get("alternate_route") else None,
                     shelter_readiness=a.get("shelter_readiness"),
                     details=details,
-                    hardening_directive=a["hardening_directive"],
+                    hardening_directive={
+                        "POWER_GRID": "Review scenario wind and flood loading and salt-arc exposure with the asset operator.",
+                        "ARTERIAL_ROAD": "Confirm road condition and any diversions with the road operator.",
+                        "MEDICAL_SHELTER": "Verify access, staffing, power, supplies and available beds with the facility.",
+                    }[a["category"]],
                 )
             )
         return items
@@ -541,78 +509,29 @@ class RuleEngine:
         infra_items: List[InfrastructureRisk],
         parametric_data: Dict[str, Any],
     ) -> GeminiDecisionIntelligence:
-        time_now = datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC")
-        critical_count = sum(1 for i in infra_items if i.overall_vulnerability == "CRITICAL")
-        
-        urgency = "MANDATORY_EVACUATION" if (max_wind_kmh >= 118 or surge_data["peak_surge_height_m"] >= 2.5) else "HIGH_ALERT"
-        rating = "RED_HIGH_CONSEQUENCE" if critical_count >= 2 else "ORANGE_ELEVATED"
+        critical_count = sum(i.overall_vulnerability == "CRITICAL" for i in infra_items)
+        elevated = max_wind_kmh >= 118 or surge_data["peak_surge_height_m"] >= 2.5
+        urgency = "PRIORITY_REVIEW" if elevated or critical_count else "MONITOR"
+        rating = "RED_HIGH_CONSEQUENCE" if critical_count >= 2 else "ORANGE_ELEVATED" if elevated or critical_count else "YELLOW_WATCH"
 
-        evidence_actions: List[RecommendationEvidenceAction] = [
-            RecommendationEvidenceAction(
-                domain="⚡ Electrical Power Grid & Transmission",
-                evidence=[
-                    f"Peak sustained wind ({max_wind_kmh} km/h) exceeds safe AIS pylon elastic limits",
-                    f"Marine salt spray exposure is extreme ({next((i.salt_spray_exposure_pct for i in infra_items if i.category == 'POWER_GRID'), 85)}%)",
-                    f"Substation elevation (+3.2m MSL) is within modeled surge reach (+{surge_data['peak_surge_height_m']}m MSL)",
-                ],
-                reasoning=(
-                    "Under high gale conditions, energized transmission bushings suffer explosive flashovers from coastal salt encrustation. "
-                    "Pre-landfall controlled shutdown preserves transformer cores from permanent thermal ruin."
-                ),
-                action=(
-                    "Order controlled de-energization of coastal 33kV distribution lines; lower mobile flood coffer gates; "
-                    "coat substation insulators with synthetic RTV silicone."
-                ),
-                deadline="T - 4 Hours to Landfall",
-                priority="CRITICAL",
-            ),
-            RecommendationEvidenceAction(
-                domain="🛣️ Arterial Road Network & Evacuation Corridors",
-                evidence=[
-                    f"Modeled storm surge crest of +{surge_data['peak_surge_height_m']}m breaches low-lying culverts at Km 18.4",
-                    f"24h precipitation ({surge_data['projected_24h_rainfall_mm']}mm) exceeds drainage canal capacity by 142%",
-                    "No civilian vehicle can safely traverse saltwater inundation depths >0.3m",
-                ],
-                reasoning=(
-                    "Causeways and box culverts suffer hydraulic overtopping and scouring during storm surges. "
-                    "Civilian vehicles attempting traversal risk hydrostatic engine stall and drowning."
-                ),
-                action=(
-                    "Activate mandatory traffic diversions at coastal junctions; reroute civilian traffic to elevated ridge bypass corridors; "
-                    "pre-position heavy excavators every 5 km."
-                ),
-                deadline="T - 6 Hours to Landfall",
-                priority="CRITICAL",
-            ),
-            RecommendationEvidenceAction(
-                domain="🏥 Medical Citadels & Cyclone Refuges",
-                evidence=[
-                    f"Estimated municipal evacuee target of 42,000 residents across high-tide coastal strip",
-                    f"Civil Hospital oxygen generators located at +8.5m elevation; ground stores vulnerable to basement runoff",
-                    f"14-day Cummins generator fuel storage confirmed locked and sealed",
-                ],
-                reasoning=(
-                    "Hospital power stability and trauma drug reserves are critical life-safety failure points. "
-                    "Elevating portable concentrators ensures casualty management remains uninterrupted."
-                ),
-                action=(
-                    "Elevate portable oxygen units and trauma drugs above +3.0m datum; verify 100% capacity on dual diesel generators; "
-                    "stage amphibious ambulances at designated high-elevation citadels."
-                ),
-                deadline="T - 8 Hours to Landfall",
-                priority="HIGH",
-            ),
-        ]
-
-        hardening_directives = [
-            {"domain": ea.domain, "action": ea.action, "deadline": ea.deadline, "priority": ea.priority}
-            for ea in evidence_actions
-        ]
-
+        evidence_actions = []
+        for category, domain in (("POWER_GRID", "Electrical grid"), ("ARTERIAL_ROAD", "Road access"), ("MEDICAL_SHELTER", "Medical shelter")):
+            group = [item for item in infra_items if item.category == category]
+            if not group:
+                continue
+            worst = max(group, key=lambda item: max(item.wind_exposure_pct, item.flood_exposure_pct))
+            evidence_actions.append(RecommendationEvidenceAction(
+                domain=domain, evidence=[f"{len(group)} illustrative assets in the selected region.",
+                    f"{worst.name}: wind {worst.wind_exposure_pct}% and surge {worst.flood_exposure_pct}% of assumed thresholds."],
+                reasoning="Scenario exposure is compared with reference design values. Current operating conditions require verification.",
+                action=worst.hardening_directive, deadline="During scenario review",
+                priority={"CRITICAL": "CRITICAL", "ELEVATED": "HIGH", "LOW": "MODERATE"}[worst.overall_vulnerability],
+            ))
+        hardening_directives = [{k: getattr(ea, k) for k in ("domain", "action", "deadline", "priority")} for ea in evidence_actions]
         reasoning_steps = [
-            f"[Rule R-SURGE-01] Modeled surge (+{surge_data['peak_surge_height_m']}m) exceeds coastal revetment datum within {surge_data['inundation_reach_km']} km reach envelope.",
-            f"[Rule R-WIND-02] Sustained winds ({max_wind_kmh} km/h) exceed structural design thresholds for {critical_count} critical infrastructure assets.",
-            f"[Rule R-FIN-03] Verified parametric policy covenants: wind exceedance & surge exceedance met, allocating ₹{parametric_data['disbursed_liquidity_inr_cr']} Cr emergency liquidity in <12 mins.",
+            f"Scenario wind {max_wind_kmh} km/h, modeled surge {surge_data['peak_surge_height_m']} m.",
+            f"{critical_count} of {len(infra_items)} reference assets crossed a critical screening threshold.",
+            f"Simulated payout is INR {parametric_data['disbursed_liquidity_inr_cr']} crore.",
         ]
 
         return GeminiDecisionIntelligence(
@@ -620,12 +539,9 @@ class RuleEngine:
             confidence_score=0.0,
             resilience_rating=rating,
             urgency_level=urgency,
-            executive_summary=(
-                f"Severe cyclonic circulation {storm_name} ({max_wind_kmh} km/h, {central_pressure_hpa} hPa) requires immediate transition "
-                f"from alert to aggressive pre-landfall anticipatory hardening. "
-                f"Surge crest (+{surge_data['peak_surge_height_m']}m) and 24h precipitation ({surge_data['projected_24h_rainfall_mm']}mm) threaten {critical_count} critical assets. "
-                f"Parametric liquidity trigger ({parametric_data['payout_status']}) activates ₹{parametric_data['disbursed_liquidity_inr_cr']} Cr for municipal logistics."
-            ),
+            executive_summary=(f"{storm_name} scenario: {max_wind_kmh} km/h, {central_pressure_hpa} hPa. "
+                               f"Modeled surge {surge_data['peak_surge_height_m']} m. "
+                               f"{critical_count} of {len(infra_items)} regional reference assets reach the high screening band."),
             evidence_reasoning_actions=evidence_actions,
             hardening_directives=hardening_directives,
             reasoning_steps=reasoning_steps,
@@ -680,17 +596,17 @@ class GeminiMultimodalReasoningEngine:
                 - Simulated Storm Surge: {surge_data['peak_surge_height_m']}m crest, inundation reach {surge_data['inundation_reach_km']} km
                 - 24h Projected Runoff: {surge_data['projected_24h_rainfall_mm']}mm (Risk: {surge_data['flash_flood_risk_level']})
                 - Critical Infrastructure: {critical_count} assets at CRITICAL RISK across Power, Roads, and Medical Shelters
-                - Parametric Insurance: {parametric_data['payout_status']} (₹{parametric_data['disbursed_liquidity_inr_cr']} Cr disbursed)
+                - Parametric Insurance: {parametric_data['payout_status']} (₹{parametric_data['disbursed_liquidity_inr_cr']} Cr simulated)
 
-                Provide an authoritative, high-priority operational dispatch in valid JSON with:
+                Provide a simulation summary for human review in valid JSON with:
                 1. "executive_summary": String briefing disaster commanders.
                 2. "resilience_rating": "RED_HIGH_CONSEQUENCE" | "ORANGE_ELEVATED" | "YELLOW_WATCH"
-                3. "urgency_level": "MANDATORY_EVACUATION" | "HIGH_ALERT"
+                3. "urgency_level": "PRIORITY_REVIEW" | "MONITOR"
                 4. "evidence_reasoning_actions": Array of objects, each containing:
                    - "domain": String
                    - "evidence": Array of 2-3 bullet point observations
                    - "reasoning": Concise explanation of physical mechanism
-                   - "action": Concrete operational directive
+                   - "action": Verification step for the asset operator
                    - "deadline": String countdown
                    - "priority": "CRITICAL" | "HIGH"
                 5. "reasoning_steps": Array of 3 concise XAI points
@@ -711,18 +627,9 @@ class GeminiMultimodalReasoningEngine:
                         clean_json = clean_json.split("```")[1].split("```")[0].strip()
                     parsed = json.loads(clean_json)
 
-                    evidence_actions = [
-                        RecommendationEvidenceAction(
-                            domain=item.get("domain", "Infrastructure"),
-                            evidence=item.get("evidence", ["Verified telemetry breach"]),
-                            reasoning=item.get("reasoning", "Physical threshold exceedance"),
-                            action=item.get("action", "Implement protection"),
-                            deadline=item.get("deadline", "T - 4 Hours"),
-                            priority=item.get("priority", "CRITICAL"),
-                        )
-                        for item in parsed.get("evidence_reasoning_actions", [])
-                    ]
-
+                    evidence_actions = [RecommendationEvidenceAction.model_validate(item) for item in parsed["evidence_reasoning_actions"]]
+                    if parsed["urgency_level"] not in {"PRIORITY_REVIEW", "MONITOR"}:
+                        raise ValueError("Unsupported scenario urgency")
                     hardening_directives = [
                         {"domain": ea.domain, "action": ea.action, "deadline": ea.deadline, "priority": ea.priority}
                         for ea in evidence_actions
@@ -731,16 +638,12 @@ class GeminiMultimodalReasoningEngine:
                     return GeminiDecisionIntelligence(
                         engine_source=f"Gemini API ({GEMINI_MODEL}; scenario inputs only)",
                         confidence_score=0.0,
-                        resilience_rating=parsed.get("resilience_rating", "RED_HIGH_CONSEQUENCE"),
-                        urgency_level=parsed.get("urgency_level", "MANDATORY_EVACUATION"),
-                        executive_summary=parsed.get("executive_summary", ""),
+                        resilience_rating=parsed["resilience_rating"],
+                        urgency_level=parsed["urgency_level"],
+                        executive_summary=parsed["executive_summary"],
                         evidence_reasoning_actions=evidence_actions,
                         hardening_directives=hardening_directives,
-                        reasoning_steps=parsed.get("reasoning_steps", [
-                            "Integrated Sentinel-1 SAR flood vectors with hydrodynamic surge equations.",
-                            "Evaluated structural wind-loading thresholds against coastal transmission pylons.",
-                            "Validated parametric insurance covenants for automated pre-landfall wire execution."
-                        ]),
+                        reasoning_steps=parsed["reasoning_steps"],
                     )
             except Exception as e:
                 print(f"[CYCLONEX GEMINI WARN] Live API call failed, falling back to RuleEngine: {e}")
@@ -767,12 +670,12 @@ class ParametricInsuranceLiquidityFacility:
     def evaluate_parametric_triggers(
         max_wind_kmh: float,
         surge_height_m: float,
-        distance_to_coast_km: float = 24.0,
+        distance_to_coast_km: float | None = None,
     ) -> Dict[str, Any]:
         policy_coverage_inr_cr = 100.0  # ₹100 Crore emergency pool
 
         # Trigger 1: Wind Exceedance (Cat-in-a-Circle: >= 120 km/h within 60 km)
-        wind_met = max_wind_kmh >= 120.0 and distance_to_coast_km <= 60.0
+        wind_met = max_wind_kmh >= 120.0 and distance_to_coast_km is not None and distance_to_coast_km <= 60.0
         wind_payout_pct = 40.0 if wind_met else 0.0
 
         # Trigger 2: Storm Surge Crest (>= 2.5m)
@@ -784,7 +687,7 @@ class ParametricInsuranceLiquidityFacility:
 
         status_label = (
             "100% SMART COVENANT LIQUIDITY TRIGGERED" if total_payout_pct >= 100.0
-            else "PARTIAL LIQUIDITY RELEASED (TIER 1)" if total_payout_pct > 0.0
+            else "PARTIAL SIMULATED PAYOUT" if total_payout_pct > 0.0
             else "MONITORING (BELOW THRESHOLDS)"
         )
 
@@ -792,7 +695,7 @@ class ParametricInsuranceLiquidityFacility:
             {
                 "trigger_name": "Cat-in-a-Circle Gale Wind Exceedance",
                 "threshold": "Wind >= 120 km/h within 60 km radius",
-                "recorded_metric": f"{max_wind_kmh} km/h (Distance: {distance_to_coast_km} km)",
+                "recorded_metric": f"{max_wind_kmh} km/h, " + (f"{distance_to_coast_km:.1f} km from generalized coastline" if distance_to_coast_km is not None else "outside coastal search radius"),
                 "status": "TRIGGER_MET (40% Payout)" if wind_met else "MONITORING",
                 "payout_percentage": wind_payout_pct,
             },
@@ -820,7 +723,7 @@ class ParametricInsuranceLiquidityFacility:
             "total_payout_percentage": total_payout_pct,
             "disbursed_liquidity_inr_cr": total_payout_inr_cr,
             "payout_status": status_label,
-            "time_to_settlement": "< 12 Minutes (Pre-Landfall Automated Smart Liquidity Wire)",
+            "time_to_settlement": "Simulation only",
             "allocated_funds_use": allocations,
             "disclaimer": "Parametric Liquidity Simulation: Demonstrates pre-agreed smart covenant trigger and resource allocation. Genuine banking wire settlement requires Core Banking / RBI e-Kuber integration.",
         }
@@ -840,8 +743,8 @@ class EvacuationRoutingEngine:
         return EvacuationAssessment(
             status=result["status"], source=result["source"], notice=result["notice"],
             recommended_routes=[EvacuationRouteOption(**r) for r in result["routes"]],
-            estimated_evacuee_target=0, assigned_shelter_count=0, shelter_capacity_margin_pct=0,
-            bottleneck_warnings=[result["notice"]], transit_evacuation_window_hours=0,
+            estimated_evacuee_target=None, assigned_shelter_count=0, shelter_capacity_margin_pct=None,
+            bottleneck_warnings=[result["notice"]], transit_evacuation_window_hours=None,
         )
 
 
@@ -865,10 +768,9 @@ class CycloneResilienceService:
         simulate_failure_gee: bool = False,
         simulate_failure_weather: bool = False,
         deploy_countermeasure: bool = False,
+        rain_rate_mm_hr: float = 75.0,
     ) -> Dict[str, Any]:
         """Runs the complete Track-Based Cyclone Impact & Infrastructure Vulnerability Forecaster pipeline."""
-        t_start = time.time()
-        time_now = datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC")
 
         # 1. Physics-Informed Storm Surge & Spatial Inundation Modeling
         surge_data = StormSurgeAndRunoffModel.compute_surge_and_runoff(
@@ -879,6 +781,7 @@ class CycloneResilienceService:
             heading_deg=heading_deg,
             forward_speed_kmh=forward_speed_kmh,
             deploy_countermeasure=deploy_countermeasure,
+            rain_rate_mm_hr=rain_rate_mm_hr,
         )
 
         # 2. Critical Infrastructure Vulnerability Registry
@@ -894,7 +797,7 @@ class CycloneResilienceService:
         parametric_data = ParametricInsuranceLiquidityFacility.evaluate_parametric_triggers(
             max_wind_kmh=max_wind_kmh,
             surge_height_m=surge_data["peak_surge_height_m"],
-            distance_to_coast_km=24.0,
+            distance_to_coast_km=coast_distance_within(eye_lat, eye_lon, 60),
         )
 
         # 4. Google Earth Engine (GEE) Multi-Sensor Satellite Feeds
@@ -926,190 +829,75 @@ class CycloneResilienceService:
         )
 
         # 7. Multilingual Early-Warning Advisory Dispatches (6 Coastal Languages)
-        advisory_en = (
-            f"URGENT DISPATCH · NDMA / SDMA TACTICAL COMMAND\n"
-            f"TO: ALL DISTRICT COLLECTORS, MUNICIPAL COMMISSIONERS & NDRF BATTALIONS\n"
-            f"RE: PRE-LANDFALL ANTICIPATORY ACTION DIRECTIVE — CYCLONE {storm_name.upper()}\n"
-            f"TIME OF ISSUE: {time_now}\n\n"
-            f"1. STORM SURGE HAZARD: A storm surge crest of +{surge_data['peak_surge_height_m']} meters is modeled to breach coastal revetments within {surge_data['inundation_reach_km']} km of the eye. All low-lying settlements within 5 km of the high-tide line must complete evacuation to stilted MPCS refuges immediately.\n"
-            f"2. POWER INFRASTRUCTURE: Pre-trip coastal 220kV/132kV transmission feeders 2 hours prior to gale force onset to prevent explosive transformer salt-arc flashovers. Engage mobile diesel pumpouts at coastal substations.\n"
-            f"3. ARTERIAL EVACUATION HIGHWAYS: Low-lying culverts along arterial routes are facing flash flood overtopping ({surge_data['projected_24h_rainfall_mm']} mm 24h precipitation). Divert non-emergency traffic to elevated ridge bypasses.\n"
-            f"4. PARAMETRIC LIQUIDITY: Parametric Smart Trigger simulates an allocation of ₹{parametric_data['disbursed_liquidity_inr_cr']} Crores in hypothetical pre-landfall emergency funding for shelter provisions and fuel logistics."
-        )
-
+        # All languages identify the source and the scope of the three modeled values.
+        surge, rain = surge_data["peak_surge_height_m"], surge_data["projected_24h_rainfall_mm"]
         multilingual_advisories = {
-            "en": advisory_en,
-            "hi": (
-                f"आपातकालीन प्रेषण · राष्ट्रीय एवं राज्य आपदा प्रबंधन प्राधिकरण (NDMA / SDMA)\n"
-                f"प्रति: समस्त जिला कलेक्टर, नगर आयुक्त एवं एनडीआरएफ कमांडेंट\n"
-                f"विषय: चक्रवात लैंडफॉल-पूर्व अग्रिम कार्रवाई निर्देश — चक्रवात {storm_name.upper()}\n"
-                f"जारी समय: {time_now}\n\n"
-                f"1. तूफानी लहर (स्टॉर्म सर्ज) चेतावनी: समुद्र में +{surge_data['peak_surge_height_m']} मीटर ऊंची तूफानी लहरें तटबंधों को तोड़ने का अनुमान है। तटीय रेखा से 5 किमी के भीतर स्थित सभी निचले इलाकों को तत्काल बहुउद्देश्यीय चक्रवात आश्रयों (MPCS) में खाली कराया जाए।\n"
-                f"2. विद्युत ग्रिड संरक्षण: तटीय 220kV/132kV ट्रांसमिशन लाइनों को खारे पानी के शॉर्ट-सर्किट से बचाने के लिए लैंडफॉल से 2 घंटे पहले नियंत्रित रूप से बंद करें।\n"
-                f"3. निकासी राजमार्ग: धमनी राजमार्गों पर {surge_data['projected_24h_rainfall_mm']} मिमी वर्षा के कारण जलभराव का खतरा है। केवल आपातकालीन वाहनों को अनुमति दें।\n"
-                f"4. त्वरित बीमा तरलता: पूर्व-अनुमोदित पैरामेट्रिक बीमा द्वारा ₹{parametric_data['disbursed_liquidity_inr_cr']} करोड़ की आपातकालीन निधि सीधे राहत कार्यों के लिए जारी कर दी गई है।"
-            ),
-            "or": (
-                f"ଜରୁରୀକାଳୀନ ନିର୍ଦ୍ଦେଶନାମା · ଓଡ଼ିଶା ରାଜ୍ୟ ବିପର୍ଯ୍ୟୟ ପରିଚାଳନା ପ୍ରାଧିକରଣ (OSDMA / NDMA)\n"
-                f"ପ୍ରେରିତ: ସମସ୍ତ ଜିଲ୍ଲାପାଳ, ପୌର କମିଶନର ଏବଂ NDRF / ODRAF କମାଣ୍ଡାଣ୍ଟ\n"
-                f"ବିଷୟ: ଲ୍ୟାଣ୍ଡଫଲ୍ ପୂର୍ବ ପ୍ରସ୍ତୁତି ନିର୍ଦ୍ଦେଶ — ବାତ୍ୟା {storm_name.upper()}\n"
-                f"ସମୟ: {time_now}\n\n"
-                f"୧. ସାମୁଦ୍ରିକ ଜୁଆର (ଷ୍ଟର୍ମ ସର୍ଜ) ବିପଦ: କୂଳବର୍ତ୍ତୀ ଅଞ୍ଚଳରେ +{surge_data['peak_surge_height_m']} ମିଟର ଉଚ୍ଚ ଜୁଆର କୂଳ ଲଙ୍ଘିବାର ଆଶଙ୍କା ରହିଛି। ସମୁଦ୍ର କୂଳର ୫ କିଲୋମିଟର ପରିସରରେ ଥିବା ସମସ୍ତ ବସତିକୁ ତୁରନ୍ତ ପକ୍କା ବାତ୍ୟା ଆଶ୍ରୟସ୍ଥଳକୁ ସ୍ଥାନାନ୍ତର କରନ୍ତୁ।\n"
-                f"୨. ବିଦ୍ୟୁତ୍ ଭିତ୍ତିଭୂମି ସୁରକ୍ଷା: ୨୨୦ କେଭି ଓ ୧୩୨ କେଭି ତଟବର୍ତ୍ତୀ ସବଷ୍ଟେସନଗୁଡ଼ିକରେ ଲୁଣା ପାଣି ଜନିତ ସର୍ଟ ସର୍କିଟ୍ ରୋକିବା ପାଇଁ ବାତ୍ୟା ପୂର୍ବରୁ ସତର୍କତା ମୂଳକ ବିଦ୍ୟୁତ୍ କାଟ କରନ୍ତୁ।\n"
-                f"୩. ଜାତୀୟ ରାଜପଥ ଓ ଯୋଗାଯୋଗ: ପ୍ରବଳ ବର୍ଷା ({surge_data['projected_24h_rainfall_mm']} ମିମି) ହେତୁ କଲଭର୍ଟ ଉପରେ ପାଣି ଚାଲିବାର ଆଶଙ୍କା। ନିରାପଦ ଉଚ୍ଚ ରାସ୍ତା ଦେଇ ଯାତାୟାତ ପରିଚାଳନା କରନ୍ତୁ।\n"
-                f"୪. ତ୍ୱରିତ ପାରାମେଟ୍ରିକ ବୀମା ରାଶି: ଆଗୁଆ ରିଲିଫ୍ କାର୍ଯ୍ୟ ପାଇଁ ₹{parametric_data['disbursed_liquidity_inr_cr']} କୋଟି ଟଙ୍କାର ଆର୍ଥିକ ସହାୟତା ଜାରି କରାଯାଇଛି।"
-            ),
-            "bn": (
-                f"জরুরি সতর্কবার্তা · পশ্চিমবঙ্গ রাজ্য বিপর্যয় মোকাবিলা দফতর (WB SDMA / NDMA)\n"
-                f"প্রতি: সমস্ত জেলাশাসক, পুর কমিশনার এবং এনডিআরএফ (NDRF) ব্যাটেলিয়ন\n"
-                f"বিষয়: ঘূর্ণিঝড় আছড়ে পড়ার পূর্ব সতর্কতামূলক পদক্ষেপ — ঘূর্ণিঝড় {storm_name.upper()}\n"
-                f"সময়: {time_now}\n\n"
-                f"১. জলোচ্ছ্বাস সতর্কতা: উপকূলে +{surge_data['peak_surge_height_m']} মিটার উচ্চতার মারাত্মক জলোচ্ছ্বাসের সম্ভাবনা। উপকূলরেখা থেকে ৫ কিমির ভেতরের সমস্ত বাসিন্দাকে অবিলম্বে স্থায়ী সাইক্লোন সেন্টারে সরিয়ে নিন।\n"
-                f"২. বিদ্যুৎ পরিকাঠামো রক্ষা: লবণাক্ত বাতাসের কারণে শর্ট সার্কিট এড়াতে ২২০কেভি/১৩২কেভি উপকূলীয় ফিডারগুলি নিয়ন্ত্রিতভাবে শাটডাউন করুন।\n"
-                f"৩. যাতায়াত ও রাস্তাঘাট: অতিরিক্ত বৃষ্টির ({surge_data['projected_24h_rainfall_mm']} মিমি) কারণে নিচু কালভার্টগুলি প্লাবিত হওয়ার আশঙ্কা রয়েছে। যানবাহন উঁচু বিকল্প রুটে ঘুরিয়ে দিন।\n"
-                f"৪. প্যারামেট্রিক বীমা সহায়তা: আগাম উদ্ধার ও ত্রাণের জন্য ₹{parametric_data['disbursed_liquidity_inr_cr']} কোটি টাকার প্যারামেট্রিক তহবিল সক্রিয় করা হয়েছে।"
-            ),
-            "gu": (
-                f"તાકીદનું પ્રસારણ · ગુજરાત રાજ્ય આપત્તિ વ્યવસ્થાપન સત્તામંડળ (GSDMA / NDMA)\n"
-                f"પ્રતિ: તમામ જિલ્લા કલેક્ટરશ્રી, મ્યુનિસિપલ કમિશનરશ્રી અને NDRF કમાન્ડન્ટ\n"
-                f"વિષય: વાવાઝોડું ત્રાટકવા પૂર્વે આગોતરા પગલાં નિર્દેશ — વાવાઝોડું {storm_name.upper()}\n"
-                f"સમય: {time_now}\n\n"
-                f"૧. તોફાની મોજાં (સ્ટોર્મ સર્જ): દરિયાકાંઠે +{surge_data['peak_surge_height_m']} મીટર ઊંચા વિનાશક મોજાં ફરી વળવાની શક્યતા છે. દરિયાકાંઠાથી ૫ કિમી અંતરના તમામ લોકોને તાત્કાલિક પાકા આશ્રયસ્થાનોમાં સ્થળાંતરિત કરો।\n"
-                f"૨. પાવર ગ્રીડ સુરક્ષા: દરિયાઈ ક્ષારથી સબસ્ટેશનોને નુકસાન ન થાય તે માટે ૨૨૦ કેવી/૧૩૨ કેવી ફીડરોને વાવાઝોડું આવે તે પહેલાં સુરક્ષિત બંધ કરો।\n"
-                f"૩. માર્ગ વ્યવહાર: ભારે વરસાદ ({surge_data['projected_24h_rainfall_mm']} મિમી)થી કોઝવે અને નાળાં ડૂબી જવાનો ભય છે. વૈકલ્પિક ઊંચા માર્ગોનો ઉપયોગ કરો।\n"
-                f"૪. પેરામેટ્રિક વીમા સહાય: રાહત બચાવ સામગ્રી માટે ₹{parametric_data['disbursed_liquidity_inr_cr']} કરોડની ત્વરિત ઈમરજન્સી લિક્વિડિટી છૂટી કરવામાં આવી છે।"
-            ),
-            "mr": (
-                f"तातडीचे परिपत्रक · महाराष्ट्र राज्य आपत्ती व्यवस्थापन प्राधिकरण (SDMA / NDMA)\n"
-                f"प्रति: सर्व जिल्हाधिकारी, मनपा आयुक्त आणि एनडीआरएफ (NDRF) कमांडंट\n"
-                f"विषय: चक्रीवादळ धडकण्यापूर्वीची पूर्वतयारी व तत्काळ कृती आदेश — चक्रीवादळ {storm_name.upper()}\n"
-                f"वेळ: {time_now}\n\n"
-                f"१. वादळी लाटांचा (स्टॉर्म सर्ज) धोका: समुद्रकिनाऱ्यावर +{surge_data['peak_surge_height_m']} मीटर उंचीच्या लाटा उसळण्याची शक्यता आहे. किनारपट्टीपासून ५ किमी अंतरावरील सखल भागातील नागरिकांचे तातडीने सुरक्षित निवारा केंद्रात स्थलांतर करा.\n"
-                f"२. वीज वितरण ग्रीड सुरक्षा: खाऱ्या हवेमुळे वीज उपकेंद्रांमध्ये बिघाड टाळण्यासाठी २२०केव्ही/१३२केव्ही फिडर्स वादळ सुरू होण्यापूर्वी नियंत्रित पद्धतीने बंद करा.\n"
-                f"३. वाहतूक व रस्ते मार्ग: अतिवृष्टीमुळे ({surge_data['projected_24h_rainfall_mm']} मिमी) सखल कॉजवे पाण्याखाली जाण्याची शक्यता आहे. पर्यायी सुरक्षित महामार्गाचा वापर करा.\n"
-                f"४. पॅरामेट्रिक विमा निधी: मदतकार्यासाठी ₹{parametric_data['disbursed_liquidity_inr_cr']} कोटी रुपयांचा आपत्कालीन निधी तत्काळ वर्ग करण्यात आला आहे।"
-            ),
+            "en": f"Scenario exercise for {storm_name}. Wind {max_wind_kmh} km/h, modeled surge {surge} m, estimated 24-hour rain {rain} mm. Follow official local warnings.",
+            "hi": f"{storm_name} का काल्पनिक परिदृश्य। हवा {max_wind_kmh} किमी/घं, अनुमानित तूफानी ज्वार {surge} मीटर और 24 घंटे की वर्षा {rain} मिमी। स्थानीय आधिकारिक चेतावनी का पालन करें।",
+            "bn": f"{storm_name} নিয়ে মহড়া। বাতাস {max_wind_kmh} কিমি/ঘণ্টা, আনুমানিক জলোচ্ছ্বাস {surge} মিটার এবং ২৪ ঘণ্টার বৃষ্টি {rain} মিমি। স্থানীয় সরকারি সতর্কতা অনুসরণ করুন।",
+            "or": f"{storm_name} ପାଇଁ ଅଭ୍ୟାସ। ପବନ {max_wind_kmh} କିମି/ଘଣ୍ଟା, ଆନୁମାନିକ ଜୁଆର {surge} ମିଟର ଓ ୨୪ ଘଣ୍ଟାର ବର୍ଷା {rain} ମିମି। ସ୍ଥାନୀୟ ସରକାରୀ ସତର୍କତା ଅନୁସରଣ କରନ୍ତୁ।",
+            "gu": f"{storm_name} માટે કાલ્પનિક અભ્યાસ. પવન {max_wind_kmh} કિમી/કલાક, અંદાજિત દરિયાઈ ઉછાળો {surge} મીટર અને ૨૪ કલાકનો વરસાદ {rain} મિમી. સ્થાનિક સત્તાવાર ચેતવણીઓ અનુસરો.",
+            "mr": f"{storm_name} साठी काल्पनिक सराव. वारा {max_wind_kmh} किमी/तास, अंदाजित वादळी भरती {surge} मीटर आणि २४ तासांचा पाऊस {rain} मिमी. स्थानिक अधिकृत इशाऱ्यांचे पालन करा.",
         }
-
-        multilingual_advisories = {key: "SCENARIO DRAFT — NOT AN OFFICIAL WARNING. No dispatch or financial transfer occurred.\n\n" + value for key, value in multilingual_advisories.items()}
         advisory_en = multilingual_advisories["en"]
-
-        # 8. Dynamic Timeline Schedule (T-24h to T+24h)
         dynamic_timeline = [
-            {"phase": "T - 24 Hours", "title": "Early Anticipatory Monitoring", "action": "Activate District Emergency Operations Center (DEOC); initiate joint IMD/GEE forecast track ingestion."},
-            {"phase": "T - 12 Hours", "title": "Resource Pre-Positioning", "action": "Pre-position 8 NDRF battalions and 320 mass evacuation buses; unlock emergency fuel depots."},
-            {"phase": "T - 8 Hours", "title": "Medical Facility Hardening", "action": "Elevate hospital oxygen plants and trauma kits above +3.0m; secure backup diesel generators."},
-            {"phase": "T - 6 Hours", "title": "Evacuation Route Clearance", "action": "Deploy road earthmovers every 5 km along NH-53; sandbag vulnerable culverts at Km 18.4."},
-            {"phase": "T - 4 Hours", "title": "Power Grid De-Energization", "action": "Controlled trip of coastal 220kV/33kV feeders to prevent explosive salt-spray arc flashovers."},
-            {"phase": "T - 2 Hours", "title": "Final Life-Safety Evacuation", "action": "Mandatory curfew for low-lying settlements (<5 km of coast); seal multi-purpose cyclone citadels."},
-            {"phase": "T = 0 Hours", "title": "Eye Landfall Passage", "action": "Maintain total shelter containment; monitor storm surge peak crest (+2.8m) on tidal telemetry."},
-            {"phase": "T + 6 Hours", "title": "Rapid Damage Assessment", "action": "Ingest post-landfall Sentinel-1 SAR flood passes and VIIRS night-light blackout anomaly grids."},
-            {"phase": "T + 24 Hours", "title": "Priority Recovery & Drainage", "action": "Clear arterial road bottlenecks; engage high-volume mobile diesel pumpouts at substations."},
+            {"phase": "Scenario review", "title": step.domain, "action": step.action}
+            for step in gemini_intel.evidence_reasoning_actions
         ]
-
-        # 9. Data Provenance Records
-        latency_ms = int((time.time() - t_start) * 1000)
+        gee_status = "SIMULATION" if simulate_failure_gee else "CATALOG_ONLY"
+        live_ai = gemini_intel.engine_source.startswith("Gemini API")
         provenance_records = [
-            ProvenanceRecord(
-                output_domain="Storm Surge Simulation",
-                data_sources=["IMD Tropical Cyclone Advisory", "USGS SRTM 30m Topography", "Coastal Bathymetric Fetch Matrix"],
-                dataset_collection="USGS/SRTMGL1_003 + Hydrodynamic Inverted Barometer Simulator",
-                observation_timestamp=time_now,
-                model_version="SurgeModel-v2.4-PhysicsInformed",
-                processing_latency_ms=18,
-                status="MODEL_ESTIMATE",
-            ),
-            ProvenanceRecord(
-                output_domain="Rainfall Damage Pathways",
-                data_sources=["IMD Doppler / WRF Numerical Rain Rate", "Local Canal Drainage Geometry"],
-                dataset_collection="Hydrological Runoff Accumulation Model",
-                observation_timestamp=time_now,
-                model_version="RunoffEngine-v2.1",
-                processing_latency_ms=12,
-                status="MODEL_ESTIMATE",
-            ),
-            ProvenanceRecord(
-                output_domain="Earth Observation Pipeline",
-                data_sources=["Sentinel-1 SAR", "SRTM 30m DEM", "Dynamic World LULC", "VIIRS DNB"],
-                dataset_collection="COPERNICUS/S1_GRD + DYNAMICWORLD/V1 + NOAA/VIIRS/DNB",
-                observation_timestamp=time_now,
-                model_version="GEE-Connector-v1.8",
-                processing_latency_ms=35,
-                status="SIMULATION",
-            ),
-            ProvenanceRecord(
-                output_domain="Decision Intelligence",
-                data_sources=["Gemini 3.7 Flash Multimodal Reasoning", "NDMA/SDMA Disaster Rules"],
-                dataset_collection="Google GenAI / RuleEngine v2.4",
-                observation_timestamp=time_now,
-                model_version=GEMINI_MODEL,
-                processing_latency_ms=latency_ms,
-                status="LIVE" if gemini_intel.engine_source.startswith("Gemini API") else "MODEL_ESTIMATE",
-            ),
+            ProvenanceRecord(output_domain=domain, data_sources=sources, dataset_collection=collection,
+                             observation_timestamp=None, model_version=version, processing_latency_ms=None, status=status)
+            for domain, sources, collection, version, status in [
+                ("Storm surge", ["Scenario wind and pressure", "Assumed shelf and tide"], "Scenario inputs", "Surge screening", "MODEL_ESTIMATE"),
+                ("Rainfall", ["Scenario rain rate and translation speed"], "Scenario inputs", "Rain accumulation", "MODEL_ESTIMATE"),
+                ("Earth observation catalogue", ["GEE collection descriptions"], "Sentinel-1, SRTM, Dynamic World, VIIRS", "Catalogue", gee_status),
+                ("Decision intelligence", ["Scenario model outputs", "Regional reference assets"], "Scenario inputs",
+                 GEMINI_MODEL if live_ai else RuleEngine.RULE_VERSION, "LIVE" if live_ai else "MODEL_ESTIMATE"),
+            ]
         ]
-
-        # 10. System Health Status
         system_status = SystemStatus(
-            meteorology="SIMULATION" if simulate_failure_weather else "SCENARIO_INPUT",
-            gee_sentinel1="SIMULATION" if simulate_failure_gee else "SIMULATION",
-            gee_srtm="SIMULATION",
-            gee_dynamic_world="SIMULATION" if simulate_failure_gee else "SIMULATION",
-            gee_viirs="SIMULATION" if simulate_failure_gee else "SIMULATION",
-            ml_engine="FALLBACK",
-            gemini_ai="ACTIVE" if gemini_intel.engine_source.startswith("Gemini API") else "FALLBACK",
-            rule_engine="STANDBY" if gemini_intel.engine_source.startswith("Gemini API") else "ACTIVE",
-            database="ACTIVE",
+            meteorology="SIMULATION" if simulate_failure_weather else "SCENARIO_INPUT", gee_sentinel1=gee_status,
+            gee_srtm=gee_status, gee_dynamic_world=gee_status, gee_viirs=gee_status, ml_engine="STANDBY",
+            gemini_ai="ACTIVE" if live_ai else "FALLBACK", rule_engine="STANDBY" if live_ai else "ACTIVE",
             routing_engine="ACTIVE" if evacuation_data.status == "AVAILABLE" else "FALLBACK",
-            tts_speech="READY",
         )
-
-        # 11. Post-Landfall Rapid Assessment
         post_landfall = PostLandfallAssessment(
-            phase="PRE_LANDFALL",
-            sar_flood_observation_notes="Pre-landfall baseline calibrated; awaiting post-landfall Sentinel-1 descending orbital revisit for automated floodwater change-detection mask.",
-            viirs_nightlight_blackout_status="Baseline nocturnal illumination recorded. Night-light radiance anomalies will isolate post-landfall power outages.",
-            power_outage_risk_area_km2=round(surge_data["total_affected_area_km2"] * 0.85, 1),
-            restoration_priority_manifest=[
-                {"priority": "1", "target": "220kV Grid Substation Feeders", "action": "Salt-spray insulator wash and transformer dry-out"},
-                {"priority": "2", "target": "Civil Hospital Emergency Arterial", "action": "Clear fallen tree obstructions along primary ambulance corridor"},
-                {"priority": "3", "target": "Potable Water Treatment Pumps", "action": "Engage auxiliary diesel generator power to restore municipal drinking water"},
-            ],
+            phase="SCENARIO", sar_flood_observation_notes="No SAR observation has been ingested.",
+            viirs_nightlight_blackout_status="No radiance or outage observation has been ingested.",
+            power_outage_risk_area_km2=None, restoration_priority_manifest=[],
         )
-
+        basin = ("BAY_OF_BENGAL" if eye_lon >= 77.5 or (eye_lat < 8 and eye_lon >= 76) else "ARABIAN_SEA") if 0 <= eye_lat <= 30 and 45 <= eye_lon <= 100 else "OUTSIDE_NORTH_INDIAN_OCEAN"
+        wind_band = next(name for threshold, name in [
+            (222, "Super Cyclonic Storm"), (168, "Extremely Severe Cyclonic Storm"), (118, "Very Severe Cyclonic Storm"),
+            (89, "Severe Cyclonic Storm"), (62, "Cyclonic Storm"), (50, "Deep Depression"), (31, "Depression"), (0, "Low Pressure Area"),
+        ] if max_wind_kmh >= threshold)
+        forecast = []
+        for h in (6, 12, 24, 48):
+            lat, lon = destination(eye_lat, eye_lon, heading_deg, forward_speed_kmh * h)
+            forecast.append(ForecastPoint(hour=h, lat=lat, lon=lon, max_wind_kmh=max_wind_kmh,
+                                          central_pressure_hpa=central_pressure_hpa, uncertainty_radius_km=None))
         # Build Canonical CycloneState
         cyclone_state = CycloneState(
             id=f"storm-{storm_name.lower().replace(' ', '-')}",
             name=storm_name,
-            basin="BAY_OF_BENGAL" if eye_lon >= 78.0 else "ARABIAN_SEA",
+            basin=basin,
             center={"lat": eye_lat, "lon": eye_lon},
             intensity={
                 "maxWindKmh": max_wind_kmh,
                 "centralPressureHpa": central_pressure_hpa,
-                "category": (
-                    "Extremely Severe Cyclonic Storm (ESCS)" if max_wind_kmh >= 165
-                    else "Very Severe Cyclonic Storm (VSCS)" if max_wind_kmh >= 118
-                    else "Severe Cyclonic Storm (SCS)" if max_wind_kmh >= 89
-                    else "Cyclonic Storm (CS)"
-                ),
+                "category": wind_band if basin != "OUTSIDE_NORTH_INDIAN_OCEAN" else "Regional scale unavailable",
             },
             motion={"headingDeg": heading_deg, "forwardSpeedKmh": forward_speed_kmh},
-            forecast=[ForecastPoint(hour=h, lat=destination(eye_lat, eye_lon, heading_deg, forward_speed_kmh*h)[0],
-                                    lon=destination(eye_lat, eye_lon, heading_deg, forward_speed_kmh*h)[1],
-                                    max_wind_kmh=max_wind_kmh, central_pressure_hpa=central_pressure_hpa,
-                                    uncertainty_radius_km=0) for h in (6,12,24,48)],
-            landfall=LandfallEstimate(
-                eta_hours=round(max(4.0, (140.0 / max(5.0, forward_speed_kmh))), 1),
-                location_name="Coastal Landfall Target Corridor",
-                lat=round(eye_lat + 1.8, 2),
-                lon=round(eye_lon - 1.1, 2),
-                confidence_interval="±3.5 hours",
-            ),
+            forecast=forecast,
+            landfall=projected_landfall(eye_lat, eye_lon, heading_deg, forward_speed_kmh),
             rainfall=RainfallForecast(
-                rate_mm_hr=75.0,
+                rate_mm_hr=rain_rate_mm_hr,
                 projected_24h_rainfall_mm=surge_data["projected_24h_rainfall_mm"],
                 soil_saturation_index=surge_data["soil_saturation_index"],
                 runoff_coefficient=surge_data["runoff_coefficient"],
-                drainage_utilization_pct=142.0,
+                drainage_utilization_pct=None,
                 flash_flood_risk_level=surge_data["flash_flood_risk_level"],
             ),
             surge=SurgeAssessment(
@@ -1120,7 +908,7 @@ class CycloneResilienceService:
                 astronomical_tide_phase=surge_data["astronomical_tide_phase"],
                 composite_peak_water_level_m=surge_data["composite_peak_water_level_m"],
                 model_type="Physics-informed storm surge estimation (Inverted Barometer + Bathymetric Wind Stress)",
-                uncertainty_range_m="±0.4m",
+                uncertainty_range_m="Not calibrated",
             ),
             confidence=PredictionConfidence(
                 score=0.0,
@@ -1128,11 +916,9 @@ class CycloneResilienceService:
                 prediction_interval="NOT_CALIBRATED",
             ),
             source=DataSourceStatus(
-                meteorological="SIMULATION",
-                storm_track="CACHED",
-                satellite_feeds="SIMULATION",
-                terrain_srtm="CACHED",
-                provider="User-selected historical scenario; satellite catalogue only",
+                meteorological=system_status.meteorology, storm_track="CONSTANT_MOTION",
+                satellite_feeds=gee_status, terrain_srtm="NOT_INGESTED",
+                provider="User-selected scenario and static catalogue descriptions",
             ),
         )
 
@@ -1172,17 +958,17 @@ class CycloneResilienceService:
                 "evidence_reasoning_actions": [era.model_dump() for era in gemini_intel.evidence_reasoning_actions],
                 "input_streams_connected": {
                     "real_time_met": f"{storm_name} ({max_wind_kmh} km/h, {central_pressure_hpa} hPa, heading {heading_deg}°, speed {forward_speed_kmh} km/h)",
-                    "gee_satellite": "Sentinel-1 SAR (floodwater) + SRTM 30m DEM (elevation) + Dynamic World LULC (exposure) + VIIRS DNB (night lights)",
+                    "gee_satellite": "Static collection catalogue only",
                     "storm_surge_sim": f"+{surge_data['peak_surge_height_m']}m crest, {surge_data['inundation_reach_km']} km reach (Inverted Barometer + Wind Stress)",
-                    "rainfall_damage_pathways": f"{surge_data['projected_24h_rainfall_mm']}mm 24h accumulation with primary drainage canal/estuary overtopping",
+                    "rainfall_damage_pathways": f"{surge_data['projected_24h_rainfall_mm']}mm modeled 24h accumulation",
                     "critical_infra_vulnerability": f"{sum(1 for i in infra_items if i.overall_vulnerability == 'CRITICAL')} critical assets across Power, Roads, and Medical Shelters",
                 },
                 "action_synthesis": {
-                    "power_hardening_action": "Controlled de-energization of coastal 33kV lines; deploy silicone insulator coatings against salt-spray arc-overs.",
-                    "road_diversion_action": "Pre-stage heavy clearing equipment at 5 km intervals; divert non-emergency traffic to elevated ridge bypasses.",
-                    "medical_shelter_action": "Elevate portable oxygen concentrators and trauma supplies above +3.0m datum; lock dual diesel generator fuel reserves.",
-                    "automated_advisory_action": "Automated dispatch of multilingual NDMA/SDMA warning directives across 6 coastal Indian languages with voice TTS broadcast.",
-                    "parametric_liquidity_action": f"Simulation only: hypothetical allocation of ₹{parametric_data['disbursed_liquidity_inr_cr']} Cr ; no transfer is executed.",
+                    "power_hardening_action": "Verify utility asset conditions with the operator.",
+                    "road_diversion_action": "Verify road closures with local authorities.",
+                    "medical_shelter_action": "Confirm facility readiness and capacity.",
+                    "automated_advisory_action": "Draft scenario summary available for review.",
+                    "parametric_liquidity_action": f"Simulated allocation INR {parametric_data['disbursed_liquidity_inr_cr']} crore.",
                 },
             },
             # Canonical Unified Architecture
@@ -1279,18 +1065,22 @@ class DroneDamageInspectionEngine:
         if image_base64:
             encoded = image_base64.split(",", 1)[-1]
             try:
+                if len(encoded) > 4 * ((10 * 1024 * 1024 + 2) // 3):
+                    raise ValueError("Image exceeds 10 MB")
                 raw = base64.b64decode(encoded, validate=True)
                 if len(raw) > 10 * 1024 * 1024:
                     raise ValueError("Image exceeds 10 MB")
                 with Image.open(io.BytesIO(raw)) as image:
-                    mime = Image.MIME.get(image.format, "image/jpeg")
+                    if image.format not in {"JPEG", "PNG"} or image.width * image.height > 25_000_000:
+                        raise ValueError("Unsupported image")
+                    mime = Image.MIME[image.format]
                     image.verify()
             except Exception as exc:
                 raise ValueError("Invalid image. Supply a base64 PNG or JPEG, maximum 10 MB.") from exc
             if not GEMINI_API_KEY:
                 raise RuntimeError("Image analysis unavailable: configure GEMINI_API_KEY. Sample reports are available only by explicitly selecting a sample.")
             prompt = ("Inspect this image for visible damage only. Do not invent telemetry, structural capacity, failure probabilities, repair duration or deployment of crews. "
-                      "Return JSON: asset_name, image_caption, damage_severity (CRITICAL/SEVERE/MODERATE/MINOR), detected_defects (array of strings), "
+                      "Return JSON: asset_name, image_caption, damage_severity (CRITICAL/SEVERE/MODERATE/MINOR/NONE_VISIBLE/INDETERMINATE), detected_defects (array of strings), "
                       "repair_priority, mitigation_recommendation. State uncertainties and recommend an on-site inspection. Asset reference: " + asset_id)
             try:
                 response = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
@@ -1299,7 +1089,10 @@ class DroneDamageInspectionEngine:
                           "generationConfig": {"responseMimeType": "application/json"}}, timeout=(3, 25))
                 response.raise_for_status()
                 report = json.loads(response.json()["candidates"][0]["content"]["parts"][0]["text"])
-                if not isinstance(report.get("detected_defects"), list) or report.get("damage_severity") not in ("CRITICAL", "SEVERE", "MODERATE", "MINOR"):
+                if (not isinstance(report, dict) or not isinstance(report.get("detected_defects"), list)
+                    or not all(isinstance(d, str) for d in report["detected_defects"])
+                    or not all(isinstance(report.get(k), str) for k in ("asset_name", "image_caption", "repair_priority", "mitigation_recommendation"))
+                    or report.get("damage_severity") not in ("CRITICAL", "SEVERE", "MODERATE", "MINOR", "NONE_VISIBLE", "INDETERMINATE")):
                     raise ValueError("Invalid vision response")
             except (requests.RequestException, ValueError, KeyError, IndexError, TypeError) as exc:
                 raise RuntimeError("Image analysis provider unavailable or returned an invalid report. No sample result was substituted.") from exc
@@ -1333,13 +1126,14 @@ def generate_cap_alert_xml(
     affected_blocks: Optional[List[str]] = None,
 ) -> str:
     """Generates standard OASIS Common Alerting Protocol (CAP v1.2) XML payload compliant with NDMA SACHET."""
+    from uuid import uuid4
     from xml.sax.saxutils import escape
     storm_name = escape(storm_name)
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
     blocks_str = escape(", ".join(affected_blocks or [f"Scenario area near {eye_lat}, {eye_lon}"]))
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
-  <identifier>CYCLONEX-ALERT-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M')}-001</identifier>
+  <identifier>CYCLONEX-EXERCISE-{uuid4()}</identifier>
   <sender>CYCLONEX-RESEARCH-PROTOTYPE</sender>
   <sent>{now_iso}</sent>
   <status>Exercise</status>
@@ -1347,22 +1141,21 @@ def generate_cap_alert_xml(
   <scope>Public</scope>
   <info>
     <category>Met</category>
-    <event>Severe Cyclonic Storm &amp; Coastal Surge Inundation Warning</event>
-    <urgency>Immediate</urgency>
-    <severity>Extreme</severity>
+    <event>Cyclone scenario exercise</event>
+    <urgency>Unknown</urgency>
+    <severity>Unknown</severity>
     <certainty>Possible</certainty>
     <eventCode>
-      <valueName>NDMA-SACHET</valueName>
-      <value>CYCLONE-RED-ALERT</value>
+      <valueName>CYCLONEX</valueName>
+      <value>SCENARIO</value>
     </eventCode>
-    <headline>SCENARIO EXERCISE: Cyclone {storm_name} approaching with +{peak_surge_m}m peak surge and {max_wind_kmh} km/h winds</headline>
-    <description>Severe cyclonic circulation center located at {eye_lat}N, {eye_lon}E with maximum sustained winds of {max_wind_kmh} km/h. Astronomical tide coupling is causing coastal surge overtopping reaching +{peak_surge_m} meters MSL. Coastal sectors {blocks_str} face extreme inundation.</description>
+    <headline>SCENARIO EXERCISE: {storm_name} with +{peak_surge_m}m peak surge and {max_wind_kmh} km/h winds</headline>
+    <description>Scenario center at latitude {eye_lat}, longitude {eye_lon}. Inputs specify wind of {max_wind_kmh} km/h and a peak surge of {peak_surge_m} m. Inundation extent is unverified.</description>
     <instruction>EXERCISE ONLY. Confirm all scenario estimates with the responsible authority before taking operational action.</instruction>
     <web>https://cyclonex.vercel.app/#resilience</web>
     <contact>Research prototype; no official alert has been issued.</contact>
     <area>
-      <areaDesc>{blocks_str} Coastal Sectors</areaDesc>
-      <circle>{eye_lat},{eye_lon},45.0</circle>
+      <areaDesc>{blocks_str}</areaDesc>
     </area>
   </info>
 </alert>"""

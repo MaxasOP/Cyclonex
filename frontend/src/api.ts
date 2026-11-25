@@ -81,7 +81,7 @@ export type FullCellAnalysis = {
 export type RiskFeature = {
   type: "Feature";
   id: string;
-  geometry: { type: "Polygon"; coordinates: number[][][] };
+  geometry: { type: "Polygon"; coordinates: number[][][] } | { type: "MultiPolygon"; coordinates: number[][][][] };
   properties: {
     classification: string;
     colour: string;
@@ -221,8 +221,8 @@ export type CycloneShelter = {
 export type EvacuationPlan = {
   total_shelters_active: number;
   total_capacity: number;
-  estimated_population_at_risk: number;
-  immediate_evacuation_count: number;
+  estimated_population_at_risk: number | null;
+  immediate_evacuation_count: number | null;
   shelters: CycloneShelter[];
   ward_priorities: Array<{
     ward_id: string;
@@ -280,8 +280,8 @@ export type ForecastHorizon = {
   max_sustained_wind_kph: number;
   max_wind_kph?: number;
   central_pressure_hpa: number;
-  track_uncertainty_km: number;
-  wind_uncertainty_kph: number;
+  track_uncertainty_km: number | null;
+  wind_uncertainty_kph: number | null;
   uncertainty_status?: string;
   method?: string;
 };
@@ -306,7 +306,7 @@ export type MLInferenceResult = {
     centre_lat: number;
     centre_lon: number;
     /** @deprecated use model_provenance */
-    confidence?: number;
+    confidence?: number | null;
   };
   pattern_classification: {
     lifecycle_pattern: "FORMATION" | "INTENSIFYING" | "MATURE" | "WEAKENING" | "LANDFALLING" | null;
@@ -318,10 +318,18 @@ export type MLInferenceResult = {
   forecast_6h: ForecastHorizon;
   forecast_12h: ForecastHorizon;
   forecast_24h: ForecastHorizon;
-  ocean_context: { tb_deg_c: number; vf_m: number; data_status?: string };
+  ocean_context: { tb_deg_c: number | null; vf_m: number | null; data_status?: string };
 };
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? "http://127.0.0.1:8000" : "")).replace(/\/$/, "");
+export const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? "http://127.0.0.1:8000" : "")).replace(/\/$/, "");
+
+function errorDetail(payload: {detail?: unknown} | null, message: string) {
+  if (typeof payload?.detail === "string") return payload.detail;
+  if (Array.isArray(payload?.detail)) {
+    return payload.detail.map(issue => [issue.loc?.at(-1), issue.msg].filter(Boolean).join(" ")).join(". ");
+  }
+  return message;
+}
 
 export async function createScenario(input: Record<string, unknown>): Promise<ScenarioResult> {
   const response = await fetch(`${apiBaseUrl}/api/v2/scenarios`, {
@@ -331,7 +339,7 @@ export async function createScenario(input: Record<string, unknown>): Promise<Sc
   });
   if (!response.ok) {
     const error = await response.json().catch(() => null);
-    throw new Error(error?.detail || "The scenario could not be created.");
+    throw new Error(errorDetail(error, "The scenario could not be created."));
   }
   return response.json() as Promise<ScenarioResult>;
 }
@@ -361,7 +369,7 @@ export async function runMLInference(input: Record<string, unknown>): Promise<ML
   });
   if (!response.ok) {
     const error = await response.json().catch(() => null);
-    throw new Error(error?.detail || "ML inference failed.");
+    throw new Error(errorDetail(error, "ML inference failed."));
   }
   return response.json() as Promise<MLInferenceResult>;
 }
@@ -374,7 +382,7 @@ export async function runMLStormImpact(stormId: string, horizon: number): Promis
   });
   if (!response.ok) {
     const error = await response.json().catch(() => null);
-    throw new Error(error?.detail || "ML storm impact run failed.");
+    throw new Error(errorDetail(error, "ML storm impact run failed."));
   }
   return response.json() as Promise<ScenarioResult>;
 }
@@ -399,8 +407,8 @@ export type DatasetSummary = {
       track_error_24h_km_mean?: number;
       wind_mae_kph_mean?: number;
       pressure_mae_hpa_mean?: number;
-      identification_f1?: number;
-      pattern_f1?: number;
+      identification_f1?: number | null;
+      pattern_f1?: number | null;
       n_test_samples?: number;
       evaluated_at?: string;
     } | null;
@@ -485,27 +493,27 @@ export async function fetchNewsSources(): Promise<NewsSource[]> {
   }
 }
 
-export async function addNewsSource(name: string, url: string, scrape_type = "html"): Promise<NewsSource> {
+export async function addNewsSource(name: string, url: string, scrape_type = "html", adminToken = ""): Promise<NewsSource> {
   const response = await fetch(`${apiBaseUrl}/api/v2/news/sources`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(adminToken ? {Authorization: `Bearer ${adminToken}`} : {}) },
     body: JSON.stringify({ name, url, scrape_type }),
   });
   if (!response.ok) {
     const err = await response.json().catch(() => null);
-    throw new Error(err?.detail || "Failed to add news source");
+    throw new Error(errorDetail(err, "Failed to add news source"));
   }
   return response.json() as Promise<NewsSource>;
 }
 
-export async function deleteNewsSource(sourceId: string): Promise<boolean> {
-  try {
-    const response = await fetch(`${apiBaseUrl}/api/v2/news/sources/${sourceId}`, {
-      method: "DELETE",
-    });
-    return response.ok;
-  } catch {
-    return false;
+export async function deleteNewsSource(sourceId: string, adminToken = ""): Promise<void> {
+  const response = await fetch(`${apiBaseUrl}/api/v2/news/sources/${encodeURIComponent(sourceId)}`, {
+    method: "DELETE",
+    headers: adminToken ? {Authorization: `Bearer ${adminToken}`} : {},
+  });
+  if (!response.ok) {
+    const problem = await response.json().catch(() => null);
+    throw new Error(errorDetail(problem, "Could not delete this source."));
   }
 }
 
@@ -518,17 +526,12 @@ export async function triggerNewsScrape(): Promise<any> {
 }
 
 export async function fetchNewsArticles(query?: string, cycloneTag?: string): Promise<NewsArticle[]> {
-  try {
-    const params = new URLSearchParams();
-    if (query) params.set("query", query);
-    if (cycloneTag && cycloneTag !== "ALL") params.set("cyclone_tag", cycloneTag);
-
-    const response = await fetch(`${apiBaseUrl}/api/v2/news/articles?${params.toString()}`);
-    if (!response.ok) return [];
-    return response.json() as Promise<NewsArticle[]>;
-  } catch {
-    return [];
-  }
+  const params = new URLSearchParams();
+  if (query) params.set("query", query);
+  if (cycloneTag && cycloneTag !== "ALL") params.set("cyclone_tag", cycloneTag);
+  const response = await fetch(`${apiBaseUrl}/api/v2/news/articles?${params}`);
+  if (!response.ok) throw new Error("News articles unavailable.");
+  return response.json() as Promise<NewsArticle[]>;
 }
 
 export async function fetchRealtimeWeather(lat: number, lon: number): Promise<RealtimeWeather | null> {
@@ -542,6 +545,8 @@ export async function fetchRealtimeWeather(lat: number, lon: number): Promise<Re
 }
 
 export interface AICycloneAnalysisRequest {
+  heading?: number;
+  speed?: number;
   satellite_images?: {
     visible?: string;
     infrared?: string;
@@ -561,13 +566,13 @@ export interface AICycloneAnalysisResponse {
   active_channels: string[];
   identification: {
     cyclone_detected: boolean;
-    confidence: number;
+    confidence: number | null;
     center: { latitude: number; longitude: number };
     method?: string;
   };
   classification: {
     pattern: string;
-    confidence: number;
+    confidence: number | null;
     probabilities: Record<string, number>;
     dvorak?: {
       warmest_eye_k?: number;
@@ -580,7 +585,7 @@ export interface AICycloneAnalysisResponse {
     method?: string;
   };
   rapid_intensification?: {
-    probability: number;
+    probability: number | null;
     is_ri_expected: boolean;
     threshold_knots_24h: number;
     warning_level: string;
@@ -604,7 +609,7 @@ export interface AICycloneAnalysisResponse {
     longitude: number;
     wind_speed_kmh: number;
     pressure_hpa: number;
-    uncertainty_km: number;
+    uncertainty_km: number | null;
   }>;
   explainability?: {
     method: string;
@@ -627,14 +632,14 @@ export interface AICycloneAnalysisResponse {
 
 export async function analyzeAICyclone(data: AICycloneAnalysisRequest): Promise<AICycloneAnalysisResponse | null> {
   try {
-    const response = await fetch(`${apiBaseUrl}/api/ai/analyze-cyclone`, {
+    const response = await fetch(`${apiBaseUrl}/api/v2/ai-cyclone/analyze`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
     if (!response.ok) {
       const problem = await response.json().catch(() => null);
-      throw new Error(problem?.detail || "Cyclone analysis unavailable");
+      throw new Error(errorDetail(problem, "Cyclone analysis unavailable"));
     }
     return response.json() as Promise<AICycloneAnalysisResponse>;
   } catch (error) {

@@ -155,7 +155,7 @@ export default function HistoricalAnalyticsPage({
               HISTORICAL REFERENCE PRESETS &middot; ILLUSTRATIVE TRACKS
             </div>
             <h1 className="op-section-title" style={{ fontSize: "28px" }}>
-              Historical Analytics &amp; Basin Hindcasts
+              Historical Analytics
             </h1>
             <p className="op-section-desc" style={{ marginBottom: "0" }}>
               Reference presets and schematic tracks across Arabian Sea and Bay of Bengal cyclones. These are not a verified hindcast evaluation. Select any historical
@@ -174,6 +174,11 @@ export default function HistoricalAnalyticsPage({
           </button>
         </div>
 
+        <section className="op-technical-panel"><h2>Baseline evaluation</h2>
+          <p>Storms in the test split: {datasetSummary?.splits.test.storms ?? "Unavailable"}. Held-out samples evaluated: {datasetSummary?.baseline_model?.metrics?.n_test_samples ?? "Unavailable"}.</p>
+          <p>24-hour mean track error: {datasetSummary?.baseline_model?.metrics?.track_error_24h_km_mean == null ? "Unavailable" : datasetSummary.baseline_model.metrics.track_error_24h_km_mean + " km"}. Wind mean absolute error: {datasetSummary?.baseline_model?.metrics?.wind_mae_kph_mean == null ? "Unavailable" : datasetSummary.baseline_model.metrics.wind_mae_kph_mean + " km/h"}.</p>
+          <p>These metrics describe the stored reference split. Operational performance on independent observations remains unverified.</p>
+        </section>
         {/* Primary Visual Split: Interactive North Indian Ocean Map (Left) & Synced Intensity Chart (Right) */}
         <div className="op-split-grid" style={{ gridTemplateColumns: "1.2fr 0.8fr", gap: "28px", marginBottom: "24px" }}>
           
@@ -207,7 +212,7 @@ export default function HistoricalAnalyticsPage({
               }}>
                 <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                   <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: currentStorm.color }} />
-                  <span style={{ color: "#ffffff", fontWeight: 700 }}>NORTH INDIAN OCEAN BEST-TRACK ATLAS</span>
+                  <span style={{ color: "#ffffff", fontWeight: 700 }}>SCHEMATIC REFERENCE TRACKS</span>
                 </div>
                 <div>ACTIVE FOCUS: {currentStorm.name.toUpperCase()} ({currentStorm.year})</div>
               </div>

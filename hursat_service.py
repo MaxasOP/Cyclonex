@@ -31,6 +31,7 @@ def create_hursat_observation(
     spatial_resolution_km: float = 8.0,
     preprocessing_version: str = "hursat_b1_v06_cropped",
     checksum_sha256: str | None = None,
+    storm_id: str | None = None,
 ) -> SatelliteObservation:
     """Build a validated storm-centred HURSAT-B1 observation."""
     half_box = box_size_deg / 2.0
@@ -44,6 +45,7 @@ def create_hursat_observation(
 
     return SatelliteObservation(
         source=SatelliteSource.HURSAT_B1,
+        storm_id=storm_id,
         product=product,
         acquired_at=acquired_at,
         asset_url=asset_url, # type: ignore
@@ -61,7 +63,7 @@ def create_hursat_observation(
 def get_labels_for_storm(storm_id: str) -> list[BestTrackLabel]:
     """Retrieve all imported best-track labels for a specific storm ID, sorted by timestamp."""
     labels = [
-        label for label in BEST_TRACK_LABELS.values() if label.storm_id == storm_id
+        label for label in list(BEST_TRACK_LABELS.values()) if label.storm_id == storm_id
     ]
     return sorted(labels, key=lambda l: l.valid_at)
 
@@ -69,12 +71,23 @@ def get_labels_for_storm(storm_id: str) -> list[BestTrackLabel]:
 def get_observations_for_storm(
     storm_id: str, start_time: datetime, end_time: datetime
 ) -> list[str]:
-    """Find registered observation IDs matching a storm window."""
+    """Match tagged scenes or untagged footprints covering a contemporaneous fix."""
+    labels = get_labels_for_storm(storm_id)
     matching_ids: list[str] = []
-    for obs_id, obs in OBSERVATIONS.items():
-        if start_time <= obs.acquired_at <= end_time:
+    for obs_id, obs in list(OBSERVATIONS.items()):
+        if not start_time <= obs.acquired_at <= end_time:
+            continue
+        if obs.storm_id is not None:
+            if obs.storm_id == storm_id:
+                matching_ids.append(obs_id)
+            continue
+        if not labels:
+            continue
+        fix = min(labels, key=lambda label: abs(label.valid_at - obs.acquired_at))
+        if (abs(fix.valid_at - obs.acquired_at) <= timedelta(hours=3)
+                and obs.west <= fix.centre_lon <= obs.east and obs.south <= fix.centre_lat <= obs.north):
             matching_ids.append(obs_id)
-    return matching_ids
+    return sorted(matching_ids, key=lambda identifier: (OBSERVATIONS[identifier].acquired_at, identifier))
 
 
 def generate_storm_sequence_samples(

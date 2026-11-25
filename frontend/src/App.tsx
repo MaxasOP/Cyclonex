@@ -33,17 +33,9 @@ import {
 } from "./api";
 import RiskMap, { type MapAnalysisMode } from "./RiskMap";
 import NewsPanel from "./NewsPanel";
-import AICyclonePanel from "./AICyclonePanel";
 import SatelliteLab from "./components/SatelliteLab";
-import AIAnalysisLab from "./components/AIAnalysisLab";
-import ForecastWorkspace from "./components/ForecastWorkspace";
-import RiskImpactWorkspace from "./components/RiskImpactWorkspace";
-import AlertsOperationsWorkspace from "./components/AlertsOperationsWorkspace";
-import HistoricalAnalyticsWorkspace from "./components/HistoricalAnalyticsWorkspace";
-import DataSourcesWorkspace from "./components/DataSourcesWorkspace";
 import ContextualCyclonePanel from "./components/ContextualCyclonePanel";
 import GlobalLayersMenu, { type LayerState } from "./components/GlobalLayersMenu";
-import CommandPalette from "./components/CommandPalette";
 import {
   Activity,
   Globe,
@@ -350,19 +342,6 @@ function IconTerminal() {
   );
 }
 
-function getAccuracyInfo(scorePercent: number) {
-  if (scorePercent >= 90) {
-    return { grade: "GRADE A", label: "High Accuracy (90–100%)", color: "#35a66f", bg: "rgba(53, 166, 111, 0.2)" };
-  }
-  if (scorePercent >= 80) {
-    return { grade: "GRADE B", label: "Good Accuracy (80–89%)", color: "#75c9f1", bg: "rgba(117, 201, 241, 0.2)" };
-  }
-  if (scorePercent >= 70) {
-    return { grade: "GRADE C", label: "Moderate (70–79%)", color: "#ed8a28", bg: "rgba(237, 138, 40, 0.2)" };
-  }
-  return { grade: "GRADE D", label: "Elevated Uncertainty (<70%)", color: "#ff6b5b", bg: "rgba(255, 107, 91, 0.2)" };
-}
-
 export default function App() {
   const [currentView, setCurrentView] = useState<AppPage>(() => getPageFromHash());
 
@@ -398,6 +377,8 @@ export default function App() {
   const [selectedPreset, setSelectedPreset] = useState<keyof typeof presets>("nisarga");
   const [selectedSource, setSelectedSource] = useState<string>("INSAT");
   const [form, setForm] = useState(presets.nisarga);
+  const [draft, setDraft] = useState(presets.nisarga);
+  const searchInput = useRef<HTMLInputElement>(null);
   const [mlResult, setMlResult] = useState<MLInferenceResult | null>(null);
   const [datasetSummary, setDatasetSummary] = useState<DatasetSummary | null>(null);
   const [selectedHorizon, setSelectedHorizon] = useState<6 | 12 | 24>(24);
@@ -406,7 +387,16 @@ export default function App() {
   // News Panel & Real-time Weather Sync state
   const [isNewsPanelOpen, setIsNewsPanelOpen] = useState(false);
   const [realtimeWeather, setRealtimeWeather] = useState<RealtimeWeather | null>(null);
-  const [realtimeLiveEnabled, setRealtimeLiveEnabled] = useState(true);
+  useEffect(() => {
+    let active = true;
+    setRealtimeWeather(null);
+    if (isNewsPanelOpen) {
+      void fetchRealtimeWeather(Number(form.lat), Number(form.lon)).then(value => {
+        if (active) setRealtimeWeather(value);
+      });
+    }
+    return () => { active = false; };
+  }, [isNewsPanelOpen, form.lat, form.lon]);
 
   const pipelineRequest = useRef(0);
   const aiRequest = useRef(0);
@@ -522,6 +512,11 @@ export default function App() {
   ];
 
   function handleSelectSection(section: ActiveSection) {
+    const destination = { ai: "ai-lab", analytics: "analytics", alerts: "bulletins", settings: "data-sources" } as const;
+    if (section === "ai" || section === "analytics" || section === "alerts" || section === "settings") {
+      navigateTo(destination[section]);
+      return;
+    }
     setActiveSection(section);
     if (section === "earth") {
       setViewDimension("globe");
@@ -538,6 +533,16 @@ export default function App() {
   // Keyboard Shortcuts: 1-9 (Workspaces), Esc (Close drawers)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        searchInput.current?.focus();
+        return;
+      }
+      if (e.key === "Escape") {
+        setIsSearchOpen(false);
+        setIsNewsPanelOpen(false);
+      }
+      if (currentView !== "app" || e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
@@ -559,20 +564,22 @@ export default function App() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [viewDimension]);
+  }, [viewDimension, currentView]);
 
   // AI Cyclone Analysis State
   const [showAiLayer, setShowAiLayer] = useState(true);
   const [aiAnalysis, setAiAnalysis] = useState<AICycloneAnalysisResponse | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
-  async function handleRunAiAnalysis(latNum?: number, lonNum?: number, windNum?: number, presNum?: number, satelliteImages?: AICycloneAnalysisRequest["satellite_images"]) {
+  async function handleRunAiAnalysis(latNum?: number, lonNum?: number, windNum?: number, presNum?: number, satelliteImages?: AICycloneAnalysisRequest["satellite_images"], motion = { heading: Number(form.heading), speed: Number(form.speed) }) {
     const requestId = ++aiRequest.current;
     setAiLoading(true);
-    setError("");
+    setAiAnalysis(null);
     try {
       const res = await analyzeAICyclone({
         satellite_images: satelliteImages,
+        heading: motion.heading,
+        speed: motion.speed,
         latitude: latNum ?? Number(form.lat),
         longitude: lonNum ?? Number(form.lon),
         wind_speed: windNum ?? Number(form.wind),
@@ -599,32 +606,41 @@ export default function App() {
     radiusStr: string = "30",
     detail200m: boolean = false
   ) {
+    const fields = [
+      [latStr, -90, 90, "Latitude"], [lonStr, -180, 180, "Longitude"],
+      [windStr, 0, 400, "Wind speed"], [pressureStr, 800, 1050, "Central pressure"],
+      [headingStr, 0, 360, "Heading"], [speedStr, 0, 120, "Forward speed"],
+      [radiusStr, 0.2, 500, "Grid radius"],
+    ] as const;
+    for (const [value, low, high, label] of fields) {
+      if (!value.trim() || !Number.isFinite(Number(value)) || Number(value) < low || Number(value) > high) {
+        setError(`${label} must be between ${low} and ${high}.`);
+        return;
+      }
+    }
     const requestId = ++pipelineRequest.current;
     setLoading(true);
     setError("");
+    setScenario(null);
+    setMlResult(null);
+    setBuildings([]);
+    setZones([]);
+    setSheltersPlan(null);
     setSelectedCell(null);
+    const inputs = { name: scenarioName, lat: latStr, lon: lonStr, wind: windStr, pressure: pressureStr, heading: headingStr, speed: speedStr };
+    setForm(prev => ({ ...prev, ...inputs, radius: detail200m ? prev.radius : radiusStr }));
+    setDraft(prev => ({ ...prev, ...inputs }));
+    const [lat, lon, wind, pressure, heading, speed, radius] = fields.map(([value]) => Number(value));
+    void runMLInference({
+      centre_lat: lat, centre_lon: lon, max_sustained_wind_kph: wind,
+      central_pressure_hpa: pressure, heading_deg: heading, speed_kph: speed,
+    }).then(result => {
+      if (requestId === pipelineRequest.current) setMlResult(result);
+    }).catch(reason => {
+      if (requestId === pipelineRequest.current) setError(reason instanceof Error ? reason.message : "Forecast unavailable.");
+    });
+    void handleRunAiAnalysis(lat, lon, wind, pressure, undefined, { heading, speed });
     try {
-      const lat = Number(latStr);
-      const lon = Number(lonStr);
-      const wind = Number(windStr);
-      const pressure = Number(pressureStr);
-      const heading = Number(headingStr || 35);
-      const speed = Number(speedStr || 22);
-      const radius = Number(radiusStr || 30);
-
-      const res = await runMLInference({
-        centre_lat: lat,
-        centre_lon: lon,
-        max_sustained_wind_kph: wind,
-        central_pressure_hpa: pressure,
-        heading_deg: heading,
-        speed_kph: speed,
-      });
-      if (requestId !== pipelineRequest.current) return;
-      setMlResult(res);
-      void fetchDatasetSummary().then(setDatasetSummary);
-      void handleRunAiAnalysis(lat, lon, wind, pressure);
-
       const scn = await createScenario({
         name: scenarioName || `Cyclone Damage Grid`,
         center_lat: lat,
@@ -660,7 +676,7 @@ export default function App() {
 
   useEffect(() => {
     void fetchDatasetSummary().then(setDatasetSummary);
-    void runFullPipeline(
+    const initialRun = window.setTimeout(() => void runFullPipeline(
       presets.nisarga.lat,
       presets.nisarga.lon,
       presets.nisarga.wind,
@@ -669,10 +685,11 @@ export default function App() {
       presets.nisarga.heading,
       presets.nisarga.speed,
       presets.nisarga.radius
-    );
+    ), 0);
+    return () => window.clearTimeout(initialRun);
   }, []);
 
-  async function handlePresetChange(rawKey: string) {
+  async function handlePresetChange(rawKey: string, location?: { name: string; lat: string; lon: string }) {
     const keyMap: Record<string, keyof typeof presets> = {
       digha: "amphan",
       landfall_amphan: "amphan",
@@ -687,10 +704,11 @@ export default function App() {
       custom: "custom",
     };
     const presetKey = (keyMap[rawKey] || rawKey) as keyof typeof presets;
-    const p = presets[presetKey];
-    if (!p) return;
+    const preset = presets[presetKey];
+    if (!preset) return;
+    const p = location ? { ...preset, name: location.name, lat: location.lat, lon: location.lon } : preset;
     setSelectedPreset(presetKey);
-    setForm(p);
+    setDraft(p);
     setSelectedSource(p.source);
     setBuildings([]);
     setZones([]);
@@ -705,7 +723,13 @@ export default function App() {
     setZones([]);
     setSheltersPlan(null);
     setSelectedPreset("custom");
+    ++pipelineRequest.current;
+    ++aiRequest.current;
     setForm(presets.custom);
+    setDraft(presets.custom);
+    setAiAnalysis(null);
+    setLoading(false);
+    setAiLoading(false);
   }
 
   async function handleStormFormSubmit(event: FormEvent<HTMLFormElement>) {
@@ -735,7 +759,7 @@ export default function App() {
   function navigateTo(view: AppPage) {
     setCurrentView(view);
     window.location.hash = `#${view}`;
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    document.querySelector(".saas-page-viewport")?.scrollTo(0, 0);
   }
 
   function handleLaunchConsole(presetKey?: string) {
@@ -753,38 +777,12 @@ export default function App() {
   }, [form.lat, form.lon]);
 
   const trajectoryPoints = useMemo(() => {
-    if (mlResult) {
-      return [
-        { lat: mlResult.forecast_6h.centre_lat, lng: mlResult.forecast_6h.centre_lon, label: "+6h Forecast" },
-        { lat: mlResult.forecast_12h.centre_lat, lng: mlResult.forecast_12h.centre_lon, label: "+12h Forecast" },
-        { lat: mlResult.forecast_24h.centre_lat, lng: mlResult.forecast_24h.centre_lon, label: "+24h Forecast" },
-      ];
-    }
-    const latNum = Number(form.lat);
-    const lonNum = Number(form.lon);
-    const headingRad = (((90 - (Number(form.heading) || 35)) % 360) * Math.PI) / 180;
-    const speed = Number(form.speed) || 22;
-    const d6 = (speed * 6) / 111;
-    const d12 = (speed * 12) / 111;
-    const d24 = (speed * 24) / 111;
-    return [
-      {
-        lat: Number((latNum + d6 * Math.sin(headingRad)).toFixed(4)),
-        lng: Number((lonNum + d6 * Math.cos(headingRad)).toFixed(4)),
-        label: "+6h Forecast",
-      },
-      {
-        lat: Number((latNum + d12 * Math.sin(headingRad)).toFixed(4)),
-        lng: Number((lonNum + d12 * Math.cos(headingRad)).toFixed(4)),
-        label: "+12h Forecast",
-      },
-      {
-        lat: Number((latNum + d24 * Math.sin(headingRad)).toFixed(4)),
-        lng: Number((lonNum + d24 * Math.cos(headingRad)).toFixed(4)),
-        label: "+24h Forecast",
-      },
-    ];
-  }, [mlResult, form.lat, form.lon, form.heading, form.speed]);
+    if (!mlResult) return [];
+    return ([6, 12, 24] as const).map(hours => {
+      const point = mlResult[`forecast_${hours}h`];
+      return { lat: point.centre_lat, lng: point.centre_lon, label: `+${hours}h forecast`, uncertaintyKm: point.track_uncertainty_km };
+    });
+  }, [mlResult]);
 
   const summaryStats = scenario?.risk_grid?.summary;
   const totalCells = scenario?.risk_grid?.features?.length || 0;
@@ -792,12 +790,14 @@ export default function App() {
 
   const currentForecast = mlResult ? mlResult[`forecast_${selectedHorizon}h`] : null;
 
-  const devPanelStats = (() => {
+  const devPanelStats = useMemo(() => {
+    if (!showDevPanel) return null;
     const features = scenario?.risk_grid?.features ?? [];
     if (features.length === 0) return null;
     const scores = features.map((f) => f.properties?.damage_score ?? 0);
-    const allLats = features.flatMap((f) => f.geometry?.coordinates?.[0]?.map((c: number[]) => c[1]) ?? []);
-    const allLons = features.flatMap((f) => f.geometry?.coordinates?.[0]?.map((c: number[]) => c[0]) ?? []);
+    const coords = features.flatMap(({geometry}) => geometry.type === "MultiPolygon" ? geometry.coordinates.flat(2) : geometry.coordinates.flat());
+    const allLats = coords.map(c => c[1]);
+    const allLons = coords.map(c => c[0]);
     const landCells = features.filter((f) => f.properties?.land_type !== "OCEAN");
     const oceanCells = features.filter((f) => f.properties?.land_type === "OCEAN");
     const buildingCells = features.filter((f) => (f.properties?.building_count ?? 0) > 0);
@@ -824,19 +824,21 @@ export default function App() {
         west: allLons.length ? safeMin(allLons).toFixed(4) : "N/A",
         east: allLons.length ? safeMax(allLons).toFixed(4) : "N/A",
       },
-      mlModelStatus: mlResult?.model_provenance?.model_status ?? "ACTIVE",
-      mlValidation: mlResult?.model_provenance?.validation_status ?? "VERIFIED",
+      mlModelStatus: mlResult?.model_provenance?.model_status ?? "Unavailable",
+      mlValidation: mlResult?.model_provenance?.validation_status ?? "Unavailable",
     };
-  })();
+  }, [showDevPanel, scenario, mlResult]);
 
   const windNum = Number(form.wind);
   const stormCategory = useMemo(() => {
     if (windNum >= 222) return { code: "SuCS", name: "Super Cyclonic Storm", tier: "SEVERE RED", color: "#ef4444" };
     if (windNum >= 166) return { code: "ESCS", name: "Extremely Severe Cyclone", tier: "SEVERE RED", color: "#ef4444" };
-    if (windNum >= 118) return { code: "VSCS", name: "Very Severe Cyclonic Storm (Cat 3)", tier: "SEVERE RED", color: "#ea580c" };
-    if (windNum >= 88) return { code: "SCS", name: "Severe Cyclonic Storm (Cat 2)", tier: "HIGH ORANGE", color: "#f59e0b" };
-    if (windNum >= 62) return { code: "CS", name: "Cyclonic Storm (Cat 1)", tier: "ELEVATED AMBER", color: "#eab308" };
-    return { code: "DD", name: "Deep Depression", tier: "MODERATE BLUE", color: "#8b5cf6" };
+    if (windNum >= 118) return { code: "VSCS", name: "Very Severe Cyclonic Storm ", tier: "SEVERE RED", color: "#ea580c" };
+    if (windNum >= 88) return { code: "SCS", name: "Severe Cyclonic Storm ", tier: "HIGH ORANGE", color: "#f59e0b" };
+    if (windNum >= 62) return { code: "CS", name: "Cyclonic Storm ", tier: "ELEVATED AMBER", color: "#eab308" };
+    if (windNum >= 50) return { code: "DD", name: "Deep Depression", tier: "DEPRESSION", color: "#8b5cf6" };
+    if (windNum >= 31) return { code: "D", name: "Depression", tier: "DEPRESSION", color: "#8b5cf6" };
+    return { code: "L", name: "Low pressure scenario", tier: "LOW WIND", color: "#8b5cf6" };
   }, [windNum]);
 
   const estPopulation = summaryStats?.estimated_population_affected != null
@@ -917,6 +919,9 @@ export default function App() {
             <input
               type="text"
               className="saas-search-input"
+              ref={searchInput}
+              aria-label="Search coastal targets"
+              onBlur={() => setIsSearchOpen(false)}
               placeholder="Search coastal targets..."
               value={searchLocationQuery}
               onChange={(e) => setSearchLocationQuery(e.target.value)}
@@ -929,8 +934,9 @@ export default function App() {
                   <div
                     key={loc.name}
                     className="saas-search-item"
+                    onMouseDown={event => event.preventDefault()}
                     onClick={() => {
-                      void handlePresetChange(loc.presetKey as keyof typeof presets);
+                      void handlePresetChange(loc.presetKey, loc);
                       setSearchLocationQuery("");
                       setIsSearchOpen(false);
                       navigateTo("app");
@@ -981,27 +987,22 @@ export default function App() {
           onNavigatePage={(page) => navigateTo(page as AppPage)}
           datasetSummary={datasetSummary}
           scenario={scenario}
-          buildings={buildings}
-          zones={zones}
-          sheltersPlan={sheltersPlan}
-          trajectoryPoints={trajectoryPoints}
-          mapCenter={mapCenter}
-          headingDeg={Number(form.heading || 35)}
-          speedKph={Number(form.speed || 22)}
+          presets={presets}
         />
       ) : currentView === "ai-lab" ? (
-        <AILabPage
+        <AILabPage key={[form.lat, form.lon, form.wind, form.pressure].join(",")}
           analysis={aiAnalysis}
           loading={aiLoading}
           onRunAnalysis={handleRunAiAnalysis}
-          stormName={presets[selectedPreset]?.name || form.name}
+          stormName={form.name}
           lat={Number(form.lat)}
           lon={Number(form.lon)}
           windKph={Number(form.wind)}
           pressureHpa={Number(form.pressure)}
           onNavigateToCommand={(presetKey, customCoords) => {
             if (customCoords) {
-              setForm((prev) => ({
+              setSelectedPreset("custom");
+              setDraft((prev) => ({
                 ...prev,
                 lat: String(customCoords.lat),
                 lon: String(customCoords.lon),
@@ -1028,13 +1029,13 @@ export default function App() {
       ) : currentView === "forecast" ? (
         <ForecastPage
           mlResult={mlResult}
-          stormName={presets[selectedPreset]?.name || form.name}
+          stormName={form.name}
           lat={Number(form.lat)}
           lon={Number(form.lon)}
           windKph={Number(form.wind)}
           pressureHpa={Number(form.pressure)}
-          headingDeg={Number(form.heading) || 35}
-          speedKph={Number(form.speed) || 22}
+          headingDeg={Number(form.heading)}
+          speedKph={Number(form.speed)}
           onNavigateToCommand={(presetKey) => {
             if (presetKey && presetKey in presets) {
               void handlePresetChange(presetKey as keyof typeof presets);
@@ -1047,14 +1048,10 @@ export default function App() {
           scenario={scenario}
           buildings={buildings}
           sheltersPlan={sheltersPlan}
-          locationName={presets[selectedPreset]?.name || form.name}
-          onNavigateToCommand={(presetKey) => {
-            if (presetKey && presetKey in presets) {
-              void handlePresetChange(presetKey as keyof typeof presets);
-            }
-            navigateTo("app");
-          }}
+          locationName={form.name}
+          onNavigateToCommand={() => { setShowShelters(true); setActiveSection("command"); setViewDimension("2d"); navigateTo("app"); }}
           onSelectCity3D={() => {
+            setActiveSection("command");
             setViewDimension("real3d");
             navigateTo("app");
           }}
@@ -1076,15 +1073,9 @@ export default function App() {
         <DocumentationPage />
       ) : currentView === "bulletins" ? (
         <BulletinsPage
-          stormName={presets[selectedPreset]?.name || form.name}
-          lat={Number(form.lat)}
-          lon={Number(form.lon)}
-          windKph={Number(form.wind)}
-          pressureHpa={Number(form.pressure)}
-          headingDeg={Number(form.heading) || 35}
-          speedKph={Number(form.speed) || 22}
-          mlResult={mlResult}
+          stormName={form.name}
           onNavigateToCommand={() => navigateTo("app")}
+          onPrint={printScreeningReport}
         />
       ) : currentView === "resilience" ? (
         <ResilienceForecasterPage
@@ -1150,8 +1141,8 @@ export default function App() {
                               <input
                                 type="number"
                                 className="tactical-box-input"
-                                value={form.wind}
-                                onChange={(e) => setForm((p) => ({ ...p, wind: e.target.value }))}
+                                value={draft.wind}
+                                onChange={(e) => setDraft((p) => ({ ...p, wind: e.target.value }))}
                               />
                               <span className="tactical-unit">km/h</span>
                             </div>
@@ -1163,8 +1154,8 @@ export default function App() {
                               <input
                                 type="number"
                                 className="tactical-box-input"
-                                value={form.pressure}
-                                onChange={(e) => setForm((p) => ({ ...p, pressure: e.target.value }))}
+                                value={draft.pressure}
+                                onChange={(e) => setDraft((p) => ({ ...p, pressure: e.target.value }))}
                               />
                               <span className="tactical-unit">hPa</span>
                             </div>
@@ -1177,8 +1168,8 @@ export default function App() {
                                 type="number"
                                 step="0.01"
                                 className="tactical-box-input"
-                                value={form.lat}
-                                onChange={(e) => setForm((p) => ({ ...p, lat: e.target.value }))}
+                                value={draft.lat}
+                                onChange={(e) => setDraft((p) => ({ ...p, lat: e.target.value }))}
                               />
                               <span className="tactical-unit">°N</span>
                             </div>
@@ -1191,8 +1182,8 @@ export default function App() {
                                 type="number"
                                 step="0.01"
                                 className="tactical-box-input"
-                                value={form.lon}
-                                onChange={(e) => setForm((p) => ({ ...p, lon: e.target.value }))}
+                                value={draft.lon}
+                                onChange={(e) => setDraft((p) => ({ ...p, lon: e.target.value }))}
                               />
                               <span className="tactical-unit">°E</span>
                             </div>
@@ -1204,8 +1195,8 @@ export default function App() {
                               <input
                                 type="number"
                                 className="tactical-box-input"
-                                value={form.heading}
-                                onChange={(e) => setForm((p) => ({ ...p, heading: e.target.value }))}
+                                value={draft.heading}
+                                onChange={(e) => setDraft((p) => ({ ...p, heading: e.target.value }))}
                               />
                               <span className="tactical-unit">°</span>
                             </div>
@@ -1217,8 +1208,8 @@ export default function App() {
                               <input
                                 type="number"
                                 className="tactical-box-input"
-                                value={form.speed}
-                                onChange={(e) => setForm((p) => ({ ...p, speed: e.target.value }))}
+                                value={draft.speed}
+                                onChange={(e) => setDraft((p) => ({ ...p, speed: e.target.value }))}
                               />
                               <span className="tactical-unit">km/h</span>
                             </div>
@@ -1231,14 +1222,14 @@ export default function App() {
                           disabled={loading}
                           onClick={() => {
                             void runFullPipeline(
-                              form.lat,
-                              form.lon,
-                              form.wind,
-                              form.pressure,
-                              presets[selectedPreset]?.name || form.name,
-                              form.heading,
-                              form.speed,
-                              form.radius
+                              draft.lat,
+                              draft.lon,
+                              draft.wind,
+                              draft.pressure,
+                              draft.name,
+                              draft.heading,
+                              draft.speed,
+                              draft.radius
                             );
                           }}
                         >
@@ -1312,7 +1303,7 @@ export default function App() {
                           </label>
                         </div>
                         <button type="button" className="tactical-action-btn" disabled={loading}
-                          onClick={() => { setLayers(prev => ({...prev, advanced: {...prev.advanced, physicsGrid: true}})); void runFullPipeline(form.lat, form.lon, form.wind, form.pressure, form.name, form.heading, form.speed, "6", true); }}>
+                          onClick={() => { setLayers(prev => ({...prev, advanced: {...prev.advanced, physicsGrid: true}})); void runFullPipeline(draft.lat, draft.lon, draft.wind, draft.pressure, draft.name, draft.heading, draft.speed, "6", true); }}>
                           Inspect 200 m detail · 6 km radius
                         </button>
                         <p style={{fontSize: 11}}>Wider scenarios use the overview resolution shown above.</p>
@@ -1344,8 +1335,8 @@ export default function App() {
                     zones={zones}
                     sheltersPlan={sheltersPlan}
                     trajectory={trajectoryPoints}
-                    headingDeg={Number(form.heading || 35)}
-                    speedKph={Number(form.speed || 22)}
+                    headingDeg={Number(form.heading)}
+                    speedKph={Number(form.speed)}
                     analysisMode={analysisMode}
                     showZones={showZones}
                     showShelters={showShelters}
@@ -1357,7 +1348,8 @@ export default function App() {
                     showPhysicsGrid={layers.advanced.physicsGrid}
                     onCycloneClick={() => setIsCyclonePanelOpen(true)}
                     onCustomLocationChange={(lat, lon) => {
-                      setForm((prev) => ({ ...prev, lat: String(lat), lon: String(lon) }));
+                      setSelectedPreset("custom");
+                      setDraft((prev) => ({ ...prev, lat: String(lat), lon: String(lon) }));
                       void runFullPipeline(String(lat), String(lon), form.wind, form.pressure, "Custom Sector", form.heading, form.speed, form.radius);
                     }}
                     theme={theme}
@@ -1405,7 +1397,7 @@ export default function App() {
                         </div>
                         <div className="op-loss-stat">
                           <span>RESPONSE STATUS:</span>
-                          <strong className="red">PRIORITY REVIEW</strong>
+                          <strong className="red">SCENARIO ONLY</strong>
                         </div>
                       </div>
 
@@ -1468,366 +1460,33 @@ export default function App() {
                         </div>
                         <div className="threat-title">{stormCategory.name}</div>
                         <div className="threat-meta">
-                          Landfall Target: <strong>{presets[selectedPreset]?.name.split("(")[0].trim() || form.name} Coast</strong>
+                          Scenario: <strong>{form.name}</strong>
                         </div>
                       </div>
 
-                      {/* Dynamic Output Cards based on Active Analysis Mode */}
-                      {analysisMode === "WIND" ? (
-                        <>
-                          <div className="tactical-kpi-grid">
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">SUSTAINED WIND</span>
-                              <strong className="kpi-val red">{form.wind || 180} km/h</strong>
-                              <span className="kpi-sub">10-Min Mean Velocity</span>
-                            </div>
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">PEAK 3-SEC GUST</span>
-                              <strong className="kpi-val amber">{Math.round(Number(form.wind || 180) * 1.35)} km/h</strong>
-                              <span className="kpi-sub">Gust Factor G = 1.35</span>
-                            </div>
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">DYNAMIC PRESSURE</span>
-                              <strong className="kpi-val cyan">{Math.round(0.613 * Math.pow(Number(form.wind || 180) / 3.6, 2))} N/m²</strong>
-                              <span className="kpi-sub">Aerodynamic Stagnation (q)</span>
-                            </div>
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">EYE RADIUS (RMAX)</span>
-                              <strong className="kpi-val amber">{scenario?.input?.radius_max_winds_km ?? 25} km</strong>
-                              <span className="kpi-sub">Zone of Maximum Hazard</span>
-                            </div>
-                          </div>
-
-                          <div className="tactical-dossier-card">
-                            <div className="dossier-header">
-                              <div className="dossier-tag">
-                                <Compass size={12} />
-                                <span>WIND KINEMATICS · IS 875 (PART 3)</span>
-                              </div>
-                              <span className="dossier-coords">{activeCellInspection?.lat?.toFixed(2)}°N, {activeCellInspection?.lon?.toFixed(2)}°E</span>
-                            </div>
-                            <div className="dossier-rows">
-                              <div className="dossier-row">
-                                <span>Velocity Profile Law</span>
-                                <strong>Modified Rankine Vortex</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Dynamic Pressure q</span>
-                                <strong>{activeCellInspection?.wind_force?.dynamic_pressure_pa ?? "Unavailable"} Pa</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Terrain Factor k2 (IS 875)</span>
-                                <strong>1.05 (Category 1 Coastal Plain)</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Cyclonic Factor k4</span>
-                                <strong>1.15 (High-Consequence Structure)</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Inflow Spiral Angle</span>
-                                <strong>22° Counter-Clockwise Inward</strong>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="tactical-directive-card">
-                            <div className="directive-tag">
-                              <AlertTriangle size={12} />
-                              <span>IMD METEOROLOGICAL ADVISORY</span>
-                            </div>
-                            <div className="directive-title">DESTRUCTIVE CYCLONIC GALE WARNING</div>
-                            <p className="directive-desc">
-                              Core winds exceed 150 km/h with 3-second microburst gusts. Suspend all coastal port operations, crane hoists, and civilian transit across sea-facing causeways.
-                            </p>
-                          </div>
-                        </>
-                      ) : analysisMode === "EXPOSURE" ? (
-                        <>
-                          <div className="tactical-kpi-grid">
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">EXPOSED POPULATION</span>
-                              <strong className="kpi-val red">{estPopulation}</strong>
-                              <span className="kpi-sub">Within Gale Danger Perimeter</span>
-                            </div>
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">CRITICAL FACILITIES</span>
-                              <strong className="kpi-val amber">14 Assets</strong>
-                              <span className="kpi-sub">Hospitals, Substations, Schools</span>
-                            </div>
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">URBAN DENSITY TIER</span>
-                              <strong className="kpi-val cyan">
-                                {activeCellInspection?.exposure?.building_density
-                                  ? activeCellInspection.exposure.building_density > 0.6
-                                    ? "HIGH URBAN"
-                                    : activeCellInspection.exposure.building_density > 0.3
-                                    ? "MEDIUM URBAN"
-                                    : "LOW DENSITY"
-                                  : "HIGH URBAN"}
-                              </strong>
-                              <span className="kpi-sub">Parcel Built-up Fraction</span>
-                            </div>
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">SURGE INUNDATION REACH</span>
-                              <strong className="kpi-val red">{estSurgeHeight}</strong>
-                              <span className="kpi-sub">Tidal Crest Above MHW</span>
-                            </div>
-                          </div>
-
-                          <div className="tactical-dossier-card">
-                            <div className="dossier-header">
-                              <div className="dossier-tag">
-                                <Users size={12} />
-                                <span>SOCIO-ECONOMIC EXPOSURE MATRIX</span>
-                              </div>
-                              <span className="dossier-coords">{activeCellInspection?.lat?.toFixed(2)}°N, {activeCellInspection?.lon?.toFixed(2)}°E</span>
-                            </div>
-                            <div className="dossier-rows">
-                              <div className="dossier-row">
-                                <span>Vulnerability Index</span>
-                                <strong className="red">Level 4 (Severe Coastal Exposure)</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Settlement Classification</span>
-                                <strong>Fishermen Settlements &amp; Masonry</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Power Grid Vulnerability</span>
-                                <strong className="amber">Substation within 2.8 km (Dyke Protected)</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Telecom Towers at Risk</span>
-                                <strong>6 Base Transceiver Stations (BTS)</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Designated Haven</span>
-                                <strong className="green">MPCS Coastal Refuge (Capacity 2,500)</strong>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="tactical-directive-card">
-                            <div className="directive-tag">
-                              <AlertTriangle size={12} />
-                              <span>CIVIL PROTECTION DIRECTIVE</span>
-                            </div>
-                            <div className="directive-title">PRIORITY CIVILIAN RELOCATION</div>
-                            <p className="directive-desc">
-                              Mandatory evacuation for households residing in unreinforced masonry or tin-roofed dwellings within 3 km of the active shoreline.
-                            </p>
-                          </div>
-                        </>
-                      ) : analysisMode === "OBSTACLES" ? (
-                        <>
-                          <div className="tactical-kpi-grid">
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">TERRAIN ROUGHNESS</span>
-                              <strong className="kpi-val cyan">Category 1</strong>
-                              <span className="kpi-sub">IS 875 Open Sea / Plain</span>
-                            </div>
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">UPWIND SHELTERING</span>
-                              <strong className="kpi-val green">Factor {activeCellInspection?.obstacles?.shelter_factor ?? "Unavailable"}</strong>
-                              <span className="kpi-sub">Obstacle Shading Factor</span>
-                            </div>
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">DRAG COEFFICIENT Cd</span>
-                              <strong className="kpi-val amber">1.30</strong>
-                              <span className="kpi-sub">Sharp-Edged Coastal Parcel</span>
-                            </div>
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">WAVE ATTENUATION</span>
-                              <strong className="kpi-val green">78% Damping</strong>
-                              <span className="kpi-sub">Mangrove Bioshield Belt</span>
-                            </div>
-                          </div>
-
-                          <div className="tactical-dossier-card">
-                            <div className="dossier-header">
-                              <div className="dossier-tag">
-                                <Shield size={12} />
-                                <span>AERODYNAMIC BOUNDARY LAYER OBSTACLES</span>
-                              </div>
-                              <span className="dossier-coords">{activeCellInspection?.lat?.toFixed(2)}°N, {activeCellInspection?.lon?.toFixed(2)}°E</span>
-                            </div>
-                            <div className="dossier-rows">
-                                <div className="dossier-row">
-                                  <span>Upwind Obstruction Level</span>
-                                  <strong>{activeCellInspection?.obstacles?.obstruction_level ?? "Unavailable"}</strong>
-                                </div>
-                              <div className="dossier-row">
-                                <span>Effective Pressure Law</span>
-                                <strong>q_eff = q_ambient &times; (Shelter_Factor)&sup2;</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Natural Bioshield Buffer</span>
-                                <strong className="green">Active Mangrove Stand (Avicennia / Rhizophora)</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Engineered Seawall</span>
-                                <strong className="cyan">Tetrapod Revetment (Surge Limit 4.5m)</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Wind Speed Reduction</span>
-                                <strong>-14 km/h reduction behind dense canopy</strong>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="tactical-directive-card">
-                            <div className="directive-tag">
-                              <AlertTriangle size={12} />
-                              <span>ECOLOGICAL DEFENSE NOTICE</span>
-                            </div>
-                            <div className="directive-title">PRESERVE NATURAL DEFENSE BUFFERS</div>
-                            <p className="directive-desc">
-                              Mangrove bioshields and sand dune buffers dissipate over 75% of incoming wave surge energy. Fortify breach points with geosynthetic sandbags.
-                            </p>
-                          </div>
-                        </>
-                      ) : analysisMode === "HIT" ? (
-                        <>
-                          <div className="tactical-kpi-grid">
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">LANDFALL HIT ZONE</span>
-                              <strong className="kpi-val red">DIRECT IMPACT</strong>
-                              <span className="kpi-sub">Eyewall Transits Coastline</span>
-                            </div>
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">FLYING MISSILE RISK</span>
-                              <strong className="kpi-val amber">38 - 52 m/s</strong>
-                              <span className="kpi-sub">Windborne Debris Velocity</span>
-                            </div>
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">ROOF UPLIFT SUCTION</span>
-                              <strong className="kpi-val red">2.4 kPa</strong>
-                              <span className="kpi-sub">Bernoulli Peak Uplift (-&Delta;P)</span>
-                            </div>
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">BUFFER CLEARANCE</span>
-                              <strong className="kpi-val cyan">25 Meters</strong>
-                              <span className="kpi-sub">Minimum Hazard Perimeter</span>
-                            </div>
-                          </div>
-
-                          <div className="tactical-dossier-card">
-                            <div className="dossier-header">
-                              <div className="dossier-tag">
-                                <Crosshair size={12} />
-                                <span>PROJECTILE TRAJECTORY &amp; IMPACT PHYSICS</span>
-                              </div>
-                              <span className="dossier-coords">{activeCellInspection?.lat?.toFixed(2)}°N, {activeCellInspection?.lon?.toFixed(2)}°E</span>
-                            </div>
-                            <div className="dossier-rows">
-                              <div className="dossier-row">
-                                <span>Primary Missile Threat</span>
-                                <strong className="red">Corrugated Galvanized Iron (CGI) Sheets</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Cladding Failure Threshold</span>
-                                <strong>Exceeded at wind velocities &gt; 135 km/h</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Bernoulli Pressure Equation</span>
-                                <strong>-&Delta;P = 0.5 &times; &rho; &times; V&sup2; &times; (Cpe - Cpi)</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Tree Uprooting Risk</span>
-                                <strong className="amber">82% (Shallow-rooted trees)</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Dynamic Wall Impact</span>
-                                <strong>Up to 4.2 kN dynamic impact on masonry</strong>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="tactical-directive-card">
-                            <div className="directive-tag">
-                              <AlertTriangle size={12} />
-                              <span>SCENARIO RESPONSE NOTE</span>
-                            </div>
-                            <div className="directive-title">TOTAL INDOORS LOCKDOWN</div>
-                            <p className="directive-desc">
-                              Flying debris and detached tin sheets pose fatal ballistic hazards. Evacuees must remain sealed inside reinforced concrete MPCS shelters away from glass windows.
-                            </p>
-                          </div>
-                        </>
-                      ) : (
-                        /* Default: DAMAGE Mode */
-                        <>
-                          <div className="tactical-kpi-grid">
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">EST. ECONOMIC LOSS</span>
-                              <strong className="kpi-val amber">{estEconomicLossCr}</strong>
-                              <span className="kpi-sub">Direct Asset Damage</span>
-                            </div>
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">MAX DAMAGE RISK</span>
-                              <strong className="kpi-val red">{summaryStats ? `${Math.round(summaryStats.max_risk_score * 100)}% (index)` : "Unavailable"}</strong>
-                              <span className="kpi-sub">Eyewall Landfall Corridor</span>
-                            </div>
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">AFFECTED POPULATION</span>
-                              <strong className="kpi-val cyan">{estPopulation}</strong>
-                              <span className="kpi-sub">Within Gale Danger Perimeter</span>
-                            </div>
-                            <div className="tactical-kpi-card">
-                              <span className="kpi-label">EST. STORM SURGE</span>
-                              <strong className="kpi-val cyan">{estSurgeHeight}</strong>
-                              <span className="kpi-sub">Hydrodynamic Surge Peak</span>
-                            </div>
-                          </div>
-
-                          <div className="tactical-dossier-card">
-                            <div className="dossier-header">
-                              <div className="dossier-tag">
-                                <Building2 size={12} />
-                                <span>STRUCTURAL RESISTANCE &amp; LOSS RATIO (LRR)</span>
-                              </div>
-                              <span className="dossier-coords">{activeCellInspection?.lat?.toFixed(2)}°N, {activeCellInspection?.lon?.toFixed(2)}°E</span>
-                            </div>
-                            <div className="dossier-rows">
-                              <div className="dossier-row">
-                                <span>Terrain Class</span>
-                                <strong>{activeCellInspection?.land_type ?? "Unavailable"}</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Wind Dynamic Pressure</span>
-                                <strong>{activeCellInspection?.wind_force?.dynamic_pressure_pa ?? "Unavailable"} Pa</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Modeled Wind Loading</span>
-                                <strong>{activeCellInspection?.wind_force?.modeled_wind_loading_n_m2 ?? "Unavailable"} N/m²</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Load-to-Resistance (LRR)</span>
-                                <strong className="amber">{activeCellInspection?.structure?.load_to_resistance_ratio ?? "Unavailable"}</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Governing Failure Mode</span>
-                                <strong className="red">Roof Cladding Suction &amp; Shear</strong>
-                              </div>
-                              <div className="dossier-row">
-                                <span>Damage Equation</span>
-                                <strong>LRR = (q &times; Cd &times; Shelter_Factor) / R_design</strong>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="tactical-directive-card">
-                            <div className="directive-tag">
-                              <AlertTriangle size={12} />
-                              <span>SCENARIO RESPONSE NOTE</span>
-                            </div>
-                            <div className="directive-title">PRIORITY EVACUATION REVIEW</div>
-                            <p className="directive-desc">
-                              Confirm thresholds with the relevant local authority before activating shelters or evacuation plans. This is a scenario-screening recommendation, not an official directive.
-                            </p>
-                          </div>
-                        </>
-                      )}
-
+                      <div className="tactical-kpi-grid">
+                        {[
+                          ["GRID CELLS", summaryStats?.total_cells],
+                          ["MAXIMUM CELL WIND", summaryStats?.max_wind_kph == null ? null : summaryStats.max_wind_kph + " km/h"],
+                          ["PEAK DAMAGE INDEX", summaryStats?.max_risk_score?.toFixed(2)],
+                          ["HIGH-INDEX CELLS", summaryStats?.severe_cells],
+                        ].map(([label, value]) => <div className="tactical-kpi-card" key={label}>
+                          <span className="kpi-label">{label}</span><strong className="kpi-val cyan">{value ?? "Unavailable"}</strong>
+                        </div>)}
+                      </div>
+                      <div className="tactical-dossier-card">
+                        <div className="dossier-header"><strong>{selectedCell ? "Selected cell" : "Sample cell"} · {activeCellInspection?.cell_id ?? "Unavailable"}</strong></div>
+                        <div className="dossier-rows">{[
+                          ["Grid resolution", resolutionLabel],
+                          ["Land type", activeCellInspection?.land_type],
+                          ["Local modeled wind", activeCellInspection && activeCellInspection.hazard.wind_kph + " km/h"],
+                          ["Effective wind loading", activeCellInspection && activeCellInspection.wind_force.effective_wind_loading_n_m2 + " N/m²"],
+                          ["Building count", activeCellInspection?.exposure.building_count],
+                          ["Upwind obstruction", activeCellInspection?.obstacles.obstruction_level],
+                          ["Damage index", activeCellInspection?.damage.damage_score?.toFixed(3)],
+                          ["Primary driver", activeCellInspection?.drivers.primary],
+                        ].map(([label, value]) => <div className="dossier-row" key={label}><span>{label}</span><strong>{value ?? "Unavailable"}</strong></div>)}</div>
+                      </div>
                       {/* Student Project & Research Provenance Card */}
                       <div className="student-project-card">
                         <div className="student-project-header">
@@ -1888,98 +1547,6 @@ export default function App() {
               </div>
             )}
 
-            {/* 5. AI Analysis Lab Workspace */}
-            {activeSection === "ai" && (
-              <div className="workspace-view-container">
-                <div className="workspace-nav-header">
-                  <button
-                    type="button"
-                    className="btn-back-to-map"
-                    onClick={() => handleSelectSection("command")}
-                  >
-                    <Activity size={13} />
-                    <span>&larr; Return to Tactical Map Console</span>
-                  </button>
-                  <span className="workspace-view-title">AI NEURAL ANALYSIS WORKSPACE</span>
-                </div>
-                <AIAnalysisLab
-                  analysis={aiAnalysis}
-                  loading={aiLoading}
-                  onRunAnalysis={() => void handleRunAiAnalysis()}
-                  stormName={form.name}
-                  lat={Number(form.lat)}
-                  lon={Number(form.lon)}
-                  windKph={Number(form.wind)}
-                  pressureHpa={Number(form.pressure)}
-                />
-              </div>
-            )}
-
-            {/* 8. Historical Analytics Workspace */}
-            {activeSection === "analytics" && (
-              <div className="workspace-view-container">
-                <div className="workspace-nav-header">
-                  <button
-                    type="button"
-                    className="btn-back-to-map"
-                    onClick={() => handleSelectSection("command")}
-                  >
-                    <Activity size={13} />
-                    <span>&larr; Return to Tactical Map Console</span>
-                  </button>
-                  <span className="workspace-view-title">HISTORICAL BENCHMARKS WORKSPACE</span>
-                </div>
-                <HistoricalAnalyticsWorkspace
-                  datasetSummary={datasetSummary}
-                  onLoadPreset={(key) => void handlePresetChange(key)}
-                />
-              </div>
-            )}
-
-            {/* 9. Alerts & Operations Workspace */}
-            {activeSection === "alerts" && (
-              <div className="workspace-view-container">
-                <div className="workspace-nav-header">
-                  <button
-                    type="button"
-                    className="btn-back-to-map"
-                    onClick={() => handleSelectSection("command")}
-                  >
-                    <Activity size={13} />
-                    <span>&larr; Return to Tactical Map Console</span>
-                  </button>
-                  <span className="workspace-view-title">ALERTS &amp; OPERATIONS WORKSPACE</span>
-                </div>
-                <AlertsOperationsWorkspace
-                  activeCycloneName={form.name}
-                  currentWindKph={Number(form.wind)}
-                  currentPressureHpa={Number(form.pressure)}
-                  onViewOnMap={(_lat, _lon, presetKey) => {
-                    if (presetKey) void handlePresetChange(presetKey);
-                    handleSelectSection("command");
-                  }}
-                  onExportSitrep={printScreeningReport}
-                />
-              </div>
-            )}
-
-            {/* 10. Data Sources / Telemetry Workspace */}
-            {activeSection === "settings" && (
-              <div className="workspace-view-container">
-                <div className="workspace-nav-header">
-                  <button
-                    type="button"
-                    className="btn-back-to-map"
-                    onClick={() => handleSelectSection("command")}
-                  >
-                    <Activity size={13} />
-                    <span>&larr; Return to Tactical Map Console</span>
-                  </button>
-                  <span className="workspace-view-title">DATA SOURCES &amp; TELEMETRY WORKSPACE</span>
-                </div>
-                <DataSourcesWorkspace />
-              </div>
-            )}
           </div>
 
           {/* Contextual Cyclone Dossier Drawer (Right Side) */}
@@ -1987,22 +1554,15 @@ export default function App() {
             isOpen={isCyclonePanelOpen}
             onClose={() => setIsCyclonePanelOpen(false)}
             stormName={form.name}
-            category={
-              Number(form.wind) >= 165
-                ? "Super Cyclonic Storm"
-                : Number(form.wind) >= 120
-                ? "Very Severe Cyclonic Storm"
-                : Number(form.wind) >= 90
-                ? "Severe Cyclonic Storm"
-                : "Cyclonic Storm"
-            }
+            category={stormCategory.name}
+            trend={mlResult?.pattern_classification.lifecycle_pattern ?? undefined}
+            radiusKm={scenario?.input?.radius_max_winds_km}
             windKph={Number(form.wind)}
             pressureHpa={Number(form.pressure)}
             headingDeg={Number(form.heading)}
             speedKph={Number(form.speed)}
             lat={Number(form.lat)}
             lon={Number(form.lon)}
-            aiConfidence={mlResult?.identification?.confidence ? Number((mlResult.identification.confidence * 100).toFixed(1)) : 0}
             onNavigateSection={(sec) => {
               if (sec === "ai") navigateTo("ai-lab");
               else if (sec === "forecast") navigateTo("forecast");
@@ -2018,7 +1578,7 @@ export default function App() {
               <div className="cell-drawer-header">
                 <div className="cell-drawer-title">
                   <IconCompass />
-                  <span>200M CELL DOSSIER</span>
+                  <span>CELL DOSSIER · {resolutionLabel}</span>
                 </div>
                 <button
                   type="button"
@@ -2127,7 +1687,7 @@ export default function App() {
               <div className="sitrep-meta-box">
                 <div><strong>DOC REF:</strong> CYCLONEX/SCREENING/{new Date().getFullYear()}/{(form.name || "STORM").replace(/[^a-zA-Z0-9]/g, "-").toUpperCase()}</div>
                 <div><strong>ISSUED:</strong> {new Date().toUTCString()} ({currentTimeIST})</div>
-                <div><strong>OPERATIONAL LEVEL:</strong> <span className="sitrep-alert-badge">DRAFT SCENARIO · REVIEW REQUIRED</span></div>
+                <div><strong>REPORT TYPE:</strong> <span className="sitrep-alert-badge">DRAFT SCENARIO · REVIEW REQUIRED</span></div>
                 <div><strong>RESOLUTION:</strong> {resolutionLabel} · Scenario screening</div>
               </div>
             </div>
@@ -2139,11 +1699,11 @@ export default function App() {
               <div className="sitrep-summary-grid">
                 <div className="sitrep-stat-card">
                   <span className="sitrep-stat-label">ESTIMATED ECONOMIC LOSS</span>
-                  <strong className="sitrep-stat-val">₹ {(scenario?.risk_grid?.summary?.estimated_loss_crores_inr ?? 0).toFixed(1)} Cr</strong>
+                  <strong className="sitrep-stat-val">{estEconomicLossCr}</strong>
                 </div>
                 <div className="sitrep-stat-card">
                   <span className="sitrep-stat-label">POPULATION AT RISK</span>
-                  <strong className="sitrep-stat-val">{(scenario?.risk_grid?.summary?.estimated_population_affected ?? 0).toLocaleString()}</strong>
+                  <strong className="sitrep-stat-val">{estPopulation}</strong>
                 </div>
                 <div className="sitrep-stat-card">
                   <span className="sitrep-stat-label">EVACUATION URGENCY</span>
@@ -2151,7 +1711,7 @@ export default function App() {
                 </div>
                 <div className="sitrep-stat-card">
                   <span className="sitrep-stat-label">NDRF BATTALIONS</span>
-                  <strong className="sitrep-stat-val">{scenario?.risk_grid?.summary?.ndma_directives?.ndrf_battalions_recommended ?? 0} Units</strong>
+                  <strong className="sitrep-stat-val">{summaryStats?.ndma_directives?.ndrf_battalions_recommended ?? "Unavailable"}</strong>
                 </div>
               </div>
             </div>
@@ -2170,13 +1730,13 @@ export default function App() {
                     <th>Eye Coordinates</th>
                     <td>{Number(form.lat).toFixed(2)}°N, {Number(form.lon).toFixed(2)}°E</td>
                     <th>Central Pressure</th>
-                    <td>{form.pressure || 950} hPa</td>
+                    <td>{form.pressure} hPa</td>
                   </tr>
                   <tr>
                     <th>Peak Wind Speed</th>
-                    <td>{form.wind || 165} km/h</td>
+                    <td>{form.wind} km/h</td>
                     <th>Heading &amp; Velocity</th>
-                    <td>{form.heading || 35}° at {form.speed || 22} km/h</td>
+                    <td>{form.heading}° at {form.speed} km/h</td>
                   </tr>
                 </tbody>
               </table>

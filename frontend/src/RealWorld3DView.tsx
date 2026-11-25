@@ -25,18 +25,15 @@ export interface BuildingDossierInfo {
   id: string;
   name: string;
   type: string;
-  height: number;
-  stories: number;
-  damageScore: number;
+  height?: number;
+  stories?: number;
+  damageScore?: number | null;
   classification: string;
-  windKph: number;
-  dynPressurePa: number;
-  lrr: number;
-  capacity: number;
+  windKph?: number;
+  dynPressurePa?: number;
+  lrr?: number;
   lat: number;
   lng: number;
-  floodDepthM: number;
-  recommendation: string;
 }
 
 const CITY_PRESETS = [
@@ -113,26 +110,7 @@ export default function RealWorld3DView({
   const nearestShelterForBld = useMemo(() => {
     if (!selectedBld) return null;
     const shelters = sheltersPlan?.shelters || [];
-    if (shelters.length === 0) {
-      return {
-        id: "mpcs-coastal-refuge-01",
-        name: "Coastal Multipurpose Cyclone Shelter (MPCS-1)",
-        district: "Coastal District",
-        state: "State DRM",
-        distance_km: 1.4,
-        capacity: 2500,
-        facility_type: "RCC Stilted 3-Story Cyclone Shelter",
-        evacuation_priority: (selectedBld.damageScore >= 0.55 ? "IMMEDIATE" : "ADVISORY") as "IMMEDIATE" | "ADVISORY" | "STANDBY",
-        backup_generator: true,
-        helipad: true,
-        walking_time_mins: 16,
-        vehicle_time_mins: 4,
-        stilt_clearance_m: 4.5,
-        lat: selectedBld.lat + 0.008,
-        lon: selectedBld.lng + 0.006,
-      };
-    }
-
+    if (!shelters.length) return null;
     let closest = shelters[0];
     let minD = 999999;
     shelters.forEach((s) => {
@@ -174,42 +152,8 @@ export default function RealWorld3DView({
       } as any;
     }
 
-    // Dynamic 200m spatial risk grid around center.lat / center.lng if backend features list is empty
-    const generatedFeatures: any[] = [];
-    const step = 0.0018; // ~200m grid cell
-    for (let dx = -3; dx <= 3; dx++) {
-      for (let dy = -3; dy <= 3; dy++) {
-        const minLng = center.lng + dx * step;
-        const maxLng = minLng + step * 0.92;
-        const minLat = center.lat + dy * step;
-        const maxLat = minLat + step * 0.92;
-
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const score = Math.max(0.08, Math.min(0.92, 0.76 - dist * 0.12 + Math.sin(dx * 1.5 + dy) * 0.06));
-        const colour = score >= 0.55 ? "#ef4444" : score >= 0.25 ? "#f59e0b" : "#35a66f";
-
-        generatedFeatures.push({
-          type: "Feature",
-          geometry: {
-            type: "Polygon",
-            coordinates: [[
-              [minLng, minLat],
-              [maxLng, minLat],
-              [maxLng, maxLat],
-              [minLng, maxLat],
-              [minLng, minLat],
-            ]],
-          },
-          properties: {
-            damage_score: Number(score.toFixed(2)),
-            wind_kph: Math.round(speedKph * (1 - dist * 0.04)),
-            colour,
-          },
-        });
-      }
-    }
-    return { type: "FeatureCollection", features: generatedFeatures } as any;
-  }, [features, center.lat, center.lng, speedKph]);
+    return { type: "FeatureCollection", features: [] };
+  }, [features]);
 
   // Calculate Risk Grid Analysis Statistics from active features
   const riskAnalysisStats = useMemo(() => {
@@ -218,12 +162,12 @@ export default function RealWorld3DView({
     if (!activeFeatures || activeFeatures.length === 0) {
       return {
         totalCells: 0,
-        maxWindKph: Math.round(speedKph),
-        maxDamageScore: 0.72,
-        severeCount: 42,
-        moderateCount: 98,
-        safeCount: 160,
-        riskLevelLabel: "SEVERE HAZARD",
+        maxWindKph: 0,
+        maxDamageScore: 0,
+        severeCount: 0,
+        moderateCount: 0,
+        safeCount: 0,
+        riskLevelLabel: "Grid unavailable",
       };
     }
 
@@ -236,9 +180,9 @@ export default function RealWorld3DView({
     const moderateCount = scores.filter((s) => s >= 0.25 && s < 0.55).length;
     const safeCount = scores.filter((s) => s < 0.25).length;
 
-    let riskLevelLabel = "SAFE / LOW IMPACT";
-    if (maxDamageScore >= 0.55 || severeCount > 10) riskLevelLabel = "CRITICAL DESTRUCTION RISK";
-    else if (maxDamageScore >= 0.25) riskLevelLabel = "MODERATE DAMAGE LIKELY";
+    let riskLevelLabel = "Low screening index";
+    if (maxDamageScore >= 0.55 || severeCount > 10) riskLevelLabel = "High screening index";
+    else if (maxDamageScore >= 0.25) riskLevelLabel = "Moderate screening index";
 
     return {
       totalCells: activeFeatures.length,
@@ -295,31 +239,32 @@ export default function RealWorld3DView({
 
         const cLng = ring.reduce((acc, pt) => acc + pt[0], 0) / ring.length;
         const cLat = ring.reduce((acc, pt) => acc + pt[1], 0) / ring.length;
-        const heightM = b.properties?.height_m || (12 + (idx % 7) * 4);
-        const stories = Math.max(1, Math.round(heightM / 3.0));
-        const score = b.properties?.damage_score ?? (0.12 + (idx % 6) * 0.11);
-        const classification = score >= 0.55 ? "SEVERE_RISK" : score >= 0.25 ? "MODERATE_RISK" : score >= 0.10 ? "LOW_RISK" : "SAFE";
+        const heightM = b.properties.height_m;
+        const stories = b.properties.floors;
+        const score = b.properties.damage_score;
+        const classification = b.properties.classification ?? "Unassessed";
 
         const archColors = ["#64748B", "#475569", "#64748b", "#94a3b8", "#718096"];
         const archColor = archColors[idx % archColors.length];
-        const riskColor = score >= 0.55 ? "#ef4444" : score >= 0.25 ? "#f59e0b" : score >= 0.10 ? "#84cc16" : "#22c55e";
+        const riskColor = score == null ? "#718096" : score >= 0.55 ? "#ef4444" : score >= 0.25 ? "#f59e0b" : score >= 0.10 ? "#84cc16" : "#22c55e";
 
         const info: BuildingDossierInfo = {
           id: b.id || `api-bld-${idx + 1}`,
           name: b.properties?.name || `${b.properties?.building_type || "Structure"} #${idx + 1}`,
-          type: b.properties?.building_type || "COMMERCIAL",
-          height: Math.round(heightM),
+          type: b.properties?.building_type || "Unspecified",
+          height: heightM,
           stories,
           damageScore: score,
           classification,
-          windKph: Math.round(speedKph * 1.1),
-          dynPressurePa: Math.round(1120 + score * 500),
-          lrr: Number((score * 1.3).toFixed(2)),
-          capacity: b.properties?.capacity || 200,
+
+          windKph: b.properties.wind_kph,
+          dynPressurePa: b.properties.dynamic_pressure_pa,
+          lrr: b.properties.load_to_resistance_ratio,
+
           lat: Number(cLat.toFixed(5)),
           lng: Number(cLng.toFixed(5)),
-          floodDepthM: Number(Math.max(0, surgeHeightM * 0.8).toFixed(1)),
-          recommendation: score >= 0.55 ? "SEVERE RISK: Structural load exceeded. Evacuate immediately." : "STABLE: Standard storm precautions.",
+
+
         };
         list.push(info);
 
@@ -341,151 +286,6 @@ export default function RealWorld3DView({
             stories,
             archColor,
             riskColor,
-            score,
-            classification,
-          },
-        });
-      });
-    // 2. Bundled authentic OpenStreetMap buildings if matched key exists (only if no API buildings)
-    } else if (activeCityKey && REAL_CITY_BUILDINGS[activeCityKey]?.buildings) {
-      const osmBuildings = REAL_CITY_BUILDINGS[activeCityKey].buildings;
-      osmBuildings.forEach((b, idx) => {
-        if (!b.ring || b.ring.length < 3) return;
-
-        const cLng = b.ring.reduce((acc, pt) => acc + pt[0], 0) / b.ring.length;
-        const cLat = b.ring.reduce((acc, pt) => acc + pt[1], 0) / b.ring.length;
-
-        const heightM = b.height_m || (b.tags?.["building:levels"] ? Number(b.tags["building:levels"]) * 3.0 : (12 + (idx % 8) * 3.5));
-        const minHeightM = b.min_height_m || 0;
-        const stories = Math.max(1, Math.round(heightM / 3.0));
-
-        const isShelter = b.type === "MPCS_SHELTER" || b.id?.includes("shelter") || b.name?.includes("Shelter") || b.name?.includes("Haven");
-        const isHospital = b.type === "HOSPITAL" || b.name?.includes("Hospital") || b.name?.includes("Clinic");
-
-        const score = isShelter ? 0.05 : isHospital ? 0.15 : b.type === "COMMERCIAL" ? 0.38 : (0.18 + (idx % 7) * 0.08);
-        const classification = score >= 0.55 ? "SEVERE_RISK" : score >= 0.25 ? "MODERATE_RISK" : score >= 0.10 ? "LOW_RISK" : "SAFE";
-
-        const archColors = ["#64748B", "#475569", "#64748b", "#94a3b8", "#718096"];
-        let archColor = archColors[idx % archColors.length];
-        if (b.name?.includes("Penthouse") || b.name?.includes("Crown")) archColor = "#94a3b8";
-        if (showGreenBuildings && (isShelter || b.tags?.shelter === "designated_haven")) archColor = "#22c55e";
-
-        const riskColor =
-          isShelter ? "#22c55e" :
-          score >= 0.55 ? "#ef4444" :
-          score >= 0.25 ? "#f59e0b" :
-          score >= 0.10 ? "#84cc16" : "#22c55e";
-
-        const info: BuildingDossierInfo = {
-          id: b.id || `osm-bld-${idx + 1}`,
-          name: b.name || `${b.type.replace("_", " ")} Structure #${idx + 1}`,
-          type: b.type,
-          height: Math.round(heightM),
-          stories,
-          damageScore: score,
-          classification,
-          windKph: Math.round(speedKph * 1.15),
-          dynPressurePa: Math.round(1120 + score * 480),
-          lrr: Number((score * 1.3).toFixed(2)),
-          capacity: isShelter ? 2500 : isHospital ? 600 : 45,
-          lat: Number(cLat.toFixed(5)),
-          lng: Number(cLng.toFixed(5)),
-          floodDepthM: Number(Math.max(0, surgeHeightM * 0.85 - (cLat - center.lat) * 200).toFixed(1)),
-          recommendation: isShelter
-            ? "DESIGNATED SAFE REFUGE: Capacity 2500 persons. Reinforced stilt frame clears +4.5m surge."
-            : score >= 0.55
-            ? "SEVERE FAILURE HAZARD: Wind gust force exceeds structural load limit. Immediate evacuation required."
-            : "LOW VULNERABILITY: Heavy reinforced framing stable under cyclonic wind forces.",
-        };
-
-        list.push(info);
-
-        const coords = [...b.ring];
-        if (coords[0][0] !== coords[coords.length - 1][0] || coords[0][1] !== coords[coords.length - 1][1]) {
-          coords.push(coords[0]);
-        }
-
-        featuresList.push({
-          type: "Feature",
-          id: info.id,
-          geometry: { type: "Polygon", coordinates: [coords] },
-          properties: {
-            id: info.id,
-            name: info.name,
-            type: info.type,
-            height: heightM,
-            min_height: minHeightM,
-            "building:levels": stories,
-            stories,
-            archColor,
-            riskColor,
-            isShelter,
-            score,
-            classification,
-          },
-        });
-      });
-    }
-
-    // 3. Fallback: If custom lat/lon has no pre-bundled buildings & no API buildings, generate dynamic building footprints around center.lat/center.lng!
-    if (featuresList.length === 0) {
-      const baseLat = center.lat;
-      const baseLng = center.lng;
-      const offsets = [
-        { dLat: 0.001, dLng: 0.001, w: 0.0006, h: 0.0005, type: "MPCS_SHELTER", height: 28 },
-        { dLat: 0.002, dLng: -0.001, w: 0.0008, h: 0.0006, type: "COMMERCIAL", height: 35 },
-        { dLat: -0.001, dLng: 0.002, w: 0.0005, h: 0.0004, type: "HOSPITAL", height: 22 },
-        { dLat: -0.002, dLng: -0.002, w: 0.0007, h: 0.0005, type: "RESIDENTIAL", height: 18 },
-        { dLat: 0.003, dLng: 0.0015, w: 0.0006, h: 0.0006, type: "COMMERCIAL", height: 42 },
-        { dLat: -0.0025, dLng: 0.001, w: 0.0005, h: 0.0005, type: "RESIDENTIAL", height: 16 },
-      ];
-
-      offsets.forEach((o, i) => {
-        const cLat = baseLat + o.dLat;
-        const cLng = baseLng + o.dLng;
-        const ring: [number, number][] = [
-          [cLng, cLat],
-          [cLng + o.w, cLat],
-          [cLng + o.w, cLat + o.h],
-          [cLng, cLat + o.h],
-          [cLng, cLat],
-        ];
-
-        const isShelter = o.type === "MPCS_SHELTER";
-        const score = isShelter ? 0.05 : 0.2 + (i % 4) * 0.15;
-        const classification = score >= 0.55 ? "SEVERE_RISK" : score >= 0.25 ? "MODERATE_RISK" : "SAFE";
-
-        const info: BuildingDossierInfo = {
-          id: `custom-bld-${i + 1}`,
-          name: isShelter ? "Custom Designated Shelter" : `Custom ${o.type} Structure #${i + 1}`,
-          type: o.type,
-          height: o.height,
-          stories: Math.max(1, Math.round(o.height / 3.4)),
-          damageScore: score,
-          classification,
-          windKph: Math.round(speedKph * 1.1),
-          dynPressurePa: Math.round(1120 + score * 480),
-          lrr: Number((score * 1.3).toFixed(2)),
-          capacity: isShelter ? 2000 : 50,
-          lat: Number(cLat.toFixed(5)),
-          lng: Number(cLng.toFixed(5)),
-          floodDepthM: 1.5,
-          recommendation: "Custom location structural assessment.",
-        };
-        list.push(info);
-
-        featuresList.push({
-          type: "Feature",
-          id: info.id,
-          geometry: { type: "Polygon", coordinates: [ring] },
-          properties: {
-            id: info.id,
-            name: info.name,
-            type: info.type,
-            height: o.height,
-            min_height: 0,
-            archColor: isShelter && showGreenBuildings ? "#22c55e" : "#f8fafc",
-            riskColor: isShelter ? "#22c55e" : score >= 0.55 ? "#ef4444" : score >= 0.25 ? "#f59e0b" : "#8b5cf6",
             score,
             classification,
           },
@@ -523,57 +323,8 @@ export default function RealWorld3DView({
       } as any;
     }
 
-    // Dynamic procedural urban grid for custom lat/lon
-    const cLat = center.lat;
-    const cLng = center.lng;
-    const features: any[] = [];
-    for (let i = -3; i <= 3; i++) {
-      const lat = cLat + i * 0.0018;
-      features.push({
-        type: "Feature",
-        id: `custom-rd-ew-${i}`,
-        geometry: {
-          type: "LineString",
-          coordinates: [
-            [cLng - 0.008, lat],
-            [cLng + 0.008, lat],
-          ],
-        },
-        properties: {
-          id: `custom-rd-ew-${i}`,
-          name: i === 0 ? "Grand Coastal Boulevard" : `Sector Avenue ${Math.abs(i)} ${i > 0 ? "North" : "South"}`,
-          type: i === 0 ? "primary" : "secondary",
-          width_m: i === 0 ? 14 : 9,
-          class: i === 0 ? "primary" : "secondary",
-        },
-      });
-
-      const lng = cLng + i * 0.0024;
-      features.push({
-        type: "Feature",
-        id: `custom-rd-ns-${i}`,
-        geometry: {
-          type: "LineString",
-          coordinates: [
-            [lng, cLat - 0.007],
-            [lng, cLat + 0.007],
-          ],
-        },
-        properties: {
-          id: `custom-rd-ns-${i}`,
-          name: `Cross Link Road ${i + 4}`,
-          type: "residential",
-          width_m: 6,
-          class: "residential",
-        },
-      });
-    }
-
-    return {
-      type: "FeatureCollection",
-      features,
-    } as any;
-  }, [activeCityKey, center.lat, center.lng]);
+    return { type: "FeatureCollection", features: [] };
+  }, [activeCityKey]);
 
   // Construct Storm Surge Inundation Polygon
   const surgeGeoJson = useMemo(() => {
@@ -1204,7 +955,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
         badge.style.borderRadius = "8px";
         badge.style.boxShadow = isImm ? "0 0 10px rgba(239, 68, 68, 0.6)" : "0 0 10px rgba(16, 185, 129, 0.6)";
         badge.style.whiteSpace = "nowrap";
-        badge.innerHTML = `🛡️ ${shelter.name.split(" ")[0]} (${shelter.capacity || 2500}p)`;
+        badge.textContent = `🛡️ ${shelter.name.split(" ")[0]} (${shelter.capacity}p)`;
 
         const pin = document.createElement("div");
         pin.style.width = "1.5px";
@@ -1535,7 +1286,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
             <input type="checkbox" checked={showWindStreams} onChange={(e) => setShowWindStreams(e.target.checked)} />
           </label>
           <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
-            <span>🌊 Storm Surge Inundation</span>
+            <span>🌊 Illustrative surge overlay</span>
             <input type="checkbox" checked={showSurge} onChange={(e) => setShowSurge(e.target.checked)} />
           </label>
         </div>
@@ -1645,11 +1396,11 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
                 borderRadius: "4px",
                 fontSize: "9px",
                 fontWeight: 800,
-                background: selectedBld.damageScore >= 0.55 ? "#ef4444" : selectedBld.damageScore >= 0.25 ? "#f59e0b" : "#22c55e",
+                background: (selectedBld.damageScore ?? -1) >= 0.55 ? "#ef4444" : (selectedBld.damageScore ?? -1) >= 0.25 ? "#f59e0b" : "#22c55e",
                 color: "#ffffff",
               }}
             >
-              {selectedBld.damageScore >= 0.55 ? "SEVERE RISK" : selectedBld.damageScore >= 0.25 ? "MODERATE" : "SAFE"}
+              {selectedBld.classification}
             </span>
           </div>
 
@@ -1659,18 +1410,11 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5px", background: "rgba(15, 23, 42, 0.7)", padding: "8px", borderRadius: "6px" }}>
             <div><span style={{ color: "#94a3b8" }}>Building ID:</span> <strong style={{ color: "#e2e8f0" }}>{selectedBld.id}</strong></div>
-            <div><span style={{ color: "#94a3b8" }}>Height:</span> <strong style={{ color: "#e2e8f0" }}>{selectedBld.height} m</strong></div>
-            <div><span style={{ color: "#94a3b8" }}>Floors:</span> <strong style={{ color: "#e2e8f0" }}>{selectedBld.stories} stories</strong></div>
-            <div><span style={{ color: "#94a3b8" }}>Wind Pressure:</span> <strong style={{ color: "#ef4444" }}>{(selectedBld.dynPressurePa / 1000).toFixed(2)} kPa</strong></div>
-            <div><span style={{ color: "#94a3b8" }}>Load / Resist:</span> <strong style={{ color: "#f59e0b" }}>{selectedBld.lrr}</strong></div>
-            <div><span style={{ color: "#94a3b8" }}>Damage Risk:</span> <strong style={{ color: selectedBld.damageScore >= 0.55 ? "#ef4444" : "#f59e0b" }}>{Math.round(selectedBld.damageScore * 100)}%</strong></div>
-          </div>
-
-          <div style={{ padding: "6px 8px", background: selectedBld.damageScore >= 0.55 ? "rgba(220, 38, 38, 0.2)" : "rgba(16, 185, 129, 0.15)", border: "1px solid " + (selectedBld.damageScore >= 0.55 ? "rgba(239, 68, 68, 0.4)" : "rgba(16, 185, 129, 0.3)"), borderRadius: "6px", fontSize: "10px" }}>
-            <span style={{ fontWeight: 800, color: selectedBld.damageScore >= 0.55 ? "#fca5a5" : "#6ee7b7" }}>
-              {selectedBld.damageScore >= 0.55 ? "⚠️ EVACUATION ADVISED: " : "✅ STABLE STRUCTURE: "}
-            </span>
-            <span style={{ color: "#cbd5e1" }}>{selectedBld.recommendation}</span>
+            <div><span style={{ color: "#94a3b8" }}>Height:</span> <strong style={{ color: "#e2e8f0" }}>{selectedBld.height == null ? "Unavailable" : selectedBld.height + " m"}</strong></div>
+            <div><span style={{ color: "#94a3b8" }}>Floors:</span> <strong style={{ color: "#e2e8f0" }}>{selectedBld.stories ?? "Unavailable"}</strong></div>
+            <div><span style={{ color: "#94a3b8" }}>Wind Pressure:</span> <strong style={{ color: "#ef4444" }}>{selectedBld.dynPressurePa == null ? "Unavailable" : (selectedBld.dynPressurePa / 1000).toFixed(2) + " kPa"}</strong></div>
+            <div><span style={{ color: "#94a3b8" }}>Load / Resist:</span> <strong style={{ color: "#f59e0b" }}>{selectedBld.lrr ?? "Unavailable"}</strong></div>
+            <div><span style={{ color: "#94a3b8" }}>Damage index:</span> <strong style={{ color: (selectedBld.damageScore ?? -1) >= 0.55 ? "#ef4444" : "#f59e0b" }}>{selectedBld.damageScore?.toFixed(2) ?? "Unavailable"}</strong></div>
           </div>
 
           {/* Nearest Shelter Evacuation Route Button */}
@@ -1787,23 +1531,23 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
                 <div style={{ background: "rgba(15, 23, 42, 0.8)", border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: "10px", padding: "10px" }}>
                   <div style={{ fontSize: "10px", color: "#94a3b8", textTransform: "uppercase", fontWeight: 700 }}>Active MPCS Facilities</div>
                   <div style={{ fontSize: "18px", fontWeight: 800, color: "#34d399", marginTop: "2px" }}>
-                    {sheltersPlan?.total_shelters_active ?? 5} Shelters
+                    {sheltersPlan?.total_shelters_active ?? "Unavailable"} Shelters
                   </div>
                   <div style={{ fontSize: "10px", color: "#a7f3d0" }}>Pre-positioned Coastal Assets</div>
                 </div>
 
                 <div style={{ background: "rgba(15, 23, 42, 0.8)", border: "1px solid rgba(56, 189, 248, 0.3)", borderRadius: "10px", padding: "10px" }}>
-                  <div style={{ fontSize: "10px", color: "#94a3b8", textTransform: "uppercase", fontWeight: 700 }}>Safe Shelter Capacity</div>
+                  <div style={{ fontSize: "10px", color: "#94a3b8", textTransform: "uppercase", fontWeight: 700 }}>Reference shelter capacity</div>
                   <div style={{ fontSize: "18px", fontWeight: 800, color: "#8b5cf6", marginTop: "2px" }}>
-                    {(sheltersPlan?.total_capacity ?? 12500).toLocaleString()} <span style={{ fontSize: "11px", fontWeight: 600 }}>persons</span>
+                    {sheltersPlan?.total_capacity.toLocaleString() ?? "Unavailable"} <span style={{ fontSize: "11px", fontWeight: 600 }}>persons</span>
                   </div>
-                  <div style={{ fontSize: "10px", color: "#bae6fd" }}>RCC Category-5 Fortified</div>
+                  <div style={{ fontSize: "10px", color: "#bae6fd" }}>Catalogue design capacity</div>
                 </div>
 
                 <div style={{ background: "rgba(15, 23, 42, 0.8)", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: "10px", padding: "10px" }}>
                   <div style={{ fontSize: "10px", color: "#94a3b8", textTransform: "uppercase", fontWeight: 700 }}>Immediate Evacuees</div>
                   <div style={{ fontSize: "18px", fontWeight: 800, color: "#ef4444", marginTop: "2px" }}>
-                    {(sheltersPlan?.immediate_evacuation_count ?? 9400).toLocaleString()} <span style={{ fontSize: "11px", fontWeight: 600 }}>persons</span>
+                    {sheltersPlan?.immediate_evacuation_count?.toLocaleString() ?? "Unavailable"} <span style={{ fontSize: "11px", fontWeight: 600 }}>persons</span>
                   </div>
                   <div style={{ fontSize: "10px", color: "#fca5a5" }}>Red Zone (&ge;0.55) Risk</div>
                 </div>
@@ -1811,9 +1555,9 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
                 <div style={{ background: "rgba(15, 23, 42, 0.8)", border: "1px solid rgba(245, 158, 11, 0.3)", borderRadius: "10px", padding: "10px" }}>
                   <div style={{ fontSize: "10px", color: "#94a3b8", textTransform: "uppercase", fontWeight: 700 }}>Surge Stilt Clearance</div>
                   <div style={{ fontSize: "18px", fontWeight: 800, color: "#f59e0b", marginTop: "2px" }}>
-                    +4.5 m MSL
+                    Unverified
                   </div>
-                  <div style={{ fontSize: "10px", color: "#fde68a" }}>Surge Height: {surgeHeightM.toFixed(1)}m (Safe Clearance)</div>
+                  <div style={{ fontSize: "10px", color: "#fde68a" }}>Surge Height: {surgeHeightM.toFixed(1)}m (scenario input)</div>
                 </div>
               </div>
 
@@ -1829,50 +1573,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "10px" }}>
-                  {(sheltersPlan?.shelters && sheltersPlan.shelters.length > 0 ? sheltersPlan.shelters : [
-                    {
-                      id: "mpcs-wb-digha-01",
-                      name: "Digha Coastal Multipurpose Shelter-1",
-                      lat: 21.628,
-                      lon: 87.521,
-                      capacity: 2500,
-                      district: "Purba Medinipur",
-                      state: "West Bengal",
-                      facility_type: "RCC Stilted 3-Story Cyclone Shelter",
-                      backup_generator: true,
-                      helipad: true,
-                      distance_km: 1.2,
-                      evacuation_priority: "IMMEDIATE" as const,
-                    },
-                    {
-                      id: "mpcs-wb-shankarpur-02",
-                      name: "Shankarpur Fishing Harbour Shelter",
-                      lat: 21.637,
-                      lon: 87.568,
-                      capacity: 1800,
-                      district: "Purba Medinipur",
-                      state: "West Bengal",
-                      facility_type: "Elevated Community Shelter",
-                      backup_generator: true,
-                      helipad: false,
-                      distance_km: 4.8,
-                      evacuation_priority: "ADVISORY" as const,
-                    },
-                    {
-                      id: "mpcs-wb-mandarmani-03",
-                      name: "Mandarmani Coastal Community Shelter",
-                      lat: 21.668,
-                      lon: 87.712,
-                      capacity: 2000,
-                      district: "Purba Medinipur",
-                      state: "West Bengal",
-                      facility_type: "RCC Stilted 3-Story Cyclone Shelter",
-                      backup_generator: true,
-                      helipad: false,
-                      distance_km: 18.5,
-                      evacuation_priority: "STANDBY" as const,
-                    },
-                  ]).map((shelter) => (
+                  {(sheltersPlan?.shelters ?? []).map((shelter) => (
                     <div
                       key={shelter.id}
                       style={{
@@ -1905,9 +1606,9 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
                       </div>
 
                       <div style={{ fontSize: "11px", color: "#cbd5e1" }}>
-                        <div>Safe Capacity: <strong style={{ color: "#34d399" }}>{(shelter.capacity || 2500).toLocaleString()} persons</strong></div>
+                        <div>Safe Capacity: <strong style={{ color: "#34d399" }}>{shelter.capacity.toLocaleString()} persons</strong></div>
                         <div>Design: <strong>{shelter.facility_type}</strong></div>
-                        <div>Distance from eye: <strong>{shelter.distance_km ?? 2.4} km</strong></div>
+                        <div>Distance from eye: <strong>{shelter.distance_km ?? "Unavailable"} km</strong></div>
                       </div>
 
                       {/* Equipment Badges */}
@@ -1994,7 +1695,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
                       4. RCC Stilted Elevation &amp; Scour Piles
                     </div>
                     <div style={{ fontSize: "10.5px", color: "#cbd5e1", lineHeight: 1.5 }}>
-                      Elevates shelter functional floors +4.5 m MSL on reinforced concrete pile stilts. Allows high-velocity storm surge and hydrodynamic wave pounding to flow beneath living quarters without hydrostatic wall collapse.
+                      Elevates shelter functional floors Unverified on reinforced concrete pile stilts. Allows high-velocity storm surge and hydrodynamic wave pounding to flow beneath living quarters without hydrostatic wall collapse.
                     </div>
                   </div>
 
@@ -2102,7 +1803,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
                 fontWeight: 800,
                 padding: "1px 5px",
                 borderRadius: "4px",
-                background: hoveredBld.damageScore >= 0.55 ? "#ef4444" : hoveredBld.damageScore >= 0.25 ? "#f59e0b" : "#22c55e",
+                background: (hoveredBld.damageScore ?? -1) >= 0.55 ? "#ef4444" : (hoveredBld.damageScore ?? -1) >= 0.25 ? "#f59e0b" : "#22c55e",
                 color: "#ffffff",
               }}
             >
@@ -2111,7 +1812,7 @@ levels property: ${firstFeat?.properties?.["building:levels"] !== undefined || f
           </div>
           <div style={{ fontSize: "10px", color: "#cbd5e1", display: "flex", justifyContent: "space-between" }}>
             <span>{hoveredBld.stories} Floors ({hoveredBld.height}m)</span>
-            <span>Wind: <strong style={{ color: "#ef4444" }}>{hoveredBld.windKph} km/h</strong></span>
+            <span>Wind: <strong style={{ color: "#ef4444" }}>{hoveredBld.windKph ?? "Unavailable"} km/h</strong></span>
           </div>
           <div style={{ fontSize: "9px", color: "#94a3b8", marginTop: "3px", textAlign: "center" }}>
             💡 Click to inspect structural dossier

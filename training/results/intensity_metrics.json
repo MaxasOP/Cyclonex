@@ -1,10 +1,28 @@
 {
-  "mae_wind_6h": 113.224,
-  "mae_pressure_6h": 63.262,
-  "mae_wind_12h": 32.904,
-  "mae_pressure_12h": 919.582,
-  "mae_wind_24h": 898.667,
-  "mae_pressure_24h": 873.043,
-  "overall_mae": 483.447,
-  "overall_rmse": 486.355
+  "evaluation_data": "SYNTHETIC_SCENARIOS",
+  "seed": 2026,
+  "sample_count": 80,
+  "checkpoint_sha256": "45536043c39653172f3b8ae97445356ec46a91cbe0639721ff4a05037f9e5927",
+  "by_horizon": {
+    "6h": {
+      "wind_mae_kph": 3.548,
+      "pressure_mae_hpa": 2.062,
+      "mean_track_error_km": 53.997
+    },
+    "12h": {
+      "wind_mae_kph": 6.373,
+      "pressure_mae_hpa": 3.223,
+      "mean_track_error_km": 105.277
+    },
+    "24h": {
+      "wind_mae_kph": 11.712,
+      "pressure_mae_hpa": 5.911,
+      "mean_track_error_km": 120.726
+    },
+    "48h": {
+      "wind_mae_kph": 14.904,
+      "pressure_mae_hpa": 7.19,
+      "mean_track_error_km": 290.227
+    }
+  }
 }

@@ -1,58 +1,8 @@
 {
-  "accuracy": 0.6957,
-  "precision_macro": 0.5119,
-  "recall_macro": 0.6667,
-  "f1_macro": 0.5791,
-  "confusion_matrix": [
-    [
-      0,
-      3,
-      0,
-      0,
-      0,
-      0
-    ],
-    [
-      0,
-      4,
-      0,
-      0,
-      0,
-      0
-    ],
-    [
-      0,
-      0,
-      4,
-      0,
-      0,
-      0
-    ],
-    [
-      0,
-      0,
-      0,
-      4,
-      0,
-      0
-    ],
-    [
-      0,
-      0,
-      0,
-      0,
-      4,
-      0
-    ],
-    [
-      0,
-      0,
-      0,
-      0,
-      4,
-      0
-    ]
-  ],
+  "evaluation_data": "SYNTHETIC_SCENARIOS",
+  "seed": 2026,
+  "sample_count": 80,
+  "checkpoint_sha256": "3d7c90472f7cb40429806f15b158ab90d0c365fb9cef3c7d5a2bbdebac90857c",
   "classes": [
     "curved_band",
     "central_dense_overcast",
@@ -60,5 +10,59 @@
     "mature_eye",
     "sheared_system",
     "weakening_system"
+  ],
+  "accuracy": 0.175,
+  "precision_macro": 0.26156941649899396,
+  "recall_macro": 0.225,
+  "f1_macro": 0.11584880865926618,
+  "confusion_matrix": [
+    [
+      0,
+      1,
+      9,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      3,
+      7,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      10,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      19,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      10,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      3,
+      16,
+      0,
+      1,
+      0
+    ]
   ]
 }

@@ -292,7 +292,7 @@ export default function AIAnalysisLab({
                 </span>
               </div>
               <div style={{ fontSize: "0.78rem", color: "#d6e3f5", marginTop: "6px" }}>
-                Probability of ≥30 kt (55 km/h) surge in 24h: <strong>{analysis?.rapid_intensification ? (analysis.rapid_intensification.probability * 100).toFixed(1) : "74.0"}%</strong>
+                Probability of ≥30 kt (55 km/h) surge in 24h: <strong>{analysis?.rapid_intensification?.probability == null ? "Unavailable" : (analysis.rapid_intensification.probability * 100).toFixed(1) + "% (uncalibrated)"}</strong>
               </div>
             </div>
 

@@ -48,7 +48,7 @@ from satellite_pipeline import (
 CONFIG_PATH = Path(__file__).parent / "config" / "ai_config.json"
 DEFAULT_CONFIG = {
     "image_size": 224,
-    "sequence_length": 3,
+    "sequence_length": 1,
     "forecast_hours": [6, 12, 24, 48],
     "pattern_classes": [
         "curved_band",
@@ -58,7 +58,7 @@ DEFAULT_CONFIG = {
         "sheared_system",
         "weakening_system"
     ],
-    "satellite_channels": ["visible", "infrared", "water_vapor", "microwave"]
+    "satellite_channels": ["infrared", "water_vapor", "microwave", "visible"]
 }
 
 def load_ai_config() -> dict:
@@ -128,113 +128,10 @@ class SatelliteDataPreprocessor:
 # =========================================================
 
 if HAS_TORCH:
-    class ConvBlock(nn.Module):
-        def __init__(self, in_c: int, out_c: int, stride: int = 1):
-            super().__init__()
-            self.conv = nn.Conv2d(in_c, out_c, kernel_size=3, stride=stride, padding=1, bias=False)
-            self.bn = nn.BatchNorm2d(out_c)
-            self.act = nn.LeakyReLU(0.1, inplace=True)
-
-        def forward(self, x: torch.Tensor) -> torch.Tensor:
-            return self.act(self.bn(self.conv(x)))
-
-    class PyTorchDetectionAndLocator(nn.Module):
-        def __init__(self, in_channels: int = 4):
-            super().__init__()
-            self.features = nn.Sequential(
-                ConvBlock(in_channels, 16, stride=2),
-                ConvBlock(16, 32, stride=2),
-                ConvBlock(32, 64, stride=2),
-                ConvBlock(64, 128, stride=2),
-                nn.AdaptiveAvgPool2d((2, 2)),
-                nn.Flatten(),
-            )
-            self.fc_presence = nn.Linear(128 * 4, 1)
-            self.fc_center = nn.Linear(128 * 4, 2)
-
-        def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-            feat = self.features(x)
-            presence = self.fc_presence(feat)
-            center_offset = torch.tanh(self.fc_center(feat))
-            return presence, center_offset
-
-    class PyTorchPatternClassifier(nn.Module):
-        def __init__(self, in_channels: int = 4, num_classes: int = len(PATTERN_CLASSES)):
-            super().__init__()
-            self.layer1 = ConvBlock(in_channels, 24, stride=2)
-            self.layer2 = ConvBlock(24, 48, stride=2)
-            self.layer3 = ConvBlock(48, 96, stride=2)
-            self.layer4 = ConvBlock(96, 160, stride=2)
-            self.pool = nn.AdaptiveAvgPool2d((1, 1))
-            self.dropout = nn.Dropout(0.25)
-            self.fc = nn.Linear(160, num_classes)
-            self.gradients = None
-            self.activations = None
-
-        def activations_hook(self, grad):
-            self.gradients = grad
-
-        def forward(self, x: torch.Tensor) -> torch.Tensor:
-            x = self.layer1(x)
-            x = self.layer2(x)
-            x = self.layer3(x)
-            x = self.layer4(x)
-            if x.requires_grad:
-                x.register_hook(self.activations_hook)
-            self.activations = x
-            pooled = self.pool(x)
-            flattened = torch.flatten(pooled, 1)
-            return self.fc(self.dropout(flattened))
-
-    class PyTorchRapidIntensificationModel(nn.Module):
-        def __init__(self, in_channels: int = 4):
-            super().__init__()
-            self.image_encoder = nn.Sequential(
-                ConvBlock(in_channels, 16, stride=2),
-                ConvBlock(16, 32, stride=2),
-                ConvBlock(32, 64, stride=2),
-                nn.AdaptiveAvgPool2d((2, 2)),
-                nn.Flatten(),
-            )
-            self.fc = nn.Sequential(
-                nn.Linear(64 * 4 + 4, 64),
-                nn.ReLU(),
-                nn.Dropout(0.2),
-                nn.Linear(64, 1),
-            )
-
-        def forward(self, img_tensor: torch.Tensor, ocean_telemetry: torch.Tensor) -> torch.Tensor:
-            img_feat = self.image_encoder(img_tensor)
-            combined = torch.cat([img_feat, ocean_telemetry], dim=1)
-            return self.fc(combined)
-
-    class PyTorchIntensityRegressor(nn.Module):
-        def __init__(self, in_channels: int = 4):
-            super().__init__()
-            self.encoder = nn.Sequential(
-                ConvBlock(in_channels, 16, stride=2),
-                ConvBlock(16, 32, stride=2),
-                ConvBlock(32, 64, stride=2),
-                nn.AdaptiveAvgPool2d((2, 2)),
-                nn.Flatten(),
-            )
-            self.fc_intensity = nn.Sequential(
-                nn.Linear(64 * 4 + 8, 128),
-                nn.ReLU(),
-                nn.Linear(128, 8),
-            )
-            self.fc_track = nn.Sequential(
-                nn.Linear(64 * 4 + 8, 128),
-                nn.ReLU(),
-                nn.Linear(128, 8),
-            )
-
-        def forward(self, img_tensor: torch.Tensor, telemetry: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-            feat = self.encoder(img_tensor)
-            combined = torch.cat([feat, telemetry], dim=1)
-            intensity_deltas = self.fc_intensity(combined)
-            track_deltas = self.fc_track(combined)
-            return intensity_deltas, track_deltas
+    from cyclone_networks import (
+        PyTorchDetectionAndLocator, PyTorchPatternClassifier,
+        PyTorchRapidIntensificationModel, PyTorchIntensityRegressor,
+    )
 
 else:
     PyTorchDetectionAndLocator = None
@@ -271,7 +168,7 @@ class AICycloneService:
         if self.detection_model_path.exists():
             try:
                 model = PyTorchDetectionAndLocator(in_channels=4)
-                model.load_state_dict(torch.load(self.detection_model_path, map_location="cpu"))
+                model.load_state_dict(torch.load(self.detection_model_path, map_location="cpu", weights_only=True))
                 model.eval()
                 self.detection_model = model
                 print(f"[AI SERVICE] Loaded Detection & Eye Locator model ({self.detection_model_path.name})", flush=True)
@@ -281,7 +178,7 @@ class AICycloneService:
         if self.pattern_model_path.exists():
             try:
                 model = PyTorchPatternClassifier(in_channels=4, num_classes=len(PATTERN_CLASSES))
-                model.load_state_dict(torch.load(self.pattern_model_path, map_location="cpu"))
+                model.load_state_dict(torch.load(self.pattern_model_path, map_location="cpu", weights_only=True))
                 model.eval()
                 self.pattern_model = model
                 print(f"[AI SERVICE] Loaded Dvorak Pattern Classifier ({self.pattern_model_path.name})", flush=True)
@@ -291,7 +188,7 @@ class AICycloneService:
         if self.ri_model_path.exists():
             try:
                 model = PyTorchRapidIntensificationModel(in_channels=4)
-                model.load_state_dict(torch.load(self.ri_model_path, map_location="cpu"))
+                model.load_state_dict(torch.load(self.ri_model_path, map_location="cpu", weights_only=True))
                 model.eval()
                 self.ri_model = model
                 print(f"[AI SERVICE] Loaded Rapid Intensification (RI) model ({self.ri_model_path.name})", flush=True)
@@ -301,7 +198,7 @@ class AICycloneService:
         if self.intensity_model_path.exists():
             try:
                 model = PyTorchIntensityRegressor(in_channels=4)
-                model.load_state_dict(torch.load(self.intensity_model_path, map_location="cpu"))
+                model.load_state_dict(torch.load(self.intensity_model_path, map_location="cpu", weights_only=True))
                 model.eval()
                 self.intensity_model = model
                 print(f"[AI SERVICE] Loaded Multi-Horizon Intensity Regressor ({self.intensity_model_path.name})", flush=True)
@@ -346,21 +243,15 @@ class AICycloneService:
     def generate_grad_cam(self, tensor: torch.Tensor, target_class_idx: int) -> List[List[float]]:
         """Generate Grad-CAM activation heatmap for pattern explainability."""
         if not HAS_TORCH or self.pattern_model is None:
-            # Fallback procedural attention map centered on eye
-            grid = [[round(max(0.0, 1.0 - math.sqrt(((r - 112) / 70)**2 + ((c - 112) / 70)**2)), 3) for c in range(224)] for r in range(224)]
-            return grid
+            return []
 
         try:
-            inp = tensor.clone().detach().requires_grad_(True)
-            out = self.pattern_model(inp)
-            loss = out[0, target_class_idx]
-            loss.backward()
-
-            grads = self.pattern_model.gradients
-            acts = self.pattern_model.activations
-            if grads is None or acts is None:
-                raise ValueError("Grad-CAM hooks did not fire")
-
+            # Keep activations and gradients local to this request.
+            with torch.enable_grad():
+                maps = self.pattern_model.feature_maps(tensor).detach().requires_grad_(True)
+                logits = self.pattern_model.classify_maps(maps)
+                grads, = torch.autograd.grad(logits[0, target_class_idx], maps)
+            acts = maps.detach()
             weights = torch.mean(grads, dim=(2, 3), keepdim=True)
             cam = torch.sum(weights * acts, dim=1, keepdim=True)
             cam = F.relu(cam)
@@ -374,9 +265,8 @@ class AICycloneService:
             downsampled = [[round(float(norm[r, c]), 3) for c in range(0, 224, step)] for r in range(0, 224, step)]
             return downsampled
         except Exception as e:
-            print(f"[GRAD-CAM WARN] Fallback used: {e}", flush=True)
-            step = 8
-            return [[round(max(0.0, 1.0 - math.sqrt(((r * step - 112) / 80)**2 + ((c * step - 112) / 80)**2)), 3) for c in range(28)] for r in range(28)]
+            print(f"[GRAD-CAM WARN] Heatmap unavailable: {e}", flush=True)
+            return []
 
     def analyze_cyclone(self, req: CycloneAnalysisRequest) -> Dict[str, Any]:
         """Perform end-to-end AI Cyclone Identification, Classification, RI, and Multi-Horizon Forecast."""
@@ -412,24 +302,21 @@ class AICycloneService:
 
         # 2. Identification (Detection) & Eye Localization
         cyclone_detected = wind >= 45.0 or pressure <= 1000.0
-        det_conf = round(min(0.99, max(0.70, 0.75 + (wind / 300.0) * 0.22)), 4)
+        det_conf = None
         center_lat = lat
         center_lon = lon
 
         if HAS_TORCH and self.detection_model and tensor is not None:
             with torch.no_grad():
-                pres_logit, center_offset = self.detection_model(tensor)
+                pres_logit, _ = self.detection_model(tensor)
                 p_val = float(torch.sigmoid(pres_logit)[0, 0])
                 cyclone_detected = p_val >= 0.50
                 det_conf = round(p_val if cyclone_detected else 1.0 - p_val, 4)
-                offset = center_offset[0].tolist()
-                # Center offset in degrees (scaled by ~0.15 deg)
-                center_lat = round(lat + offset[1] * 0.15, 4)
-                center_lon = round(lon + offset[0] * 0.15, 4)
+                # Image uploads lack georeferencing; retain the supplied geographic centre.
 
         # 3. Dvorak Pattern Classification
         selected_pattern = "mature_eye" if wind >= 135 else "eye_formation" if wind >= 95 else "central_dense_overcast" if wind >= 65 else "curved_band"
-        pat_conf = 0.88
+        pat_conf = None
         probabilities = {}
         target_class_idx = PATTERN_CLASSES.index(selected_pattern) if selected_pattern in PATTERN_CLASSES else 0
 
@@ -441,10 +328,6 @@ class AICycloneService:
                 selected_pattern = PATTERN_CLASSES[target_class_idx]
                 pat_conf = round(max(probs), 4)
                 probabilities = {cls: round(p, 4) for cls, p in zip(PATTERN_CLASSES, probs)}
-        else:
-            for cls in PATTERN_CLASSES:
-                probabilities[cls] = pat_conf if cls == selected_pattern else round((1.0 - pat_conf) / (len(PATTERN_CLASSES) - 1), 4)
-
         # Quantitative Dvorak Feature Extraction from calibrated IR Brightness Temperature
         # Display pixels have no physical radiometric calibration. Never derive a
         # measured brightness temperature or Dvorak CI from an uploaded PNG/JPEG.
@@ -452,7 +335,7 @@ class AICycloneService:
 
         # 4. Rapid Intensification (RI) Prediction
         is_ri = False
-        ri_prob = 0.25
+        ri_prob = None
         if HAS_TORCH and self.ri_model and tensor is not None:
             with torch.no_grad():
                 ocean_vec = torch.tensor([[sst, shear, sst - 26.5, wind / 200.0]], dtype=torch.float32)
@@ -462,22 +345,13 @@ class AICycloneService:
         else:
             # Physics-informed fallback
             if sst >= 29.5 and shear <= 12.0 and wind >= 80.0:
-                ri_prob = 0.74
                 is_ri = True
 
-        ri_warning_level = "CRITICAL RED (RI IMMINENT)" if ri_prob >= 0.70 else ("ELEVATED ORANGE" if ri_prob >= 0.45 else "LOW / STABLE")
+        ri_warning_level = "ELEVATED SCREENING SIGNAL" if is_ri else "LOW SCREENING SIGNAL"
 
         # 5. Multi-Horizon Intensity & Track Forecasting (+6h, +12h, +24h, +48h)
-        # Physics baseline
-        ri_mult = 1.6 if is_ri else 1.0
-        dw6 = round(6.5 * ri_mult, 1)
-        dp6 = round(-5.0 * ri_mult, 1)
-        dw12 = round(14.0 * ri_mult, 1)
-        dp12 = round(-11.0 * ri_mult, 1)
-        dw24 = round(24.0 * ri_mult, 1)
-        dp24 = round(-19.0 * ri_mult, 1)
-        dw48 = round(32.0 * ri_mult, 1)
-        dp48 = round(-26.0 * ri_mult, 1)
+        # Intensity persistence when a forecast model is unavailable.
+        dw6 = dp6 = dw12 = dp12 = dw24 = dp24 = dw48 = dp48 = 0.0
 
         from geo import destination
         offsets = []
@@ -501,20 +375,20 @@ class AICycloneService:
                 d_lat_24h, d_lon_24h = round(trk_outs[4], 4), round(trk_outs[5], 4)
                 d_lat_48h, d_lon_48h = round(trk_outs[6], 4), round(trk_outs[7], 4)
 
-        w6 = round(min(320.0, max(25.0, wind + dw6)), 1)
-        p6 = round(max(870.0, min(1015.0, pressure + dp6)), 1)
-        w12 = round(min(320.0, max(25.0, wind + dw12)), 1)
-        p12 = round(max(870.0, min(1015.0, pressure + dp12)), 1)
-        w24 = round(min(320.0, max(25.0, wind + dw24)), 1)
-        p24 = round(max(870.0, min(1015.0, pressure + dp24)), 1)
-        w48 = round(min(320.0, max(25.0, wind + dw48)), 1)
-        p48 = round(max(870.0, min(1015.0, pressure + dp48)), 1)
+        w6 = round(min(400.0, max(0.0, wind + dw6)), 1)
+        p6 = round(max(800.0, min(1050.0, pressure + dp6)), 1)
+        w12 = round(min(400.0, max(0.0, wind + dw12)), 1)
+        p12 = round(max(800.0, min(1050.0, pressure + dp12)), 1)
+        w24 = round(min(400.0, max(0.0, wind + dw24)), 1)
+        p24 = round(max(800.0, min(1050.0, pressure + dp24)), 1)
+        w48 = round(min(400.0, max(0.0, wind + dw48)), 1)
+        p48 = round(max(800.0, min(1050.0, pressure + dp48)), 1)
 
         track_forecast = [
-            {"hours": 6, "latitude": round(center_lat + d_lat_6h, 4), "longitude": round(center_lon + d_lon_6h, 4), "wind_speed_kmh": w6, "pressure_hpa": p6, "uncertainty_km": 11.2},
-            {"hours": 12, "latitude": round(center_lat + d_lat_12h, 4), "longitude": round(center_lon + d_lon_12h, 4), "wind_speed_kmh": w12, "pressure_hpa": p12, "uncertainty_km": 22.5},
-            {"hours": 24, "latitude": round(center_lat + d_lat_24h, 4), "longitude": round(center_lon + d_lon_24h, 4), "wind_speed_kmh": w24, "pressure_hpa": p24, "uncertainty_km": 44.8},
-            {"hours": 48, "latitude": round(center_lat + d_lat_48h, 4), "longitude": round(center_lon + d_lon_48h, 4), "wind_speed_kmh": w48, "pressure_hpa": p48, "uncertainty_km": 88.0},
+            {"hours": 6, "latitude": round(center_lat + d_lat_6h, 4), "longitude": round(center_lon + d_lon_6h, 4), "wind_speed_kmh": w6, "pressure_hpa": p6, "uncertainty_km": None},
+            {"hours": 12, "latitude": round(center_lat + d_lat_12h, 4), "longitude": round(center_lon + d_lon_12h, 4), "wind_speed_kmh": w12, "pressure_hpa": p12, "uncertainty_km": None},
+            {"hours": 24, "latitude": round(center_lat + d_lat_24h, 4), "longitude": round(center_lon + d_lon_24h, 4), "wind_speed_kmh": w24, "pressure_hpa": p24, "uncertainty_km": None},
+            {"hours": 48, "latitude": round(center_lat + d_lat_48h, 4), "longitude": round(center_lon + d_lon_48h, 4), "wind_speed_kmh": w48, "pressure_hpa": p48, "uncertainty_km": None},
         ]
 
         for point in track_forecast:
@@ -544,6 +418,7 @@ class AICycloneService:
                 "cyclone_detected": cyclone_detected,
                 "confidence": det_conf,
                 "center": {"latitude": center_lat, "longitude": center_lon},
+                "center_source": "USER_SUPPLIED_COORDINATES",
                 "method": "Experimental PyTorch CNN" if model_flags["detection"] else "Wind/pressure threshold heuristic",
             },
             "classification": {
@@ -558,7 +433,7 @@ class AICycloneService:
                 "is_ri_expected": is_ri,
                 "threshold_knots_24h": 30,
                 "warning_level": ri_warning_level,
-                "drivers": ["Ocean Thermal Energy (SST > 28°C)", "Eyewall Convective Asymmetry", "Low Vertical Wind Shear"],
+                "method": "Uncalibrated synthetic-model score" if model_flags["rapid_intensification"] else "Wind, SST and shear threshold heuristic",
             },
             "current_conditions": {
                 "wind_speed_kmh": wind,
@@ -574,7 +449,7 @@ class AICycloneService:
             },
             "track_forecast": track_forecast,
             "explainability": {
-                "method": "Grad-CAM (experimental model)" if self.pattern_model is not None else "UNAVAILABLE: pattern model not loaded",
+                "method": "Grad-CAM (experimental model)" if grad_cam_map else "UNAVAILABLE",
                 "target_class": selected_pattern,
                 "attention_grid_28x28": grad_cam_map,
             },

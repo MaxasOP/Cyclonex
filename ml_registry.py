@@ -4,7 +4,13 @@ The API is deliberately storage-agnostic; this module will be swapped for
 Postgres/object storage when production credentials are provisioned.
 """
 
+from datetime import timedelta
+from hashlib import sha256
+from threading import RLock
+
 from ml_schema import BestTrackLabel, SatelliteObservation, TrainingSample
+
+_LOCK = RLock()
 
 OBSERVATIONS: dict[str, SatelliteObservation] = {}
 SAMPLES: dict[str, TrainingSample] = {}
@@ -18,19 +24,36 @@ def register_sample_targets(sample_id: str, targets: dict[str, float]) -> None:
 
 
 def observation_id(observation: SatelliteObservation) -> str:
-    return f"{observation.source}:{observation.product}:{observation.acquired_at.isoformat()}"
+    digest = sha256(observation.model_dump_json().encode()).hexdigest()[:24]
+    return f"{observation.source}:{observation.product}:{observation.acquired_at.isoformat()}:{digest}"
 
 
 def register_observation(observation: SatelliteObservation) -> tuple[str, SatelliteObservation]:
     identifier = observation_id(observation)
-    OBSERVATIONS[identifier] = observation
+    with _LOCK:
+        OBSERVATIONS[identifier] = observation
     return identifier, observation
 
 
 def register_sample(sample: TrainingSample) -> TrainingSample:
+    with _LOCK:
+        return _register_sample(sample)
+
+
+def _register_sample(sample: TrainingSample) -> TrainingSample:
     missing = [identifier for identifier in sample.observation_ids if identifier not in OBSERVATIONS]
     if missing:
         raise KeyError(f"Unknown observation IDs: {', '.join(missing)}")
+    window_start = sample.target_time - timedelta(hours=sample.sequence_hours)
+    for obs_id in sample.observation_ids:
+        observation = OBSERVATIONS[obs_id]
+        if not window_start <= observation.acquired_at <= sample.target_time:
+            raise ValueError("Observation time falls outside the sample sequence")
+        if observation.storm_id and observation.storm_id != sample.storm_id:
+            raise ValueError("Observation belongs to another storm")
+    previous = SAMPLES.get(sample.sample_id)
+    if previous and (previous.storm_id, previous.target_time) != (sample.storm_id, sample.target_time):
+        raise ValueError("Sample ID already belongs to another storm or target time")
     assigned_split = STORM_SPLITS.get(sample.storm_id)
     if assigned_split is not None and assigned_split != sample.split:
         raise ValueError(
@@ -42,9 +65,10 @@ def register_sample(sample: TrainingSample) -> TrainingSample:
 
 
 def register_best_track_labels(labels: list[BestTrackLabel]) -> int:
-    for label in labels:
-        identifier = f"{label.storm_id}:{label.valid_at.isoformat()}"
-        BEST_TRACK_LABELS[identifier] = label
+    with _LOCK:
+        for label in labels:
+            identifier = f"{label.storm_id}:{label.valid_at.isoformat()}"
+            BEST_TRACK_LABELS[identifier] = label
     return len(labels)
 
 
@@ -59,7 +83,7 @@ def get_split_summary() -> dict[str, dict[str, int]]:
         "validation": set(),
         "test": set(),
     }
-    for sample in SAMPLES.values():
+    for sample in list(SAMPLES.values()):
         if sample.split in summary:
             summary[sample.split]["samples"] += 1
             storm_counts[sample.split].add(sample.storm_id)

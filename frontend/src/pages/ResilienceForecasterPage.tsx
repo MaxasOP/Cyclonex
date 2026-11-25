@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   ShieldAlert,
   Zap,
@@ -186,6 +186,9 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [showProvenanceDrawer, setShowProvenanceDrawer] = useState<boolean>(false);
 
+  const assessmentRequest = useRef(0);
+  const droneRequest = useRef(0);
+  const capRequest = useRef(0);
   const activePreset = STORM_PRESETS.find((p) => p.id === selectedPresetId) || STORM_PRESETS[0];
 
   const loadAssessment = async (
@@ -195,6 +198,13 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
     overrideFailWeather = failWeather,
     overrideDeployCountermeasure = deployCountermeasure
   ) => {
+    const request = ++assessmentRequest.current;
+    ++capRequest.current;
+    ++droneRequest.current;
+    setShowCAPModal(false);
+    setShowDroneModal(false);
+    setDroneReport(null);
+    setCapXml("");
     setIsRefreshing(true);
     setData(null);
     setError("");
@@ -211,10 +221,11 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
       simulate_failure_weather: overrideFailWeather,
       deploy_countermeasure: overrideDeployCountermeasure,
     });
+    if (request !== assessmentRequest.current) return;
     if (res) {
       setData(res);
       if (res.critical_infrastructure?.length > 0) {
-        setSelectedInfraId(res.critical_infrastructure[0].id);
+        setSelectedInfraId(res.critical_infrastructure[0].asset_id ?? res.critical_infrastructure[0].id);
       }
     }
     if (!res) setError("Assessment unavailable. Check the backend connection and retry.");
@@ -233,6 +244,8 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
   };
 
   const handleOpenDroneModal = async (sampleKey = selectedDroneSample) => {
+    const request = ++droneRequest.current;
+    setDroneReport(null);
     setSelectedDroneSample(sampleKey);
     setShowDroneModal(true);
     setDroneLoading(true);
@@ -241,21 +254,30 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
       asset_id: assetId,
       sample_id: sampleKey,
     });
+    if (request !== droneRequest.current) return;
     setDroneReport(report);
     if (!report) setError("Image analysis unavailable. No report was substituted.");
     setDroneLoading(false);
   };
 
   const handleOpenCapModal = async () => {
+    if (data?.surge_and_runoff.peak_surge_height_m == null) {
+      setError("A scenario surge estimate is required to generate the exercise alert.");
+      return;
+    }
+    const request = ++capRequest.current;
+    setCapXml("");
     setShowCAPModal(true);
     setLoadingCap(true);
     const xml = await fetchCapAlertXml({
       storm_name: activePreset.name,
       max_wind_kmh: activePreset.max_wind_kmh,
-      peak_surge_m: data?.surge_and_runoff.peak_surge_height_m || 2.8,
+      peak_surge_m: data.surge_and_runoff.peak_surge_height_m,
       eye_lat: activePreset.lat,
       eye_lon: activePreset.lon,
     });
+    if (request !== capRequest.current) return;
+    if (!xml) setError("Exercise alert could not be generated.");
     setCapXml(xml);
     setLoadingCap(false);
   };
@@ -271,7 +293,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
   };
 
   const selectedInfra =
-    data?.critical_infrastructure.find((item) => item.id === selectedInfraId) ||
+    data?.critical_infrastructure.find((item) => (item.asset_id ?? item.id) === selectedInfraId) ||
     data?.critical_infrastructure[0];
 
   // Resolve active warning text for current selected language
@@ -586,9 +608,9 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   Track-Based Cyclone Impact &amp; Infrastructure Vulnerability Forecaster
                 </h1>
                 <p style={{ color: "#94a3b8", fontSize: "13.5px", margin: 0, maxWidth: "860px", lineHeight: "1.5" }}>
-                  AI-powered predictive risk and vulnerability modeling platform utilizing Google Earth Engine (GEE) satellite feeds,
+                  Scenario-based infrastructure vulnerability screening with a satellite product catalogue,
                   real-time meteorological data, and optional Gemini API reasoning. Simulates storm surges, rainfall damage pathways,
-                  critical infrastructure exposure (power grids, roads, shelters), and automated early-warning advisory dispatches.
+                  critical infrastructure exposure (power grids, roads, shelters), and draft exercise advisories.
                 </p>
               </div>
             </div>
@@ -824,7 +846,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   🛡️ VIRTUAL FLOOD COUNTERMEASURE DEPLOYED: INFLATABLE BARRIERS &amp; SANDBAG REVETMENTS
                 </div>
                 <div style={{ color: "#cbd5e1", fontSize: "11.5px", marginTop: "2px" }}>
-                  Active at NH-53 Km 18.4 Culvert &amp; Substation Perimeter. Surge reach suppressed by 30% ({data?.surge_and_runoff.inundation_reach_km} km) · Overland flood depth reduced to +{data?.surge_and_runoff.max_flood_depth_m}m · NH-53 corridor status upgraded to <strong style={{ color: "#34d399" }}>PASSABLE_PROTECTED</strong>.
+                  Barrier assumptions are enabled for this exercise. Road clearance requires field verification.
                 </div>
               </div>
             </div>
@@ -851,88 +873,39 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
         <div className="saas-landing-live-strip" style={{ marginBottom: "24px" }}>
           <div className="saas-live-stat">
             <span className="saas-live-label">Anticipatory Action Window</span>
-            <span className="saas-live-val" style={{ color: "#8b5cf6" }}>T - 18h Pre-Landfall</span>
+            <span className="saas-live-val" style={{ color: "#8b5cf6" }}>Landfall time unverified</span>
           </div>
           <div className="saas-live-stat">
             <span className="saas-live-label">Critical Infrastructure at Risk</span>
             <span className="saas-live-val" style={{ color: "#ef4444" }}>
-              {data ? `${data.critical_infrastructure.filter((i: any) => i.overall_vulnerability === "CRITICAL" || i.status === "CRITICAL_RISK").length} High-Risk Assets` : "Loading..."}
+              {data ? `${data.critical_infrastructure.filter((i: any) => i.overall_vulnerability === "CRITICAL" || i.status === "CRITICAL_RISK").length} High-Risk Assets` : (isRefreshing ? "Loading…" : "Unavailable")}
             </span>
           </div>
           <div className="saas-live-stat">
             <span className="saas-live-label">Modeled Storm Surge Reach</span>
             <span className="saas-live-val" style={{ color: "#f59e0b" }}>
-              {data ? `+${data.surge_and_runoff.peak_surge_height_m}m (${data.surge_and_runoff.inundation_reach_km} km)` : "Loading..."}
+              {data ? `+${data.surge_and_runoff.peak_surge_height_m}m (${data.surge_and_runoff.inundation_reach_km} km)` : (isRefreshing ? "Loading…" : "Unavailable")}
             </span>
           </div>
           <div className="saas-live-stat">
             <span className="saas-live-label">Parametric Liquidity Simulation</span>
             <span className="saas-live-val" style={{ color: "#10b981" }}>
-              {data ? `₹${data.parametric_insurance.disbursed_liquidity_inr_cr} Cr Triggered` : "Loading..."}
+              {data ? `₹${data.parametric_insurance.disbursed_liquidity_inr_cr} Cr (simulated)` : (isRefreshing ? "Loading…" : "Unavailable")}
             </span>
           </div>
           <div className="saas-live-stat">
             <span className="saas-live-label">AI Decision Confidence</span>
             <span className="saas-live-val" style={{ color: "#a855f7" }}>
-              {data ? data.gemini_multimodal_advisory.confidence_score > 0 ? `${(data.gemini_multimodal_advisory.confidence_score * 100).toFixed(1)}% (uncalibrated)` : "Not calibrated" : "Loading..."}
+              {data ? data.gemini_multimodal_advisory.confidence_score > 0 ? `${(data.gemini_multimodal_advisory.confidence_score * 100).toFixed(1)}% (uncalibrated)` : "Not calibrated" : (isRefreshing ? "Loading…" : "Unavailable")}
             </span>
           </div>
         </div>
 
-        {/* Complete Causal Rainfall Damage Pathway Card */}
-        <div
-          style={{
-            background: "linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.7) 100%)",
-            border: "1px solid rgba(59, 130, 246, 0.3)",
-            borderRadius: "10px",
-            padding: "16px 20px",
-            marginBottom: "24px",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-            <span style={{ fontSize: "12px", fontWeight: 700, color: "#a78bfa", display: "flex", alignItems: "center", gap: "6px" }}>
-              <Droplets size={14} />
-              COMPLETE CAUSAL RAINFALL DAMAGE PATHWAY (RAINFALL → RUNOFF → INUNDATION → ROAD IMPACT)
-            </span>
-            <span style={{ fontSize: "11px", color: "#8b5cf6", background: "rgba(56, 189, 248, 0.15)", padding: "2px 8px", borderRadius: "10px" }}>
-              Physics-Informed Causal Model
-            </span>
-          </div>
-          
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "10px", fontSize: "11px" }}>
-            <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>1. RAIN RATE</span>
-              <strong style={{ color: "#ffffff", fontSize: "13px" }}>75 mm/hr</strong>
-              <span style={{ color: "#64748b", display: "block", fontSize: "10px", marginTop: "2px" }}>Convective Core</span>
-            </div>
-            <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>2. 24H ACCUMULATION</span>
-              <strong style={{ color: "#8b5cf6", fontSize: "13px" }}>{data?.surge_and_runoff.projected_24h_rainfall_mm || 280} mm</strong>
-              <span style={{ color: "#64748b", display: "block", fontSize: "10px", marginTop: "2px" }}>Basin Watershed</span>
-            </div>
-            <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>3. SOIL SATURATION</span>
-              <strong style={{ color: "#fbbf24", fontSize: "13px" }}>SATURATED</strong>
-              <span style={{ color: "#64748b", display: "block", fontSize: "10px", marginTop: "2px" }}>100% Infiltration</span>
-            </div>
-            <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>4. RUNOFF COEFF</span>
-              <strong style={{ color: "#f59e0b", fontSize: "13px" }}>0.88 Overland</strong>
-              <span style={{ color: "#64748b", display: "block", fontSize: "10px", marginTop: "2px" }}>Hydro Runoff</span>
-            </div>
-            <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>5. DRAINAGE CAPACITY</span>
-              <strong style={{ color: "#ef4444", fontSize: "13px" }}>142% OVERTOPPING</strong>
-              <span style={{ color: "#64748b", display: "block", fontSize: "10px", marginTop: "2px" }}>Estuary Alpha</span>
-            </div>
-            <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <span style={{ color: "#94a3b8", display: "block", fontSize: "10px" }}>6. ESTIMATED FLOOD</span>
-              <strong style={{ color: "#f87171", fontSize: "13px" }}>+{data?.surge_and_runoff.max_flood_depth_m || 1.45}m Depth</strong>
-              <span style={{ color: "#64748b", display: "block", fontSize: "10px", marginTop: "2px" }}>Road Culvert Breach</span>
-            </div>
-          </div>
-        </div>
-
+        <section className="op-technical-panel"><h2>Rainfall and drainage screening</h2>
+          <p>24-hour rainfall estimate: {data?.surge_and_runoff.projected_24h_rainfall_mm == null ? "Unavailable" : data.surge_and_runoff.projected_24h_rainfall_mm + " mm"}.</p>
+          {data?.surge_and_runoff.primary_drainage_pathways?.map(path => <p key={path.name}>{path.name} · {path.capacity_utilization} · {path.risk}</p>)}
+          {!data?.surge_and_runoff.primary_drainage_pathways?.length && <p>Local drainage assessment unavailable.</p>}
+        </section>
         {/* Main Split Grid: Left Geospatial & Asset Inspection | Right Gemini Reasoning Console */}
         <div className="op-split-grid" style={{ gridTemplateColumns: "1.15fr 0.85fr", gap: "24px" }}>
           
@@ -1051,7 +1024,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 </text>
 
                 {/* Storm Surge Inundation Reach Polygon */}
-                {layerSurge && (
+                {layerSurge && data?.surge_and_runoff.peak_surge_height_m != null && (
                   <g>
                     <path
                       d="M 195,0 Q 225,120 235,220 T 245,360 Q 255,410 270,460 L 195,460 Z"
@@ -1061,7 +1034,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                       strokeDasharray="4 3"
                     />
                     <text x="210" y="55" fill="#8b5cf6" fontSize="9" fontFamily="'Space Mono', monospace">
-                      SURGE CONTOUR (+{data?.surge_and_runoff.peak_surge_height_m || 2.8}m MSL)
+                      SURGE CONTOUR (+{data?.surge_and_runoff.peak_surge_height_m}m MSL)
                     </text>
                   </g>
                 )}
@@ -1074,51 +1047,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   strokeWidth="1.5"
                 />
 
-                {/* Rainfall Overland Drainage Pathways */}
-                <path
-                  d="M 450,110 Q 340,140 260,150 T 205,170"
-                  fill="none"
-                  stroke="#a78bfa"
-                  strokeWidth="2.5"
-                  strokeDasharray="6 3"
-                />
-                <text x="310" y="135" fill="#a78bfa" fontSize="8.5" fontFamily="'Space Mono', monospace">
-                  DRAINAGE OVERTOPPING (+1.45m FLOOD)
-                </text>
-
-                {/* Arterial Road (Evacuation Corridor) */}
-                {layerRoads && (
-                  <g>
-                    <path
-                      d="M 230,460 L 250,330 L 270,220 L 310,130 L 380,0"
-                      fill="none"
-                      stroke="#f59e0b"
-                      strokeWidth="3.5"
-                      strokeOpacity="0.8"
-                    />
-                    <text x="290" y="270" fill="#f59e0b" fontSize="8.5" fontFamily="'Space Mono', monospace">
-                      {activePreset.id === "dana" ? "NH-53 EVAC CORRIDOR" : "COASTAL ARTERIAL (SH-47)"}
-                    </text>
-                  </g>
-                )}
-
-                {/* High Voltage Power Grid (220kV Lines) */}
-                {layerPower && (
-                  <g>
-                    <path
-                      d="M 280,460 L 290,320 L 320,200 L 360,90"
-                      fill="none"
-                      stroke="#a855f7"
-                      strokeWidth="2"
-                      strokeDasharray="5 3"
-                      strokeOpacity="0.75"
-                    />
-                    <text x="340" y="190" fill="#a855f7" fontSize="8.5" fontFamily="'Space Mono', monospace">
-                      220kV TRANSMISSION LINE
-                    </text>
-                  </g>
-                )}
-
+                <text x="210" y="100" fill="#a78bfa" fontSize="10">Illustrative cross-section</text>
                 {/* Critical Infrastructure Nodes */}
                 {data?.critical_infrastructure.map((item: any, idx: number) => {
                   const isPower = item.category === "POWER_GRID";
@@ -1233,15 +1162,15 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   </div>
                   <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 10px", borderRadius: "4px" }}>
                     <div style={{ color: "#64748b", fontSize: "10.5px" }}>WIND EXPOSURE</div>
-                    <strong style={{ color: "#f87171" }}>{selectedInfra.wind_exposure_pct || 92}%</strong>
+                    <strong style={{ color: "#f87171" }}>{selectedInfra.wind_exposure_pct == null ? "Unavailable" : selectedInfra.wind_exposure_pct + "%"}</strong>
                   </div>
                   <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 10px", borderRadius: "4px" }}>
                     <div style={{ color: "#64748b", fontSize: "10.5px" }}>FLOOD EXPOSURE</div>
-                    <strong style={{ color: "#8b5cf6" }}>{selectedInfra.flood_exposure_pct || 78}%</strong>
+                    <strong style={{ color: "#8b5cf6" }}>{selectedInfra.flood_exposure_pct == null ? "Unavailable" : selectedInfra.flood_exposure_pct + "%"}</strong>
                   </div>
                   <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 10px", borderRadius: "4px" }}>
                     <div style={{ color: "#64748b", fontSize: "10.5px" }}>SALT ARC RISK</div>
-                    <strong style={{ color: "#c084fc" }}>{selectedInfra.salt_spray_exposure_pct || 85}%</strong>
+                    <strong style={{ color: "#c084fc" }}>{selectedInfra.salt_spray_exposure_pct == null ? "Unavailable" : selectedInfra.salt_spray_exposure_pct + "%"}</strong>
                   </div>
                 </div>
 
@@ -1249,7 +1178,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 {selectedInfra.category === "ARTERIAL_ROAD" && selectedInfra.alternate_route && (
                   <div style={{ background: "rgba(245, 158, 11, 0.12)", border: "1px solid rgba(245, 158, 11, 0.3)", padding: "10px 14px", borderRadius: "6px", fontSize: "12px", marginBottom: "12px" }}>
                     <span style={{ color: "#fbbf24", fontWeight: 700, display: "block", marginBottom: "3px" }}>
-                      ⚠️ Passability Status: {selectedInfra.passability_status || "IMPASSABLE_FLOODED"} (+1.45m Water Over Culvert)
+                      ⚠️ Passability Status: {selectedInfra.passability_status || "Unverified"}
                     </span>
                     <span style={{ color: "#cbd5e1" }}>
                       Alternate Elevated Route: <strong style={{ color: "#ffffff" }}>{selectedInfra.alternate_route.name}</strong> (+{selectedInfra.alternate_route.additional_km} km distance penalty)
@@ -1470,7 +1399,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   <AlertTriangle size={14} color="#ef4444" />
                   <span style={{ fontSize: "12px", fontWeight: 700, color: "#ef4444" }}>
-                    EARLY-WARNING ADVISORY DISPATCH (MUNICIPAL / NDMA)
+                    DRAFT EXERCISE ADVISORY
                   </span>
                 </div>
 
@@ -1682,7 +1611,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   {data?.post_landfall?.sar_flood_observation_notes}
                 </p>
                 <div style={{ fontSize: "11px", color: "#ffffff", marginBottom: "10px" }}>
-                  Potential Power Outage Zone: <strong style={{ color: "#ef4444" }}>{data?.post_landfall?.power_outage_risk_area_km2 || 1570} km²</strong>
+                  Potential Power Outage Zone: <strong style={{ color: "#ef4444" }}>{data?.post_landfall?.power_outage_risk_area_km2 ?? "Unavailable"} km²</strong>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                   {data?.post_landfall?.restoration_priority_manifest.map((item, idx) => (
@@ -1755,8 +1684,10 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   const file = event.target.files?.[0]; if (!file) return;
                   if (file.size > 10 * 1024 * 1024) { setError("Image exceeds 10 MB"); return; }
                   const reader = new FileReader();
-                  reader.onload = async () => { setDroneLoading(true); setDroneReport(null); setError("");
+                  const request = ++droneRequest.current;
+                  reader.onload = async () => { if (request !== droneRequest.current) return; setDroneLoading(true); setDroneReport(null); setError("");
                     const report = await inspectDroneDamage({asset_id: selectedInfraId, image_base64: String(reader.result)});
+                    if (request !== droneRequest.current) return;
                     setDroneReport(report); setDroneLoading(false);
                     if (!report) setError("Image analysis unavailable. Configure the image provider on the backend; no sample was substituted.");
                   };
@@ -1966,7 +1897,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
         {/* MODAL 2: NDMA Incident Action Plan (IAP Form 201/202)          */}
         {/* --------------------------------------------------------------- */}
         {showIAPModal && (
-          <div
+          <div className="exercise-plan-backdrop"
             style={{
               position: "fixed",
               inset: 0,
@@ -1979,7 +1910,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
               padding: "20px",
             }}
           >
-            <div
+            <div className="exercise-plan-print"
               style={{
                 background: "#ffffff",
                 color: "#0f172a",
@@ -1996,13 +1927,13 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #0f172a", paddingBottom: "14px", marginBottom: "18px" }}>
                 <div>
                   <div style={{ fontSize: "11px", fontWeight: 800, letterSpacing: "0.1em", color: "#dc2626" }}>
-                    GOVERNMENT OF INDIA · NATIONAL DISASTER MANAGEMENT AUTHORITY (NDMA)
+                    CYCLONEX · SCENARIO EXERCISE
                   </div>
                   <h1 style={{ fontSize: "20px", fontWeight: 800, margin: "4px 0", color: "#0f172a" }}>
                     INCIDENT ACTION PLAN (IAP) · FORM 201 &amp; 202
                   </h1>
                   <div style={{ fontSize: "12px", color: "#475569" }}>
-                    Operational Period: Landfall Anticipatory Window (T-24h to Landfall) · Cyclone {activePreset.name.toUpperCase()}
+                    Scenario input · Cyclone {activePreset.name.toUpperCase()}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: "8px" }}>
@@ -2036,42 +1967,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                 </div>
               </div>
 
-              {/* Command Staff Overview */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px", marginBottom: "18px", fontSize: "11.5px", background: "#f8fafc", padding: "12px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
-                <div>
-                  <span style={{ color: "#64748b", display: "block", fontSize: "10px", fontWeight: 600 }}>INCIDENT COMMANDER</span>
-                  <strong>District Collector / DDMA</strong>
-                </div>
-                <div>
-                  <span style={{ color: "#64748b", display: "block", fontSize: "10px", fontWeight: 600 }}>OPERATIONS CHIEF</span>
-                  <strong>NDRF 4th Battalion Commandant</strong>
-                </div>
-                <div>
-                  <span style={{ color: "#64748b", display: "block", fontSize: "10px", fontWeight: 600 }}>PLANNING SECTION</span>
-                  <strong>CycloneX Resilience Forecaster</strong>
-                </div>
-                <div>
-                  <span style={{ color: "#64748b", display: "block", fontSize: "10px", fontWeight: 600 }}>LOGISTICS / FINTECH</span>
-                  <strong>Parametric Payout (₹{data?.parametric_insurance.disbursed_liquidity_inr_cr} Cr)</strong>
-                </div>
-              </div>
-
-              {/* General Incident Objectives */}
-              <div style={{ marginBottom: "18px" }}>
-                <h3 style={{ fontSize: "13px", fontWeight: 700, margin: "0 0 8px 0", color: "#0f172a", textTransform: "uppercase" }}>
-                  1. Incident Objectives (Form 202)
-                </h3>
-                <ol style={{ margin: 0, paddingLeft: "18px", fontSize: "12px", color: "#334155", lineHeight: "1.6" }}>
-                  <li><strong>Zero Life Casualty Mandate:</strong> Evacuate all human settlements within 5 km of coast before storm surge overtopping reaches +{data?.surge_and_runoff.peak_surge_height_m}m MSL.</li>
-                  <li><strong>Grid Flashover Prevention:</strong> Controlled 33kV/220kV power de-energization 2 hours prior to landfall gale winds to protect substation transformers.</li>
-                  <li><strong>Highway Corridor Resilience:</strong> Maintain NH-53 emergency vehicle passability; execute elevated ridge bypass diversions for civilian traffic.</li>
-                  <li><strong>Hospital Power Continuity:</strong> Secure 14-day diesel generator fuel reserve at District Hospital and elevate medical oxygen inventory.</li>
-                  {deployCountermeasure && (
-                    <li><strong>Active Flood Defense:</strong> Inflatable flood barriers and mobile coffer dams actively defending Km 18.4 culvert.</li>
-                  )}
-                </ol>
-              </div>
-
+              <section><h3>Scenario summary</h3><p>{data?.gemini_multimodal_advisory.executive_summary ?? "Unavailable"}</p></section>
               {/* Hazard & Impact Summary */}
               <div style={{ marginBottom: "18px" }}>
                 <h3 style={{ fontSize: "13px", fontWeight: 700, margin: "0 0 8px 0", color: "#0f172a", textTransform: "uppercase" }}>
@@ -2096,7 +1992,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                   </div>
                   <div style={{ background: "#f1f5f9", padding: "8px", borderRadius: "4px" }}>
                     <span style={{ color: "#64748b", display: "block", fontSize: "10px" }}>DRAINAGE OVERTOPPING</span>
-                    <strong style={{ color: "#dc2626" }}>142% Over Capacity</strong>
+                    <strong style={{ color: "#dc2626" }}>Unverified</strong>
                   </div>
                 </div>
               </div>
@@ -2126,7 +2022,7 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
                             {item.overall_vulnerability}
                           </span>
                         </td>
-                        <td style={{ padding: "6px 8px" }}>{item.passability_status || "OPERATIONAL"}</td>
+                        <td style={{ padding: "6px 8px" }}>{item.passability_status || "Unverified"}</td>
                         <td style={{ padding: "6px 8px", color: "#334155" }}>{item.hardening_directive}</td>
                       </tr>
                     ))}
@@ -2136,9 +2032,9 @@ export const ResilienceForecasterPage: React.FC<ResilienceForecasterPageProps> =
 
               {/* Resource & Financing */}
               <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", padding: "12px", borderRadius: "6px", fontSize: "11.5px", marginBottom: "16px" }}>
-                <strong style={{ color: "#065f46" }}>PARAMETRIC SMART COVENANT DISBURSAL CONFIRMATION:</strong>
+                <strong style={{ color: "#065f46" }}>SIMULATED PAYOUT:</strong>
                 <span style={{ color: "#047857", marginLeft: "6px" }}>
-                  ₹{data?.parametric_insurance.disbursed_liquidity_inr_cr} Crores auto-disbursed for diesel generators, dry rations, and mobile water pumps.
+                  ₹{data?.parametric_insurance.disbursed_liquidity_inr_cr} crore in this scenario. No funds transferred.
                 </span>
               </div>
 

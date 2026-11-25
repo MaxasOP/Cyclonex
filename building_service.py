@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 import json
 import os
+import re
 from typing import Any
 
 import requests
@@ -61,9 +62,9 @@ def _get_bundled_buildings(lat: float, lon: float) -> list[dict[str, Any]]:
             "ring": ring,
             "centroid": _centroid(ring[:-1]),
             "height_m": b["height_m"],
-            "height_source": "osm_overpass_cached",
-            "is_locally_taller": b["type"] in ("MPCS_SHELTER", "HOSPITAL", "TELECOM_TOWER"),
-            "capacity": 1500 if b["type"] == "MPCS_SHELTER" else 350 if b["type"] == "HOSPITAL" else 0,
+            "height_source": "bundled_height_unverified",
+            "is_locally_taller": False,
+            "capacity": None,
         })
     return candidates
 
@@ -72,10 +73,11 @@ def _numeric_tag(tags: dict[str, str], name: str) -> float | None:
     value = tags.get(name)
     if not value:
         return None
-    try:
-        return float(value.split()[0])
-    except ValueError:
+    match = re.fullmatch(r"([0-9]+(?:\.[0-9]+)?)\s*(m|ft|feet|')?", str(value).strip().lower())
+    if not match or name != "height" and match[2]:
         return None
+    height = float(match[1]) * (0.3048 if match[2] in {"ft", "feet", "'"} else 1.0)
+    return height if math.isfinite(height) and height > 0 else None
 
 
 def _height_m(tags: dict[str, str]) -> tuple[float | None, str]:
@@ -100,82 +102,6 @@ def _distance_m(a: tuple[float, float], b: tuple[float, float]) -> float:
     lat_scale = 111_320
     lon_scale = lat_scale * math.cos(math.radians((lat1 + lat2) / 2))
     return math.hypot((lon2 - lon1) * lon_scale, (lat2 - lat1) * lat_scale)
-
-
-def generate_synthetic_coastal_buildings(south: float, west: float, north: float, east: float) -> list[dict[str, Any]]:
-    """Generate realistic 3D coastal infrastructure buildings across the bounding box."""
-    import random
-    candidates: list[dict[str, Any]] = []
-    
-    # 1 degree lat is ~111km, 1m is ~0.000009 deg
-    lat_span = north - south
-    lon_span = east - west
-    
-    # Grid of clusters: 8x8 clusters across the region
-    rows = 7
-    cols = 7
-    d_lat = lat_span / (rows + 1)
-    d_lon = lon_span / (cols + 1)
-    
-    types = [
-        {"name": "MPCS Cyclone Shelter", "type": "MPCS_SHELTER", "height": 16.0, "is_taller": True, "base_w": 0.00045, "base_h": 0.00035, "prob": 0.15, "capacity": 1500},
-        {"name": "District Emergency Hospital", "type": "HOSPITAL", "height": 18.5, "is_taller": True, "base_w": 0.00050, "base_h": 0.00040, "prob": 0.10, "capacity": 300},
-        {"name": "132kV Coastal Substation", "type": "POWER_SUBSTATION", "height": 10.0, "is_taller": False, "base_w": 0.00040, "base_h": 0.00040, "prob": 0.10, "capacity": 0},
-        {"name": "Govt Higher Secondary School", "type": "SCHOOL", "height": 12.0, "is_taller": False, "base_w": 0.00035, "base_h": 0.00025, "prob": 0.15, "capacity": 800},
-        {"name": "Telecom & Radio Tower", "type": "TELECOM_TOWER", "height": 38.0, "is_taller": True, "base_w": 0.00015, "base_h": 0.00015, "prob": 0.08, "capacity": 0},
-        {"name": "Commercial Market Complex", "type": "COMMERCIAL", "height": 14.0, "is_taller": False, "base_w": 0.00030, "base_h": 0.00030, "prob": 0.18, "capacity": 0},
-        {"name": "Coastal Pucca Residential", "type": "RESIDENTIAL", "height": 7.5, "is_taller": False, "base_w": 0.00020, "base_h": 0.00020, "prob": 0.24, "capacity": 0},
-    ]
-
-    rng = random.Random(42 + int((south + west) * 1000))
-    bld_id = 1
-    
-    for r in range(1, rows + 1):
-        for c in range(1, cols + 1):
-            cluster_lat = south + r * d_lat + (rng.random() - 0.5) * d_lat * 0.4
-            cluster_lon = west + c * d_lon + (rng.random() - 0.5) * d_lon * 0.4
-            
-            # Create 2 to 4 buildings per cluster
-            num_bld = rng.randint(2, 4)
-            for _ in range(num_bld):
-                # Pick a building type
-                pick = rng.random()
-                cumulative = 0.0
-                chosen = types[-1]
-                for t in types:
-                    cumulative += t["prob"]
-                    if pick <= cumulative:
-                        chosen = t
-                        break
-                
-                b_lat = cluster_lat + (rng.random() - 0.5) * d_lat * 0.3
-                b_lon = cluster_lon + (rng.random() - 0.5) * d_lon * 0.3
-                w = chosen["base_w"] * (0.8 + rng.random() * 0.4)
-                h = chosen["base_h"] * (0.8 + rng.random() * 0.4)
-                height = chosen["height"] * (0.9 + rng.random() * 0.2)
-                
-                ring = [
-                    [round(b_lon, 6), round(b_lat, 6)],
-                    [round(b_lon + w, 6), round(b_lat, 6)],
-                    [round(b_lon + w, 6), round(b_lat + h, 6)],
-                    [round(b_lon, 6), round(b_lat + h, 6)],
-                    [round(b_lon, 6), round(b_lat, 6)],
-                ]
-                
-                candidates.append({
-                    "id": f"syn-bld-{bld_id}",
-                    "name": f"{chosen['name']} #{bld_id:02d}",
-                    "building_type": chosen["type"],
-                    "ring": ring,
-                    "centroid": (round(b_lon + w / 2, 6), round(b_lat + h / 2, 6)),
-                    "height_m": round(height, 1),
-                    "height_source": "synthetic_infrastructure_model",
-                    "is_locally_taller": chosen["is_taller"],
-                    "capacity": chosen["capacity"],
-                })
-                bld_id += 1
-
-    return candidates
 
 
 def fetch_buildings(south: float, west: float, north: float, east: float) -> dict[str, Any]:
@@ -203,24 +129,34 @@ def fetch_buildings(south: float, west: float, north: float, east: float) -> dic
                                      headers={"User-Agent": "CYCLONEX/2.2"}, timeout=(2, 8))
             response.raise_for_status()
             raw = response.json()
+            if not isinstance(raw, dict) or not isinstance(raw.get("elements"), list) or raw.get("remark"):
+                raise ValueError("Incomplete Overpass response")
         except (requests.RequestException, ValueError):
+            raw = {}
             error, status = "Building provider unavailable; no footprints were invented.", "UNAVAILABLE"
         for item in raw.get("elements", []):
-            geometry = item.get("geometry", [])
-            if len(geometry) < 3:
+            if not isinstance(item, dict):
                 continue
-            ring = [[point["lon"], point["lat"]] for point in geometry]
-            if ring[0] != ring[-1]:
-                ring.append(ring[0])
+            geometry = item.get("geometry") or []
+            if "id" not in item or len(geometry) < 4:
+                continue
+            try:
+                ring = [[float(point["lon"]), float(point["lat"])] for point in geometry]
+            except (TypeError, ValueError, KeyError):
+                continue
+            if ring[0] != ring[-1] or not all(math.isfinite(v) for point in ring for v in point):
+                continue
             tags = item.get("tags", {})
             height_m, height_source = _height_m(tags)
             candidates.append({"id": f"osm-way-{item['id']}", "name": tags.get("name", f"OSM building {item['id']}"),
                                "building_type": tags.get("building", "yes").upper(), "ring": ring,
                                "centroid": _centroid(ring[:-1]), "height_m": height_m,
-                               "height_source": height_source, "is_locally_taller": False, "capacity": 0})
+                               "height_source": height_source, "is_locally_taller": False, "capacity": None})
         if not candidates and status == "LIVE":
             status = "NO_DATA"
 
+    if source == "BUNDLED_FOOTPRINTS_UNVERIFIED":
+        q_s, q_w, q_n, q_e = south, west, north, east
     features: list[dict[str, Any]] = []
     for building in candidates:
         height = building["height_m"]
@@ -245,7 +181,7 @@ def fetch_buildings(south: float, west: float, north: float, east: float) -> dic
                     "is_locally_taller": higher_than_neighbour or building.get("is_locally_taller", False),
                     "base_colour": "#0a2a57",
                     "adjacent_taller_highlight": "#ffffff" if higher_than_neighbour else None,
-                    "capacity": building.get("capacity", 0),
+                    "capacity": building.get("capacity"),
                 },
             }
         )
@@ -265,5 +201,5 @@ def fetch_buildings(south: float, west: float, north: float, east: float) -> dic
     if candidates:
         _MEMORY_BUILDING_CACHE[bbox_key] = {"cached_at": monotonic(), "result": deepcopy(result)}
         if len(_MEMORY_BUILDING_CACHE) > 32:
-            _MEMORY_BUILDING_CACHE.pop(next(iter(_MEMORY_BUILDING_CACHE)))
+            _MEMORY_BUILDING_CACHE.pop(next(iter(_MEMORY_BUILDING_CACHE)), None)
     return result

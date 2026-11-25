@@ -22,7 +22,7 @@ export interface ContextualCyclonePanelProps {
   speedKph: number;
   lat: number;
   lon: number;
-  aiConfidence?: number;
+  radiusKm?: number;
   trend?: string;
   onNavigateSection: (section: "ai" | "forecast" | "risk") => void;
 }
@@ -38,8 +38,8 @@ export default function ContextualCyclonePanel({
   speedKph,
   lat,
   lon,
-  aiConfidence = 0,
-  trend = "Strengthening (Eyewall consolidation)",
+  radiusKm,
+  trend = "Trend unavailable",
   onNavigateSection,
 }: ContextualCyclonePanelProps) {
   if (!isOpen) return null;
@@ -55,7 +55,7 @@ export default function ContextualCyclonePanel({
       {/* Header */}
       <div className="drawer-top-bar">
         <div>
-          <span className="drawer-system-tag">ACTIVE TROPICAL SYSTEM</span>
+          <span className="drawer-system-tag">CYCLONE SCENARIO</span>
           <h2 className="drawer-storm-title">{stormName || "CYCLONE TARGET"}</h2>
         </div>
         <button
@@ -105,13 +105,13 @@ export default function ContextualCyclonePanel({
           </div>
 
           <div className="param-item">
-            <span className="param-label">AI Neural Confidence:</span>
-            <strong style={{ color: "#10b981" }}>{aiConfidence}% (Verified)</strong>
+            <span className="param-label">Model calibration:</span>
+            <strong style={{ color: "#10b981" }}>Uncalibrated</strong>
           </div>
 
           <div className="param-item">
             <span className="param-label">Radius of Max Winds (Rmax):</span>
-            <strong>28.0 km</strong>
+            <strong>{radiusKm == null ? "Unavailable" : `${radiusKm} km`}</strong>
           </div>
         </div>
 

@@ -1,3 +1,4 @@
+import { apiBaseUrl } from "../api";
 import { useState } from "react";
 import {
   Radio,
@@ -29,10 +30,9 @@ interface DataSource {
   resolution: string;
   cadence: string;
   latency: string;
-  status: "ONLINE" | "SYNCED" | "STANDBY" | "ARCHIVED";
+  status: string;
   coverage: string;
   description: string;
-  dataPoints: number;
   flowColor: string;
 }
 
@@ -45,11 +45,10 @@ const DATA_SOURCES: DataSource[] = [
     spectrum: "10.8 µm Thermal IR & 6.8 µm WV",
     resolution: "4.0 km Spatial @ Sub-satellite",
     cadence: "15 Minutes (Rapid Scan mode)",
-    latency: "4.2 min ingest delay",
-    status: "ONLINE",
+    latency: "Not measured",
+    status: "Catalogue",
     coverage: "North Indian Ocean (0°N–35°N, 45°E–105°E)",
-    description: "Primary multispectral thermal infrared feed utilized for Automated Dvorak eye/CDO temperature contrast and deep convective cloud-top tracking.",
-    dataPoints: 14400,
+    description: "Satellite imagery can be supplied manually to the AI Lab.",
     flowColor: "#8b5cf6",
   },
   {
@@ -60,11 +59,10 @@ const DATA_SOURCES: DataSource[] = [
     spectrum: "2.7–3.0 GHz Polarimetric",
     resolution: "250m Gate Resolution",
     cadence: "10 Minutes (Volume Scan)",
-    latency: "2.1 min network latency",
-    status: "ONLINE",
+    latency: "Not measured",
+    status: "Catalogue",
     coverage: "Mumbai, Goa, Kochi, Chennai, Visakhapatnam, Paradip, Kolkata",
-    description: "Ground-truth radial velocity and precipitation reflectivity (Z) matrices validating eyewall mesovortices and rainfall rate conversion.",
-    dataPoints: 21600,
+    description: "Reference radar instrument. No active radar ingestion is configured.",
     flowColor: "#10b981",
   },
   {
@@ -75,11 +73,10 @@ const DATA_SOURCES: DataSource[] = [
     spectrum: "Synoptic Pressure & 500 hPa Steering",
     resolution: "0.25° × 0.25° (~25 km)",
     cadence: "6 Hours (00, 06, 12, 18 UTC)",
-    latency: "45 min post-cycle",
-    status: "SYNCED",
+    latency: "Not measured",
+    status: "Catalogue",
     coverage: "Synoptic NIO Domain",
-    description: "Global numerical atmospheric boundary conditions providing steering flows, deep tropospheric shear, and 72h track dispersion.",
-    dataPoints: 8640,
+    description: "Reference forecast products. The scenario forecast uses the model identified in its API response.",
     flowColor: "#f59e0b",
   },
   {
@@ -90,11 +87,10 @@ const DATA_SOURCES: DataSource[] = [
     spectrum: "1848–Present Historical NIO Tracks",
     resolution: "Point Coordinates & 1-min / 3-min Vmax",
     cadence: "Historical Benchmark Suite",
-    latency: "Post-Season Validated",
-    status: "ONLINE",
+    latency: "Not measured",
+    status: "Catalogue",
     coverage: "Global Tropical Basins",
-    description: "Verified historical cyclone tracks and central pressure series utilized for back-testing Holland B peaking parameters.",
-    dataPoints: 34200,
+    description: "Historical best-track records can be imported into the training dataset.",
     flowColor: "#a855f7",
   },
   {
@@ -104,37 +100,20 @@ const DATA_SOURCES: DataSource[] = [
     instrument: "Vector Building Footprints & Roads",
     spectrum: "200m Spatial Exposure Grid",
     resolution: "Parcel-Level Polygon Geometry",
-    cadence: "Dynamic Continuous Ingestion",
-    latency: "Instant Database Cache",
-    status: "ONLINE",
+    cadence: "Bundled or on request",
+    latency: "Not measured",
+    status: "Catalogue",
     coverage: "Coastal Districts of Maharashtra & Gujarat",
     description: "Structural GIS polygons and lifelines intersected with wind pressure fields to calculate parcel-level damage fragility.",
-    dataPoints: 54000,
     flowColor: "#ec4899",
   },
 ];
 
-const API_ENDPOINTS = [
-  {
-    method: "GET" as const,
-    path: "/api/dataset/summary",
-    description: "Retrieve active cyclone target telemetry, storm metadata, and real-time bounding box.",
-    sampleResponse: `{\n  "total_records": 14400,\n  "storm_name": "NISARGA",\n  "active_coordinates": { "lat": 18.35, "lon": 72.98 },\n  "current_vmax_kph": 120,\n  "min_pressure_hpa": 984,\n  "resolution": "200m Physical Grid"\n}`,
-  },
-  {
-    method: "POST" as const,
-    path: "/api/ai/analyze-cyclone",
-    description: "Run experimental CNN or heuristic screening; inspect the returned image provenance and model status.",
-    samplePayload: `{\n  "lat": 18.35,\n  "lon": 72.98,\n  "wind_kph": 120,\n  "pressure_hpa": 984\n}`,
-    sampleResponse: `{\n  "dvorak_t_number": 4.5,\n  "raw_adt": 4.38,\n  "eye_temp_c": -38.2,\n  "cloud_top_c": -74.8,\n  "confidence": 0.947,\n  "category": "VSCS"\n}`,
-  },
-  {
-    method: "POST" as const,
-    path: "/api/scenario/simulate",
-    description: "Run Holland 1980 wind profile and 200m building fragility screening for coastal landfalls.",
-    samplePayload: `{\n  "storm_name": "nisarga",\n  "holland_b": 1.25,\n  "rmax_km": 28,\n  "pn_hpa": 1008,\n  "pc_hpa": 984\n}`,
-    sampleResponse: `{\n  "peak_wind_kph": 120,\n  "peak_pressure_kpa": 1.82,\n  "critical_parcels": 24,\n  "estimated_loss_inr": 48000000\n}`,
-  },
+const API_ENDPOINTS: Array<{method: "GET" | "POST"; path: string; description: string; samplePayload?: string}> = [
+  {method: "GET", path: "/api/v3/dataset-summary", description: "Read the current observation, label, training and split counts."},
+  {method: "GET", path: "/api/ai/models-status", description: "Check which experimental model weights are available."},
+  {method: "POST", path: "/api/v3/inference", description: "Generate a forecast for the example storm inputs.",
+    samplePayload: JSON.stringify({centre_lat: 18.35, centre_lon: 72.98, max_sustained_wind_kph: 120, central_pressure_hpa: 984, heading_deg: 35, speed_kph: 22}, null, 2)},
 ];
 
 export default function DataSourcesPage() {
@@ -147,18 +126,32 @@ export default function DataSourcesPage() {
   const activeSource = DATA_SOURCES.find(s => s.id === selectedSourceId) || DATA_SOURCES[0];
   const activeEndpoint = API_ENDPOINTS[activeEndpointIdx];
 
-  const handleRunEndpoint = () => {
+  const handleRunEndpoint = async () => {
     setIsRunningApi(true);
-    setTimeout(() => {
-      setApiOutput(activeEndpoint.sampleResponse);
+    setApiOutput("");
+    try {
+      const response = await fetch(apiBaseUrl + activeEndpoint.path, {
+        method: activeEndpoint.method,
+        headers: activeEndpoint.samplePayload ? {"Content-Type": "application/json"} : undefined,
+        body: activeEndpoint.samplePayload,
+      });
+      const body = await response.text();
+      let formatted = body;
+      try { formatted = JSON.stringify(JSON.parse(body), null, 2); } catch { /* Plain-text provider response */ }
+      setApiOutput(`HTTP ${response.status}\n${formatted}`);
+    } catch (error) {
+      setApiOutput(error instanceof Error ? error.message : "Request failed.");
+    } finally {
       setIsRunningApi(false);
-    }, 400);
+    }
   };
 
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedPath(text);
-    setTimeout(() => setCopiedPath(null), 1500);
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedPath(text);
+      setTimeout(() => setCopiedPath(null), 1500);
+    } catch { setCopiedPath(null); }
   };
 
   return (
@@ -176,15 +169,14 @@ export default function DataSourcesPage() {
               Data Sources &amp; REST API Pipeline
             </h1>
             <p className="op-section-desc" style={{ marginBottom: "0" }}>
-              Visualizing the multi-source earth observation architecture assimilating geostationary radiometry,
-              Doppler radar scans, numerical atmospheric models, and cadastral GIS layers into the CycloneX engine.
+              Browse reference datasets and query the running backend below for dataset counts and model availability.
             </p>
           </div>
 
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
             <span style={{ fontSize: "11px", fontFamily: "'Space Mono', monospace", color: "#10b981", display: "flex", alignItems: "center", gap: "6px" }}>
               <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#10b981" }} />
-              INGESTION BUS ACTIVE (99.98% UPTIME)
+              REFERENCE CATALOGUE
             </span>
           </div>
         </div>
@@ -328,7 +320,7 @@ export default function DataSourcesPage() {
               <span>EARTH OBSERVATION DATA FEEDS SPECIFICATION</span>
             </div>
             <span style={{ fontSize: "11px", fontFamily: "'Space Mono', monospace", color: "#64748b" }}>
-              5 FEDERATED STREAMS
+              5 CATALOGUE ENTRIES
             </span>
           </div>
 
@@ -387,6 +379,7 @@ export default function DataSourcesPage() {
             {API_ENDPOINTS.map((ep, idx) => (
               <button
                 key={ep.path}
+                disabled={isRunningApi}
                 type="button"
                 className={`op-layer-tab ${activeEndpointIdx === idx ? "active" : ""}`}
                 onClick={() => {
@@ -435,11 +428,13 @@ export default function DataSourcesPage() {
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
                 <span style={{ fontSize: "10px", color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
-                  RESPONSE PAYLOAD (200 OK):
+                  HTTP RESPONSE
                 </span>
                 <button
                   type="button"
-                  onClick={() => handleCopy(apiOutput || activeEndpoint.sampleResponse)}
+                  disabled={!apiOutput}
+                  aria-label="Copy API response"
+                  onClick={() => handleCopy(apiOutput)}
                   style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", fontSize: "10.5px" }}
                 >
                   {copiedPath ? <Check size={12} style={{ color: "#10b981" }} /> : <Copy size={12} />}
@@ -454,10 +449,10 @@ export default function DataSourcesPage() {
                 fontSize: "11px",
                 color: "#10b981",
                 fontFamily: "'Space Mono', monospace",
-                minHeight: "140px",
+                minHeight: "140px", maxHeight: "430px", overflowY: "auto",
                 overflowX: "auto"
               }}>
-                {apiOutput || activeEndpoint.sampleResponse}
+                {apiOutput || "Run the request to view its response."}
               </pre>
             </div>
           </div>

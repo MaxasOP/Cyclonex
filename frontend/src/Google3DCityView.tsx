@@ -117,18 +117,20 @@ export default function Google3DCityView({
       // Damage zone polygon overlays
       const topFeatures = features.filter(f => (f.properties.damage_score ?? 0) >= 0.45).slice(0, 40);
       for (const feat of topFeatures) {
-        const ring = feat.geometry?.coordinates?.[0];
-        if (!ring || ring.length < 3) continue;
-        const score = feat.properties.damage_score ?? 0;
-        const color = getDamageColor(score);
-        const poly = document.createElement("gmp-polygon-3d");
-        poly.setAttribute("outer-coordinates", JSON.stringify(ring.map(([lng, lat]: number[]) => ({ lat, lng, altitude: 25 }))));
-        poly.setAttribute("altitude-mode", "RELATIVE_TO_GROUND");
-        poly.setAttribute("fill-color", color + "55");
-        poly.setAttribute("stroke-color", color);
-        poly.setAttribute("stroke-width", "2");
-        poly.setAttribute("extruded", "true");
-        map3d.appendChild(poly);
+        const polygons = feat.geometry.type === "MultiPolygon" ? feat.geometry.coordinates : [feat.geometry.coordinates];
+        for (const [ring] of polygons) {
+          if (!ring || ring.length < 3) continue;
+          const score = feat.properties.damage_score ?? 0;
+          const color = getDamageColor(score);
+          const poly = document.createElement("gmp-polygon-3d");
+          poly.setAttribute("outer-coordinates", JSON.stringify(ring.map(([lng, lat]: number[]) => ({ lat, lng, altitude: 25 }))));
+          poly.setAttribute("altitude-mode", "RELATIVE_TO_GROUND");
+          poly.setAttribute("fill-color", color + "55");
+          poly.setAttribute("stroke-color", color);
+          poly.setAttribute("stroke-width", "2");
+          poly.setAttribute("extruded", "true");
+          map3d.appendChild(poly);
+        }
       }
 
     }).catch((err: Error) => {

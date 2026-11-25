@@ -6,7 +6,7 @@ estimation, and optimal shelter matching for CYCLONEX scenarios.
 
 from __future__ import annotations
 
-import math
+from geo import distance_km as _haversine_km
 from typing import Any
 
 # Representative inventory of official coastal multipurpose cyclone shelters (MPCS)
@@ -368,18 +368,6 @@ COASTAL_SHELTERS: list[dict[str, Any]] = [
 ]
 
 
-def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    r = 6371.0
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    dphi = math.radians(lat2 - lat1)
-    dlambda = math.radians(lon2 - lon1)
-    a = (
-        math.sin(dphi / 2.0) ** 2
-        + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2.0) ** 2
-    )
-    return 2.0 * r * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
-
-
 def evaluate_evacuation_plan(
     center_lat: float,
     center_lon: float,
@@ -387,87 +375,42 @@ def evaluate_evacuation_plan(
     risk_summary: dict[str, Any] | None = None,
     features: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Calculate proximity shelters, evacuation priority, and population at risk."""
-    search_radius_km = max(radius_km * 1.8, 120.0)
+    """Return reference locations and modeled hotspots within the scenario region."""
+    search_radius_km = min(200.0, max(radius_km * 1.8, 120.0))
+    nearby = []
+    for shelter in COASTAL_SHELTERS:
+        distance = _haversine_km(center_lat, center_lon, shelter["lat"], shelter["lon"])
+        if distance <= search_radius_km:
+            nearby.append({**shelter, "distance_km": round(distance, 1), "status": "REFERENCE_UNVERIFIED"})
+    nearby.sort(key=lambda item: item["distance_km"])
 
-    active_shelters: list[dict[str, Any]] = []
-    for s in COASTAL_SHELTERS:
-        dist = round(_haversine_km(center_lat, center_lon, s["lat"], s["lon"]), 1)
-        if dist <= search_radius_km:
-            shelter_copy = dict(s)
-            shelter_copy["distance_km"] = dist
-            if dist <= radius_km * 0.7:
-                shelter_copy["evacuation_priority"] = "IMMEDIATE"
-            elif dist <= radius_km * 1.2:
-                shelter_copy["evacuation_priority"] = "ADVISORY"
-            else:
-                shelter_copy["evacuation_priority"] = "STANDBY"
-            active_shelters.append(shelter_copy)
+    # Pick the highest-scoring mapped land cell in each quadrant. These are
+    # screening sectors, not administrative wards or evacuation orders.
+    hotspots = {}
+    for feature in features or []:
+        props = feature.get("properties", {})
+        if props.get("land_type") == "OCEAN" or props.get("classification") not in {"MODERATE_DAMAGE", "TOTAL_DESTRUCTION_RISK"}:
+            continue
+        if props.get("lat") is None or props.get("lon") is None:
+            continue
+        direction = ("N" if props["lat"] >= center_lat else "S") + ("E" if (props["lon"] - center_lon + 180) % 360 - 180 >= 0 else "W")
+        if direction not in hotspots or props["damage_score"] > hotspots[direction]["damage_score"]:
+            hotspots[direction] = props
 
-    # Sort nearest first
-    active_shelters.sort(key=lambda s: s["distance_km"])
-
-    # If no real shelter is within radius (e.g. custom open ocean point), generate the closest regional hub
-    if not active_shelters:
-        closest = min(
-            COASTAL_SHELTERS,
-            key=lambda s: _haversine_km(center_lat, center_lon, s["lat"], s["lon"]),
-        )
-        dist = round(_haversine_km(center_lat, center_lon, closest["lat"], closest["lon"]), 1)
-        copy_c = dict(closest)
-        copy_c["distance_km"] = dist
-        copy_c["evacuation_priority"] = "STANDBY"
-        active_shelters.append(copy_c)
-
-    total_capacity = sum(s["capacity"] for s in active_shelters)
-
-    # Estimate population at risk from features
-    severe_count = risk_summary.get("severe_cells", 0) if risk_summary else 0
-    moderate_count = risk_summary.get("moderate_cells", 0) if risk_summary else 0
-
-    # Assume average Indian coastal cell density: ~25 persons/cell in severe zones, ~10 in moderate
-    est_pop_severe = severe_count * 35
-    est_pop_moderate = moderate_count * 12
-    total_pop_at_risk = est_pop_severe + est_pop_moderate
-
-    # Generate ward-level priority sectors
-    ward_priorities = []
-    directions = [
-        ("NW Sector (Primary Landfall Surge Front)", 315, 0.4, "#d4483b", "MANDATORY EVACUATION: Surge & violent wind loading risk"),
-        ("NE Sector (Right-of-Track Wind Peak)", 45, 0.5, "#d4483b", "MANDATORY EVACUATION: Maximum dynamic pressure zone"),
-        ("SW Sector (Trailing Rainfall Band)", 225, 0.35, "#ed8a28", "PRECAUTIONARY RELOCATION: Severe waterlogging expected"),
-        ("SE Sector (Peripheral Gale Zone)", 135, 0.6, "#35a66f", "SHELTER IN PLACE: Reinforce non-structural elements"),
-    ]
-
-    for name, angle_deg, dist_ratio, color, action in directions:
-        rad = math.radians((90 - angle_deg) % 360)
-        dist_km = radius_km * dist_ratio
-        w_lat = round(center_lat + (dist_km * math.sin(rad)) / 111.0, 4)
-        cos_lat = max(0.2, math.cos(math.radians(center_lat)))
-        w_lon = round(center_lon + (dist_km * math.cos(rad)) / (111.0 * cos_lat), 4)
-
-        nearest_s = active_shelters[0]["name"] if active_shelters else "Regional MPCS Hub"
-        nearest_d = active_shelters[0]["distance_km"] if active_shelters else 0.0
-
-        ward_priorities.append(
-            {
-                "ward_id": f"sector-{angle_deg}",
-                "name": name,
-                "lat": w_lat,
-                "lon": w_lon,
-                "risk_level": "CRITICAL" if color == "#d4483b" else ("MODERATE" if color == "#ed8a28" else "SAFE"),
-                "color": color,
-                "action": action,
-                "nearest_shelter": nearest_s,
-                "distance_km": nearest_d,
-            }
-        )
-
+    priorities = []
+    for direction, props in sorted(hotspots.items()):
+        lat, lon = props["lat"], props["lon"]
+        nearest = min(nearby, key=lambda s: _haversine_km(lat, lon, s["lat"], s["lon"]), default=None)
+        priorities.append({
+            "ward_id": f"sector-{direction}", "name": f"{direction} modeled hotspot", "lat": lat, "lon": lon,
+            "risk_level": "HIGH" if props["classification"] == "TOTAL_DESTRUCTION_RISK" else "MODERATE",
+            "color": props.get("colour"), "action": "Review the modeled impact with local authorities.",
+            "nearest_shelter": nearest["name"] if nearest else None,
+            "distance_km": round(_haversine_km(lat, lon, nearest["lat"], nearest["lon"]), 1) if nearest else None,
+        })
     return {
-        "total_shelters_active": len(active_shelters),
-        "total_capacity": total_capacity,
-        "estimated_population_at_risk": total_pop_at_risk,
-        "immediate_evacuation_count": est_pop_severe,
-        "shelters": active_shelters,
-        "ward_priorities": ward_priorities,
+        "total_shelters_active": len(nearby), "total_capacity": sum(s["capacity"] for s in nearby),
+        "estimated_population_at_risk": None, "immediate_evacuation_count": None,
+        "shelters": nearby, "ward_priorities": priorities, "search_radius_km": search_radius_km,
+        "source": "REFERENCE_INVENTORY", "notice": "Counts and nominal capacity refer to listed sites. Opening status, occupancy and at-risk population are unknown.",
     }

@@ -1,7 +1,12 @@
 {
   "image_size": 224,
-  "sequence_length": 3,
-  "forecast_hours": [6, 12, 24],
+  "sequence_length": 1,
+  "forecast_hours": [
+    6,
+    12,
+    24,
+    48
+  ],
   "pattern_classes": [
     "curved_band",
     "central_dense_overcast",
@@ -11,10 +16,14 @@
     "weakening_system"
   ],
   "satellite_channels": [
-    "visible",
     "infrared",
     "water_vapor",
-    "microwave"
+    "microwave",
+    "visible"
   ],
-  "default_input_shape": [4, 224, 224]
+  "default_input_shape": [
+    4,
+    224,
+    224
+  ]
 }

@@ -6393,3 +6393,46 @@ html, body, #root {
 
 
 
+
+.news-drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  z-index: 2200;
+  width: min(540px, 100%);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-left: 1px solid var(--border-medium);
+  box-shadow: -8px 0 24px rgb(0 0 0 / 20%);
+}
+.news-drawer > div { padding: 14px; }
+.news-drawer > div:last-child { overflow: auto; }
+.news-drawer .flex { display: flex; gap: .5rem; align-items: center; }
+.news-drawer .flex-wrap { flex-wrap: wrap; }
+.news-drawer .flex-col { flex-direction: column; align-items: stretch; }
+.news-drawer .justify-between { justify-content: space-between; }
+.news-drawer svg { width: 18px; height: 18px; }
+.news-drawer input, .news-drawer select { min-width: 0; padding: .4rem; }
+.news-drawer button { cursor: pointer; padding: .4rem .6rem; }
+.news-drawer label { display: block; }
+.news-drawer h2 { font-size: 16px; }
+.news-drawer h3 { font-size: 14px; }
+.news-drawer a { overflow-wrap: anywhere; }
+.news-drawer .space-y-3 > div, .news-drawer .space-y-5 > div { margin-block: .7rem; }
+@media print {
+  body:has(.exercise-plan-print) .exercise-plan-backdrop {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    display: block !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+  .exercise-plan-print, .exercise-plan-print * { visibility: visible !important; }
+  .exercise-plan-print { max-height: none !important; overflow: visible !important; box-shadow: none !important; }
+  .exercise-plan-print button { display: none !important; }
+  body:has(.exercise-plan-print) .saas-page-viewport, body:has(.exercise-plan-print) .op-showcase-root,
+  body:has(.exercise-plan-print) .saas-main-viewport, body:has(.exercise-plan-print) .saas-shell {
+    height: auto !important; overflow: visible !important; display: block !important;
+  }
+}

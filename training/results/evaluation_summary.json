@@ -1,59 +1,18 @@
 {
+  "evaluation_data": "SYNTHETIC_SCENARIOS",
+  "seed": 2026,
+  "sample_count": 80,
+  "checkpoint_sha256": {
+    "detection": "ef795a506ed0f0a3a1d3396471fc49f08cc900a6af10f5126df9ffac0bd941fb",
+    "pattern": "3d7c90472f7cb40429806f15b158ab90d0c365fb9cef3c7d5a2bbdebac90857c",
+    "ri": "82cc30d539ea0daed40266d143af0068744075f1bffb449461a7faba5dced61d",
+    "intensity": "45536043c39653172f3b8ae97445356ec46a91cbe0639721ff4a05037f9e5927"
+  },
   "pattern_classification": {
-    "accuracy": 0.6957,
-    "precision_macro": 0.5119,
-    "recall_macro": 0.6667,
-    "f1_macro": 0.5791,
-    "confusion_matrix": [
-      [
-        0,
-        3,
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        4,
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        4,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        4,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        4,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        4,
-        0
-      ]
-    ],
+    "evaluation_data": "SYNTHETIC_SCENARIOS",
+    "seed": 2026,
+    "sample_count": 80,
+    "checkpoint_sha256": "3d7c90472f7cb40429806f15b158ab90d0c365fb9cef3c7d5a2bbdebac90857c",
     "classes": [
       "curved_band",
       "central_dense_overcast",
@@ -61,16 +20,90 @@
       "mature_eye",
       "sheared_system",
       "weakening_system"
+    ],
+    "accuracy": 0.175,
+    "precision_macro": 0.26156941649899396,
+    "recall_macro": 0.225,
+    "f1_macro": 0.11584880865926618,
+    "confusion_matrix": [
+      [
+        0,
+        1,
+        9,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        3,
+        7,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        10,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        19,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        10,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        3,
+        16,
+        0,
+        1,
+        0
+      ]
     ]
   },
   "intensity_prediction": {
-    "mae_wind_6h": 113.224,
-    "mae_pressure_6h": 63.262,
-    "mae_wind_12h": 32.904,
-    "mae_pressure_12h": 919.582,
-    "mae_wind_24h": 898.667,
-    "mae_pressure_24h": 873.043,
-    "overall_mae": 483.447,
-    "overall_rmse": 486.355
-  }
+    "evaluation_data": "SYNTHETIC_SCENARIOS",
+    "seed": 2026,
+    "sample_count": 80,
+    "checkpoint_sha256": "45536043c39653172f3b8ae97445356ec46a91cbe0639721ff4a05037f9e5927",
+    "by_horizon": {
+      "6h": {
+        "wind_mae_kph": 3.548,
+        "pressure_mae_hpa": 2.062,
+        "mean_track_error_km": 53.997
+      },
+      "12h": {
+        "wind_mae_kph": 6.373,
+        "pressure_mae_hpa": 3.223,
+        "mean_track_error_km": 105.277
+      },
+      "24h": {
+        "wind_mae_kph": 11.712,
+        "pressure_mae_hpa": 5.911,
+        "mean_track_error_km": 120.726
+      },
+      "48h": {
+        "wind_mae_kph": 14.904,
+        "pressure_mae_hpa": 7.19,
+        "mean_track_error_km": 290.227
+      }
+    }
+  },
+  "detection_f1": 0.9251700680272109,
+  "ri_f1": 0.5116279069767442
 }

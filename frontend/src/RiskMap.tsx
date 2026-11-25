@@ -194,14 +194,14 @@ function IconPause() {
 
 function computeConePolygon(
   center: { lat: number; lng: number },
-  trajectory?: { lat: number; lng: number; label: string }[]
+  trajectory?: { lat: number; lng: number; label: string; uncertaintyKm?: number | null }[]
 ): [number, number][] {
   if (!trajectory || trajectory.length === 0) return [];
   const pts = [{ lat: center.lat, lng: center.lng }, ...trajectory];
   if (pts.length < 2) return [];
 
-  // Calibrated out-of-sample track uncertainty radii in km [0h, 6h, 12h, 24h]
-  const radiiKm = [10, 16.93, 34.14, 73.89];
+  if (trajectory.some(p => p.uncertaintyKm == null || !Number.isFinite(p.uncertaintyKm))) return [];
+  const radiiKm = [0, ...trajectory.map(p => p.uncertaintyKm!)];
 
   const leftCoords: [number, number][] = [];
   const rightCoords: [number, number][] = [];
@@ -258,7 +258,7 @@ type RiskMapProps = {
   buildings: BuildingFeature[];
   zones?: ZoneFeature[];
   sheltersPlan?: EvacuationPlan | null;
-  trajectory?: { lat: number; lng: number; label: string }[];
+  trajectory?: { lat: number; lng: number; label: string; uncertaintyKm?: number | null }[];
   headingDeg?: number;
   speedKph?: number;
   analysisMode?: MapAnalysisMode;
@@ -356,7 +356,7 @@ function LeafletBoundsFitter({
   center: { lat: number; lng: number };
   features: RiskFeature[];
   buildings?: BuildingFeature[];
-  trajectory?: { lat: number; lng: number; label: string }[];
+  trajectory?: { lat: number; lng: number; label: string; uncertaintyKm?: number | null }[];
   scenarioId?: string;
   zoomMode?: "grid" | "track";
 }) {
@@ -387,8 +387,9 @@ function LeafletBoundsFitter({
         if (p?.lat != null && p?.lon != null) {
           if (p.lat < minLat) minLat = p.lat;
           if (p.lat > maxLat) maxLat = p.lat;
-          if (p.lon < minLng) minLng = p.lon;
-          if (p.lon > maxLng) maxLng = p.lon;
+          const lng = center.lng + (((p.lon - center.lng + 540) % 360) - 180);
+          if (lng < minLng) minLng = lng;
+          if (lng > maxLng) maxLng = lng;
         }
       }
       if (minLat <= maxLat && minLng <= maxLng && minLat > -90 && maxLat < 90) {
@@ -462,6 +463,14 @@ function LeafletResizer({ analysisMode, viewDimension }: { analysisMode: string;
   return null;
 }
 
+function escapeLabel(value: unknown): string {
+  return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+function popupColor(value: unknown, fallback: string) {
+  return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
+}
+
 function buildCellPopupHtml(p: Record<string, unknown>): string {
   const score = Number(p.damage_score ?? p.risk_score ?? 0);
   const scorePct = (score * 100).toFixed(1);
@@ -472,12 +481,12 @@ function buildCellPopupHtml(p: Record<string, unknown>): string {
   const lrRatio = Number(p.load_to_resistance_ratio || 0);
   const lrPct = (lrRatio * 100).toFixed(1);
   const distKm = ((Number(p.distance_to_cyclone_m) || 0) / 1000).toFixed(2);
-  const cellColor = String(p.colour || "#75c9f1").toLowerCase();
+  const cellColor = popupColor(p.colour, "#75c9f1");
   const isLand = String(p.land_type || "LAND") !== "OCEAN";
 
   return `<div style="min-width: 280px; font-family: -apple-system, system-ui, sans-serif;">
     <div style="background: ${cellColor}; color: #0a1a2e; padding: 8px 10px; border-radius: 6px 6px 0 0; margin: -10px -10px 8px -10px; font-weight: 700; font-size: 0.95rem;">
-      🌀 200m Cell Damage Inspection
+      🌀 Cell damage screening
     </div>
     <div style="background: rgba(255,255,255,0.04); padding: 8px 10px; border-radius: 6px; margin-bottom: 6px;">
       <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
@@ -487,7 +496,7 @@ function buildCellPopupHtml(p: Record<string, unknown>): string {
       <div style="background: rgba(0,0,0,0.4); height: 8px; border-radius: 4px; overflow: hidden;">
         <div style="background: ${cellColor}; height: 100%; width: ${Math.min(score * 100, 100)}%; transition: width 0.3s;"></div>
       </div>
-      <div style="margin-top: 4px; font-size: 0.78rem; color: #d6e3f5;">Classification: <strong>${p.classification || "N/A"}</strong></div>
+      <div style="margin-top: 4px; font-size: 0.78rem; color: #d6e3f5;">Classification: <strong>${escapeLabel(p.classification || "N/A")}</strong></div>
     </div>
 
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 6px;">
@@ -518,7 +527,7 @@ function buildCellPopupHtml(p: Record<string, unknown>): string {
       </div>
       <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
         <span style="color: #8fa4bf;">Land Type</span>
-        <strong style="color: ${isLand ? '#35a66f' : '#75c9f1'};">${p.land_type || "N/A"}</strong>
+        <strong style="color: ${isLand ? '#35a66f' : '#75c9f1'};">${escapeLabel(p.land_type || "N/A")}</strong>
       </div>
     </div>
 
@@ -526,11 +535,11 @@ function buildCellPopupHtml(p: Record<string, unknown>): string {
       <div style="color: #8fa4bf; font-size: 0.7rem; margin-bottom: 3px;">DRIVERS</div>
       <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
         <span style="color: #d6e3f5;">Primary</span>
-        <strong style="color: #ff6b5b;">${p.primary_driver || "N/A"}</strong>
+        <strong style="color: #ff6b5b;">${escapeLabel(p.primary_driver || "N/A")}</strong>
       </div>
       <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
         <span style="color: #d6e3f5;">Secondary</span>
-        <strong style="color: #f7d070;">${p.secondary_driver || "N/A"}</strong>
+        <strong style="color: #f7d070;">${escapeLabel(p.secondary_driver || "N/A")}</strong>
       </div>
     </div>
 
@@ -538,7 +547,7 @@ function buildCellPopupHtml(p: Record<string, unknown>): string {
       <div style="color: #8fa4bf; font-size: 0.7rem; margin-bottom: 3px;">STRUCTURE & EXPOSURE</div>
       <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
         <span style="color: #d6e3f5;">Estimated Class</span>
-        <strong style="color: #d6e3f5;">${p.estimated_class || "N/A"}</strong>
+        <strong style="color: #d6e3f5;">${escapeLabel(p.estimated_class || "N/A")}</strong>
       </div>
       <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
         <span style="color: #d6e3f5;">Building Count</span>
@@ -546,7 +555,7 @@ function buildCellPopupHtml(p: Record<string, unknown>): string {
       </div>
       <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
         <span style="color: #d6e3f5;">Obstruction Level</span>
-        <strong style="color: #d6e3f5;">${p.obstruction_level || "N/A"}</strong>
+        <strong style="color: #d6e3f5;">${escapeLabel(p.obstruction_level || "N/A")}</strong>
       </div>
     </div>
 
@@ -597,7 +606,7 @@ export default function RiskMap({
 
   // Assemble full trajectory waypoints: [0h (Live), +6h, +12h, +24h]
   const allWaypoints = [
-    { lat: center.lat, lng: center.lng, label: "0h (Live Eye)" },
+    { lat: center.lat, lng: center.lng, label: "0h scenario eye" },
     ...(trajectory || []),
   ];
 
@@ -615,22 +624,11 @@ export default function RiskMap({
   const polylineCoords = (trajectory || []).map((t) => [t.lat, t.lng] as [number, number]);
   const fullTrackCoords = [[center.lat, center.lng], ...polylineCoords] as [number, number][];
 
-  useEffect(() => {
-    console.log("[CYCLONEX MAP DEBUG]", {
-      basemapLoaded: true,
-      featureCount: features.length,
-      buildingCount: buildings.length,
-      analysisMode,
-      center,
-      firstFeature: features[0] ? features[0].properties : null,
-    });
-  }, [features, buildings, analysisMode, center]);
-
   // Compute movement direction vector endpoint (15 km length vector)
   const vectorLengthKm = 0.15; // ~15 km vector length in degrees lat/lon
   const headingVectorEnd = [
-    activeEyePoint.lat + vectorLengthKm * Math.cos((((90 - headingDeg) % 360) * Math.PI) / 180),
-    activeEyePoint.lng + vectorLengthKm * Math.sin((((90 - headingDeg) % 360) * Math.PI) / 180),
+    activeEyePoint.lat + vectorLengthKm * Math.cos(headingDeg * Math.PI / 180),
+    activeEyePoint.lng + vectorLengthKm * Math.sin(headingDeg * Math.PI / 180) / Math.max(0.01, Math.cos(activeEyePoint.lat * Math.PI / 180)),
   ] as [number, number];
 
   // Extract max wind speed from features or fallback
@@ -641,138 +639,14 @@ export default function RiskMap({
         max = f.properties.wind_kph;
       }
     }
-    return max > 0 ? max : (speedKph ? speedKph * 6.5 : 180);
-  }, [features, speedKph]);
+    return max;
+  }, [features]);
 
   // Compute cyclonic streamlines for WIND analysis mode
   const windStreamlines = useMemo(() => {
-    if (analysisMode !== "WIND") return [];
+    if (analysisMode !== "WIND" || maxWindKph <= 0) return [];
     return computeWindStreamlines(center, maxWindKph);
   }, [analysisMode, center, maxWindKph]);
-
-  // Unified Shelter Resolution: Combines backend scenario shelters with National MPCS Registry
-  const unifiedShelters = useMemo(() => {
-    const list: Array<{
-      id: string;
-      name: string;
-      lat: number;
-      lon: number;
-      capacity: number;
-      currentOccupancy: number;
-      evacuationPriority: "IMMEDIATE" | "HIGH" | "ADVISORY" | "STANDBY";
-      facilityType: string;
-      district?: string;
-      state?: string;
-      distanceKm?: number;
-      amenities: {
-        backupGenerator: boolean;
-        solarROWater: boolean;
-        helipad: boolean;
-        medicalTriage: boolean;
-        satelliteComms: boolean;
-        foodRationsDays: number;
-      };
-      contactOfficer: string;
-      contactPhone: string;
-    }> = [];
-
-    const seenIds = new Set<string>();
-
-    // 1. First add scenario-specific shelters from backend if available
-    if (sheltersPlan?.shelters && sheltersPlan.shelters.length > 0) {
-      for (const s of sheltersPlan.shelters) {
-        seenIds.add(s.id);
-        const national = NATIONAL_CYCLONE_SHELTERS.find(
-          (n) => n.id === s.id || (Math.abs(n.lat - s.lat) < 0.05 && Math.abs(n.lon - s.lon) < 0.05)
-        );
-        list.push({
-          id: s.id,
-          name: s.name,
-          lat: s.lat,
-          lon: s.lon,
-          capacity: s.capacity,
-          currentOccupancy: national?.currentOccupancy ?? Math.round(s.capacity * (s.evacuation_priority === "IMMEDIATE" ? 0.88 : 0.45)),
-          evacuationPriority: (s.evacuation_priority as any) || "ADVISORY",
-          facilityType: s.facility_type || national?.facilityType || "Multipurpose Cyclone Shelter (MPCS)",
-          district: s.district || national?.district,
-          state: s.state || national?.state,
-          distanceKm: s.distance_km,
-          amenities: national?.amenities ?? {
-            backupGenerator: s.backup_generator ?? true,
-            solarROWater: true,
-            helipad: s.helipad ?? false,
-            medicalTriage: true,
-            satelliteComms: true,
-            foodRationsDays: 14,
-          },
-          contactOfficer: national?.contactOfficer || "District Disaster Officer",
-          contactPhone: national?.contactPhone || "+91-1077 (NDMA Toll-Free)",
-        });
-      }
-    }
-
-    // 2. Add national shelters within ~350 km of map center
-    const haversine = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-      const R = 6371;
-      const dLat = ((lat2 - lat1) * Math.PI) / 180;
-      const dLon = ((lon2 - lon1) * Math.PI) / 180;
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    };
-
-    for (const nat of NATIONAL_CYCLONE_SHELTERS) {
-      if (seenIds.has(nat.id)) continue;
-      const dist = haversine(center.lat, center.lng, nat.lat, nat.lon);
-      if (dist <= 350 || list.length === 0) {
-        list.push({
-          id: nat.id,
-          name: nat.name,
-          lat: nat.lat,
-          lon: nat.lon,
-          capacity: nat.capacity,
-          currentOccupancy: nat.currentOccupancy,
-          evacuationPriority: nat.evacuationPriority,
-          facilityType: nat.facilityType,
-          district: nat.district,
-          state: nat.state,
-          distanceKm: Math.round(dist * 10) / 10,
-          amenities: nat.amenities,
-          contactOfficer: nat.contactOfficer,
-          contactPhone: nat.contactPhone,
-        });
-      }
-    }
-
-    // 3. Fallback to nearest 5 shelters if list is empty
-    if (list.length === 0) {
-      const sorted = [...NATIONAL_CYCLONE_SHELTERS].sort(
-        (a, b) => haversine(center.lat, center.lng, a.lat, a.lon) - haversine(center.lat, center.lng, b.lat, b.lon)
-      );
-      for (const nat of sorted.slice(0, 5)) {
-        list.push({
-          id: nat.id,
-          name: nat.name,
-          lat: nat.lat,
-          lon: nat.lon,
-          capacity: nat.capacity,
-          currentOccupancy: nat.currentOccupancy,
-          evacuationPriority: nat.evacuationPriority,
-          facilityType: nat.facilityType,
-          district: nat.district,
-          state: nat.state,
-          distanceKm: Math.round(haversine(center.lat, center.lng, nat.lat, nat.lon) * 10) / 10,
-          amenities: nat.amenities,
-          contactOfficer: nat.contactOfficer,
-          contactPhone: nat.contactPhone,
-        });
-      }
-    }
-
-    return list;
-  }, [sheltersPlan, center.lat, center.lng]);
-
 
   return (
     <div className="leaflet-map-wrapper">
@@ -1003,10 +877,8 @@ export default function RiskMap({
               <div style={{ fontFamily: "-apple-system, system-ui, sans-serif", fontSize: "0.82rem" }}>
                 <strong style={{ color: "#ffab40" }}>Illustrative forecast corridor</strong>
                 <div style={{ marginTop: "4px", color: "#d7e5f5", lineHeight: 1.4 }}>
-                  Scenario visualization; the following radii are illustrative and have no calibrated probability:
-                  <br />• 6h error radius: ±16.9 km
-                  <br />• 12h error radius: ±34.1 km
-                  <br />• 24h error radius: ±73.9 km
+                  Model error estimates by horizon (uncalibrated):
+                  {trajectory?.map(p => <div key={p.label}>{p.label}: {p.uncertaintyKm} km</div>)}
                 </div>
               </div>
             </Popup>
@@ -1226,20 +1098,20 @@ export default function RiskMap({
               const props = feature.properties || {};
               const dmg = props.damage_score ?? 0.2;
               const bColor = props.display_colour && props.display_colour !== "#0a2a57"
-                ? props.display_colour
+                ? popupColor(props.display_colour, "#6b7f99")
                 : dmg >= 0.55 ? "#ef4444" : dmg >= 0.25 ? "#f59e0b" : "#22c55e";
-              const heightM = props.height_m ? props.height_m.toFixed(1) + " m" : "Inferred (8.5 m)";
+              const heightM = props.height_m ? props.height_m.toFixed(1) + " m" : "Unavailable";
               const damageScore = props.damage_score;
-              const damagePct = damageScore !== null && damageScore !== undefined ? (damageScore * 100).toFixed(1) + "%" : "20.0%";
+              const damagePct = damageScore !== null && damageScore !== undefined ? (damageScore * 100).toFixed(1) + "%" : "Unavailable";
               layer.bindPopup(
                 `<div style="min-width: 240px; font-family: -apple-system, system-ui, sans-serif;">
                   <div style="background: ${bColor}; color: #ffffff; padding: 8px 10px; border-radius: 6px 6px 0 0; margin: -10px -10px 8px -10px; font-weight: 700; font-size: 0.95rem;">
-                    ${props.name || "Building Footprint"}
+                    ${escapeLabel(props.name || "Building Footprint")}
                   </div>
                   <div style="background: rgba(255,255,255,0.04); padding: 6px 10px; border-radius: 4px; margin-bottom: 4px;">
                     <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 2px;">
                       <span style="color: #8fa4bf;">Structure Type</span>
-                      <strong style="color: #8b5cf6;">${props.building_type || "RESIDENTIAL"}</strong>
+                      <strong style="color: #8b5cf6;">${escapeLabel(props.building_type || "RESIDENTIAL")}</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 2px;">
                       <span style="color: #8fa4bf;">Height</span>
@@ -1250,16 +1122,16 @@ export default function RiskMap({
                       <strong style="color: ${props.is_locally_taller ? '#d4483b' : '#35a66f'};">${props.is_locally_taller ? "High Aerodynamic Drag" : "Standard Sheltered"}</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 2px;">
-                      <span style="color: #8fa4bf;">Damage Probability</span>
+                      <span style="color: #8fa4bf;">Damage screening index</span>
                       <strong style="color: ${bColor};">${damagePct}</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.78rem;">
                       <span style="color: #8fa4bf;">Classification</span>
-                      <strong style="color: ${bColor};">${props.classification || "MODERATE"}</strong>
+                      <strong style="color: ${bColor};">${escapeLabel(props.classification || "Unavailable")}</strong>
                     </div>
                   </div>
                   <div style="font-size: 0.7rem; color: #8fa4bf; text-align: center; margin-top: 4px;">
-                    Sourced from 200m spatial hydrodynamic screening
+                    Scenario building exposure estimate
                   </div>
                 </div>`
               );
@@ -1283,14 +1155,14 @@ export default function RiskMap({
               const props = feature.properties || {};
               layer.bindPopup(
                 `<div style="min-width: 220px; font-family: -apple-system, system-ui, sans-serif;">
-                  <div style="background: ${props.zone_colour || '#6b7f99'}; color: #0a1a2e; padding: 6px 10px; border-radius: 4px 4px 0 0; font-weight: 700; font-size: 0.9rem;">
-                    Land-Use: ${props.zone_label || "Unclassified Zone"}
+                  <div style="background: ${popupColor(props.zone_colour, "#6b7f99")}; color: #0a1a2e; padding: 6px 10px; border-radius: 4px 4px 0 0; font-weight: 700; font-size: 0.9rem;">
+                    Land-Use: ${escapeLabel(props.zone_label || "Unclassified Zone")}
                   </div>
                   <div style="padding: 6px 8px; font-size: 0.8rem; color: #d7e5f5; line-height: 1.5;">
-                    <div>Type: <strong>${props.zone_type || "UNKNOWN"}</strong></div>
+                    <div>Type: <strong>${escapeLabel(props.zone_type || "UNKNOWN")}</strong></div>
                     <div>Vulnerability Factor: <strong>${((props.zone_vulnerability || 0) * 100).toFixed(0)}%</strong></div>
                     <div>Area: <strong>${props.area_m2 ? (props.area_m2 / 10000).toFixed(1) + " ha" : "N/A"}</strong></div>
-                    ${props.osm_name ? `<div style="margin-top: 3px; color: #8fa4bf;"><em>${props.osm_name}</em></div>` : ""}
+                    ${props.osm_name ? `<div style="margin-top: 3px; color: #8fa4bf;"><em>${escapeLabel(props.osm_name)}</em></div>` : ""}
                   </div>
                 </div>`
               );
@@ -1300,72 +1172,16 @@ export default function RiskMap({
 
         {/* 2c. Multipurpose Cyclone Shelters (MPCS Network) */}
         {(showShelters || showMitigationLayer || analysisMode === "EVACUATION") &&
-          unifiedShelters.map((s) => {
-            const priColor =
-              s.evacuationPriority === "IMMEDIATE" ? "#dc2626" :
-              s.evacuationPriority === "HIGH" ? "#ea580c" :
-              s.evacuationPriority === "ADVISORY" ? "#d97706" : "#16a34a";
-
-            const occupancyPct = Math.min(100, Math.round((s.currentOccupancy / s.capacity) * 100));
-
-            return (
-              <Marker
-                key={s.id}
-                position={[s.lat, s.lon]}
-                icon={createShelterIcon(s.evacuationPriority, s.capacity)}
-              >
-                <Popup>
-                  <div style={{ fontFamily: "var(--font-sans, -apple-system, sans-serif)", minWidth: "260px", padding: "2px" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "6px" }}>
-                      <div style={{ fontWeight: 700, color: "#ffffff", fontSize: "0.92rem" }}>
-                        🏠 {s.name}
-                      </div>
-                      <span style={{
-                        padding: "2px 7px",
-                        borderRadius: "12px",
-                        fontSize: "0.68rem",
-                        fontWeight: 700,
-                        background: priColor,
-                        color: "#ffffff",
-                        whiteSpace: "nowrap"
-                      }}>
-                        {s.evacuationPriority}
-                      </span>
-                    </div>
-
-                    <div style={{ fontSize: "0.8rem", color: "#cbd5e1", lineHeight: "1.6" }}>
-                      <div style={{ color: "#94a3b8", fontSize: "0.74rem" }}>{s.facilityType}</div>
-                      <div>District: <strong style={{ color: "#ffffff" }}>{s.district || "Coastal"}, {s.state || "India"}</strong></div>
-                      {s.distanceKm != null && <div>Distance from Cyclone Eye: <strong style={{ color: "#8b5cf6" }}>{s.distanceKm} km</strong></div>}
-                      
-                      {/* Occupancy Progress Bar */}
-                      <div style={{ marginTop: "8px", marginBottom: "8px", background: "rgba(0,0,0,0.35)", padding: "6px 8px", borderRadius: "6px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", marginBottom: "3px" }}>
-                          <span style={{ color: "#94a3b8" }}>Occupancy Load</span>
-                          <strong style={{ color: occupancyPct >= 85 ? "#f97316" : "#10b981" }}>{s.currentOccupancy.toLocaleString()} / {s.capacity.toLocaleString()} ({occupancyPct}%)</strong>
-                        </div>
-                        <div style={{ height: "5px", background: "rgba(255,255,255,0.1)", borderRadius: "3px", overflow: "hidden" }}>
-                          <div style={{ height: "100%", width: `${occupancyPct}%`, background: occupancyPct >= 85 ? "#f97316" : "#10b981", borderRadius: "3px" }} />
-                        </div>
-                      </div>
-
-                      {/* Amenities Grid */}
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", fontSize: "0.72rem", marginTop: "4px" }}>
-                        <div>Helipad: <strong>{s.amenities.helipad ? "✅ Available" : "❌ None"}</strong></div>
-                        <div>Comms: <strong>{s.amenities.satelliteComms ? "✅ Satellite" : "VHF Radio"}</strong></div>
-                        <div>Power: <strong>{s.amenities.backupGenerator ? "✅ 100% DG" : "Grid Only"}</strong></div>
-                        <div>Rations: <strong>{s.amenities.foodRationsDays} Days</strong></div>
-                      </div>
-
-                      <div style={{ marginTop: "8px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "5px", color: "#94a3b8", fontSize: "0.72rem" }}>
-                        Contact: <strong style={{ color: "#ffffff" }}>{s.contactOfficer}</strong> ({s.contactPhone})
-                      </div>
-                    </div>
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
+          sheltersPlan?.shelters.map(s => (
+            <Marker key={s.id} position={[s.lat, s.lon]} icon={createShelterIcon(s.evacuation_priority ?? "STANDBY", s.capacity)}>
+              <Popup><strong>{s.name}</strong>
+                <p>{s.district}, {s.state}</p>
+                <div>Reference capacity: {s.capacity}</div>
+                <div>Current occupancy: {s.current_occupancy ?? "Unavailable"}</div>
+                <div>Scenario priority: {s.evacuation_priority ?? "Unavailable"}</div>
+              </Popup>
+            </Marker>
+          ))}
 
         {/* M2. Coastal Defense Seawalls */}
         {showMitigationLayer && COASTAL_DEFENSE_SEAWALLS.map((wall) => (

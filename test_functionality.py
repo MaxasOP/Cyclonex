@@ -108,7 +108,7 @@ class FunctionalityTests(unittest.TestCase):
     def test_news_rss_leaf_nodes_and_source_publication_time(self):
         news_service.init_news_tables()
         response = Mock(status_code=200, headers={"Content-Type":"application/rss+xml"}, text="<rss><channel><item><title>Tropical cyclone warning</title><link>https://example.org/bulletin</link><description>Storm update</description><pubDate>Wed, 28 Oct 2026 10:00:00 GMT</pubDate></item></channel></rss>")
-        with patch("news_service.requests.get", return_value=response):
+        with patch("news_service._read_feed", return_value=("https://example.org/feed", "application/rss+xml", response.text)):
             self.assertEqual(news_service.scrape_source("fixture", "Fixture", "https://example.org/feed", "rss"), 1)
             self.assertEqual(news_service.scrape_source("fixture", "Fixture", "https://example.org/feed", "rss"), 1)
         articles = news_service.get_news_articles()
@@ -119,7 +119,7 @@ class FunctionalityTests(unittest.TestCase):
     def test_news_no_match_never_fabricates_bulletin(self):
         news_service.init_news_tables()
         response = Mock(status_code=200, headers={}, text="<html>" + "Ordinary website content " * 30 + "</html>")
-        with patch("news_service.requests.get", return_value=response):
+        with patch("news_service._read_feed", return_value=("https://example.org/", "text/html", response.text)):
             self.assertEqual(news_service.scrape_source("fixture", "Fixture", "https://example.org/", "html"), 0)
         self.assertEqual(news_service.get_news_articles(), [])
 
@@ -180,7 +180,7 @@ class FunctionalityTests(unittest.TestCase):
             return response
         with patch("ocean_service.requests.get", side_effect=provider):
             result = ocean_service._fetch_ncss_profile(18.5, 88.2)
-        self.assertEqual(result["source"], "LIVE")
+        self.assertEqual(result["source"], "ARCHIVED_MODEL_PROFILE")
         self.assertEqual(result["temperature_c"][700], 15)
         self.assertEqual(result["observation_time"], "2026-10-30T18:00:00Z")
 

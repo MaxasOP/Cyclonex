@@ -61,8 +61,7 @@ export default function AILabPage({
   const currentLon = Number(customLon);
 
   // Dynamic Dvorak intensity calculations
-  const dvorakScore = Math.min(8.0, Math.max(1.0, Number((1.0 + (currentWind - 45) / 18).toFixed(1))));
-  const dvorakCI = `T${dvorakScore.toFixed(1)}`;
+  const dvorakCI = analysis?.classification.dvorak?.dvorak_t_number ?? "Unavailable";
   const dvorakKnots = Math.round(currentWind / 1.852);
   const deltaP = Math.max(5, 1010 - currentPressure);
 
@@ -77,7 +76,7 @@ export default function AILabPage({
       ? "Severe Cyclonic Storm (SCS)"
       : currentWind >= 62
       ? "Cyclonic Storm (CS)"
-      : "Deep Depression (DD)";
+      : currentWind >= 50 ? "Deep Depression (DD)" : currentWind >= 31 ? "Depression" : "Low pressure scenario";
 
   const CHANNELS = [
     {
@@ -452,7 +451,7 @@ export default function AILabPage({
                         CDO: -74.8°C
                       </text>
                       <text x="272" y="232" fill="#10b981" fontSize="9" fontFamily="'Space Mono', monospace" fontWeight="bold">
-                        ΔT: +36.6 K ({dvorakCI})
+                        Illustrative thermal contrast
                       </text>
                     </>
                   )}
@@ -630,7 +629,7 @@ export default function AILabPage({
                   </div>
                   {analysis?.rapid_intensification && (
                     <span style={{ fontSize: "9.5px", padding: "2px 6px", borderRadius: "3px", background: analysis.rapid_intensification.is_ri_expected ? "rgba(239,68,68,0.2)" : "rgba(16,185,129,0.2)", color: analysis.rapid_intensification.is_ri_expected ? "#ef4444" : "#10b981", fontWeight: 700 }}>
-                      RI heuristic: {(analysis.rapid_intensification.probability * 100).toFixed(0)}%
+                      RI heuristic: {analysis.rapid_intensification.probability == null ? "Unavailable" : (analysis.rapid_intensification.probability * 100).toFixed(0) + "% (uncalibrated)"}
                     </span>
                   )}
                 </div>

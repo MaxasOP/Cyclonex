@@ -55,7 +55,7 @@ class TestStormSurgeAndRunoffModel(unittest.TestCase):
         self.assertLessEqual(res["peak_surge_height_m"], 7.5)
         # Astronomical tide coupling check
         self.assertGreater(res["composite_peak_water_level_m"], res["peak_surge_height_m"])
-        self.assertEqual(res["astronomical_tide_phase"], "SPRING_HIGH_TIDE (+1.4m)")
+        self.assertEqual(res["astronomical_tide_phase"], "ASSUMED_HIGH_TIDE (+1.4m)")
 
     def test_causal_rainfall_pathway(self):
         res = StormSurgeAndRunoffModel.compute_surge_and_runoff(
@@ -70,8 +70,8 @@ class TestStormSurgeAndRunoffModel(unittest.TestCase):
         self.assertGreater(res["projected_24h_rainfall_mm"], 250.0)
         self.assertIn("SATURATED", res["soil_saturation_index"])
         self.assertEqual(res["flash_flood_risk_level"], "EXTREME")
-        self.assertEqual(len(res["primary_drainage_pathways"]), 3)
-        self.assertIn("OVERTOPPING", res["primary_drainage_pathways"][0]["capacity_utilization"])
+        self.assertEqual(res["primary_drainage_pathways"], [])
+        self.assertAlmostEqual(res["modeled_runoff_mm"], res["projected_24h_rainfall_mm"] * res["runoff_coefficient"], places=1)
 
 
 class TestGEEFeeds(unittest.TestCase):
@@ -116,11 +116,11 @@ class TestCriticalInfrastructureRegistry(unittest.TestCase):
         self.assertGreater(pwr.flood_exposure_pct, 80.0)
         self.assertGreater(pwr.salt_spray_exposure_pct, 30.0)
         self.assertEqual(pwr.overall_vulnerability, "CRITICAL")
-        self.assertIn("salt-arc", pwr.hardening_directive)
+        self.assertIn("asset operator", pwr.hardening_directive)
 
         # Test Arterial Road Passability & Alternate Route
         road = next(i for i in items if i.category == "ARTERIAL_ROAD")
-        self.assertEqual(road.passability_status, "IMPASSABLE_FLOODED")
+        self.assertEqual(road.passability_status, "MODELED_FLOOD_EXPOSURE")
         self.assertIsNotNone(road.alternate_route)
         self.assertGreater(road.alternate_route["additional_km"], 0.0)
 
@@ -155,7 +155,7 @@ class TestRuleEngineAndGeminiDecisionIntelligence(unittest.TestCase):
         )
 
         self.assertIn("rule-based fallback", intel.engine_source)
-        self.assertEqual(intel.urgency_level, "MANDATORY_EVACUATION")
+        self.assertEqual(intel.urgency_level, "PRIORITY_REVIEW")
         self.assertEqual(len(intel.evidence_reasoning_actions), 3)
 
         # Verify Evidence -> Reasoning -> Action structure
@@ -163,7 +163,7 @@ class TestRuleEngineAndGeminiDecisionIntelligence(unittest.TestCase):
         self.assertGreaterEqual(len(power_action.evidence), 2)
         self.assertIsNotNone(power_action.reasoning)
         self.assertIsNotNone(power_action.action)
-        self.assertEqual(power_action.priority, "CRITICAL")
+        self.assertIn(power_action.priority, {"CRITICAL", "HIGH"})
 
 
 class TestEvacuationRouting(unittest.TestCase):
@@ -273,8 +273,8 @@ class TestFullResilienceServiceIntegration(unittest.TestCase):
         # Highway passability flips to PASSABLE_PROTECTED
         rd_baseline = next(i for i in baseline["critical_infrastructure"] if i["asset_id"] == "rd-01")
         rd_protected = next(i for i in protected["critical_infrastructure"] if i["asset_id"] == "rd-01")
-        self.assertEqual(rd_baseline["passability_status"], "IMPASSABLE_FLOODED")
-        self.assertEqual(rd_protected["passability_status"], "PASSABLE_PROTECTED")
+        self.assertEqual(rd_baseline["passability_status"], "MODELED_FLOOD_EXPOSURE")
+        self.assertEqual(rd_protected["passability_status"], "SIMULATED_BARRIER_UNVERIFIED")
 
     def test_drone_damage_and_cap_xml(self):
         from gemini_resilience_service import DroneDamageInspectionEngine, generate_cap_alert_xml
@@ -290,10 +290,88 @@ class TestFullResilienceServiceIntegration(unittest.TestCase):
         # Test OASIS CAP v1.2 XML Alert Exporter
         xml = generate_cap_alert_xml(storm_name="Cyclone Dana", max_wind_kmh=125.0, peak_surge_m=2.8)
         self.assertIn('xmlns="urn:oasis:names:tc:emergency:cap:1.2"', xml)
-        self.assertIn('<valueName>NDMA-SACHET</valueName>', xml)
-        self.assertIn('<severity>Extreme</severity>', xml)
+        self.assertIn('<valueName>CYCLONEX</valueName>', xml)
+        self.assertIn('<severity>Unknown</severity>', xml)
         self.assertIn('<status>Exercise</status>', xml)
         self.assertIn('<certainty>Possible</certainty>', xml)
+
+
+class TestSpatialScreening(unittest.TestCase):
+    def test_global_coastline_and_wind_in_both_hemispheres(self):
+        from risk_service import ScenarioInput, _is_land, evaluate_cell_full
+        self.assertTrue(_is_land(7, 81))  # Sri Lanka
+        self.assertTrue(_is_land(-33.9, 151.15))  # Sydney
+        self.assertFalse(_is_land(12, 88))  # Bay of Bengal
+        for lat, sign in ((20, 1), (-20, -1)):
+            scenario = ScenarioInput(name="wind", center_lat=lat, center_lon=80, max_wind_kph=120,
+                                     central_pressure_hpa=970, heading_deg=0, speed_kph=20)
+            strong = evaluate_cell_full(sign * 25000, 0, 80, lat, scenario)["hazard"]
+            weak = evaluate_cell_full(-sign * 25000, 0, 80, lat, scenario)["hazard"]
+            self.assertEqual(strong["wind_kph"], 120)
+            self.assertLess(weak["wind_kph"], strong["wind_kph"])
+            self.assertEqual(evaluate_cell_full(0, 0, 80, lat, scenario)["hazard"]["wind_kph"], 0)
+
+    def test_polar_and_dateline_geojson_and_calm_scenario(self):
+        from risk_service import ScenarioInput, create_risk_grid
+        from shapely.geometry import shape
+        for lat, lon in ((22, 180), (90, 180), (-90, -170)):
+            s = ScenarioInput(name="geometry", center_lat=lat, center_lon=lon, max_wind_kph=0,
+                              central_pressure_hpa=1013.25, field_radius_km=1)
+            grid = create_risk_grid(s)
+            self.assertGreater(len(grid["features"]), 0)
+            self.assertEqual(grid["summary"]["max_risk_score"], 0)
+            for f in grid["features"]:
+                geom = shape(f["geometry"])
+                self.assertTrue(geom.is_valid and not geom.is_empty)
+                west, south, east, north = geom.bounds
+                self.assertTrue(-180 <= west <= east <= 180 and -90 <= south <= north <= 90)
+            self.assertNotIn("ndma_directives", grid["summary"])
+
+    def test_empty_reference_region_has_no_shelter_and_no_orders(self):
+        from shelter_service import evaluate_evacuation_plan
+        from gemini_resilience_service import resilience_service
+        shelter = evaluate_evacuation_plan(0, -140, 25)
+        self.assertEqual(shelter["shelters"], [])
+        self.assertIsNone(shelter["estimated_population_at_risk"])
+        result = resilience_service.evaluate_resilience_assessment(eye_lat=0, eye_lon=-140, max_wind_kmh=0,
+                central_pressure_hpa=1013.25, forward_speed_kmh=0, rain_rate_mm_hr=0, simulate_failure_gemini=True)
+        self.assertEqual(result["critical_infrastructure"], [])
+        self.assertIsNone(result["cyclone"]["landfall"])
+        self.assertEqual(result["surge_and_runoff"]["max_flood_depth_m"], 0)
+        self.assertEqual(result["surge_and_runoff"]["flash_flood_risk_level"], "LOW")
+        self.assertEqual(result["parametric_insurance"]["total_payout_percentage"], 0)
+        self.assertEqual(result["gemini_multimodal_advisory"]["urgency_level"], "MONITOR")
+        self.assertTrue(all(p["observation_timestamp"] is None for p in result["provenance"]))
+
+    def test_projection_crosses_coast_only_for_onshore_heading(self):
+        from geo import projected_landfall
+        crossing = projected_landfall(20.4, 87.2, 270, 20)
+        self.assertIsNotNone(crossing)
+        self.assertGreater(crossing["eta_hours"], 0)
+        self.assertLess(crossing["eta_hours"], 5)
+        self.assertIsNone(projected_landfall(20.4, 87.2, 90, 20, hours=4))
+
+    def test_provider_outages_and_empty_responses_are_distinct(self):
+        from unittest.mock import Mock
+        import requests
+        import zone_service
+        with patch("storage.get_cached_zones", return_value=None), patch("storage.save_cached_zones"):
+            zone_service._MEMORY_ZONE_CACHE.clear()
+            with patch("zone_service.requests.post", side_effect=requests.Timeout):
+                result = zone_service.fetch_zones(11, 81, 11.1, 81.1)
+                self.assertEqual((result["features"], result["metadata"]["status"]), ([], "UNAVAILABLE"))
+            with patch("zone_service.requests.post", return_value=Mock(**{"json.return_value": {"elements": []}})):
+                result = zone_service.fetch_zones(11, 81, 11.1, 81.1)
+                self.assertEqual((result["features"], result["metadata"]["status"]), ([], "NO_DATA"))
+
+    def test_routing_requires_two_snapped_waypoints(self):
+        from unittest.mock import Mock
+        import routing_service
+        routing_service._CACHE.clear()
+        response = {"code":"Ok", "routes":[{"distance":100, "duration":90,
+                    "geometry":{"type":"LineString","coordinates":[[87.5,21.6],[87.51,21.61]]}}]}
+        with patch("routing_service.requests.get", return_value=Mock(**{"json.return_value":response})):
+            self.assertEqual(routing_service.road_routes(21.62, 87.51)["routes"], [])
 
 
 if __name__ == "__main__":

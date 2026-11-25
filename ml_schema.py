@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, HttpUrl, field_validator, model_validator
+from pydantic import AfterValidator, BaseModel, Field, HttpUrl, field_validator, model_validator
+
+
+def _as_utc(value: datetime) -> datetime:
+    # IBTrACS and HURSAT use UTC, including source strings without an offset.
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+
+
+UtcDateTime = Annotated[datetime, AfterValidator(_as_utc)]
 
 
 class SatelliteSource(StrEnum):
@@ -36,7 +44,8 @@ class SatelliteObservation(BaseModel):
 
     source: SatelliteSource
     product: str = Field(min_length=2, max_length=100)
-    acquired_at: datetime
+    acquired_at: UtcDateTime
+    storm_id: str | None = Field(default=None, min_length=2, max_length=80)
     asset_url: HttpUrl
     checksum_sha256: str | None = Field(default=None, pattern=r"^[a-fA-F0-9]{64}$")
     west: float = Field(ge=-180, le=180)
@@ -60,7 +69,7 @@ class BestTrackLabel(BaseModel):
     """Supervised truth label from an authoritative best-track dataset."""
 
     storm_id: str = Field(min_length=2, max_length=80)
-    valid_at: datetime
+    valid_at: UtcDateTime
     centre_lat: float = Field(ge=-90, le=90)
     centre_lon: float = Field(ge=-180, le=180)
     max_sustained_wind_kph: float = Field(ge=0, le=400)
@@ -85,8 +94,9 @@ class TrainingSample(BaseModel):
 
     sample_id: str = Field(min_length=8, max_length=100)
     storm_id: str = Field(min_length=2, max_length=80)
-    target_time: datetime
-    observation_ids: list[str] = Field(min_length=1, max_length=12)
+    target_time: UtcDateTime
+    source_kind: Literal["SATELLITE_SEQUENCE", "BEST_TRACK_STATE"] = "SATELLITE_SEQUENCE"
+    observation_ids: list[str] = Field(max_length=12)
     label: BestTrackLabel
     split: Literal["train", "validation", "test"]
     sequence_hours: int = Field(ge=6, le=48)
@@ -96,6 +106,14 @@ class TrainingSample(BaseModel):
     def ensure_same_storm(self) -> "TrainingSample":
         if self.storm_id != self.label.storm_id:
             raise ValueError("sample storm_id must match its best-track label")
+        if self.target_time != self.label.valid_at:
+            raise ValueError("target_time must match the label timestamp")
+        if self.source_kind == "SATELLITE_SEQUENCE" and not self.observation_ids:
+            raise ValueError("a satellite sequence requires registered observations")
+        if self.source_kind == "BEST_TRACK_STATE" and self.observation_ids:
+            raise ValueError("a best-track state contains only its label")
+        if len(set(self.observation_ids)) != len(self.observation_ids):
+            raise ValueError("observation_ids must be unique within a sample")
         return self
 
 

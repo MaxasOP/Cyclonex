@@ -1,15 +1,18 @@
 from datetime import datetime, timezone
-from typing import Literal, Optional, List, Dict, Any
+import math
+from threading import Lock
+from typing import Literal, Optional
 
-from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi import Depends, FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field, HttpUrl
 
-from baseline_model import BASELINE_PIPELINE
+from admin_access import require_admin
+from baseline_model import BASELINE_PIPELINE, CycloneMLPipeline
 from building_service import fetch_buildings
 from config import settings
-from feature_extractor import extract_sample_features
+from feature_extractor import extract_sample_features, in_forecast_domain, ocean_features
 from hursat_service import create_hursat_observation, generate_storm_sequence_samples
 from ibtracs_service import parse_ibtracs_csv
 from ml_registry import (
@@ -24,6 +27,7 @@ from ml_registry import (
 from ml_schema import IBTracsCsvImport, SatelliteObservation, TrainingSample
 from ocean_service import get_ocean_node
 from risk_service import ScenarioInput, new_scenario_record
+from geo import land_mask
 from shelter_service import evaluate_evacuation_plan
 from storage import (
     get_scenario as db_get_scenario,
@@ -49,68 +53,33 @@ app = FastAPI(
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
-@app.middleware("http")
-async def custom_cors_middleware(request: Request, call_next):
-    if request.method == "OPTIONS":
-        return Response(
-            status_code=200,
-            headers={
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "*",
-                "Access-Control-Allow-Headers": "*",
-                "Access-Control-Max-Age": "86400",
-            },
-        )
-    response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return response
-
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=list(settings.cors_allowed_origins),
+    allow_methods=["GET", "HEAD", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
 
-@app.options("/{full_path:path}")
-def options_handler(full_path: str):
-    """Fallback OPTIONS handler so preflight requests never hit POST/PUT body validation."""
-    return Response(
-        status_code=200,
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "*",
-            "Access-Control-Allow-Headers": "*",
-        },
-    )
-
-
-
-
-
-
 class HursatObservationInput(BaseModel):
-    product: str = "HURSAT_B1_IR"
+    product: str = Field(default="HURSAT_B1_IR", min_length=2, max_length=100)
+    storm_id: str | None = Field(default=None, min_length=2, max_length=80)
     acquired_at: datetime
-    centre_lat: float
-    centre_lon: float
+    centre_lat: float = Field(ge=-90, le=90)
+    centre_lon: float = Field(ge=-180, le=180)
     asset_url: HttpUrl
-    channels: list[str] = ["IR_WINDBAND"]
-    box_size_deg: float = 4.0
-    spatial_resolution_km: float = 8.0
-    preprocessing_version: str = "hursat_b1_v06_cropped"
-    checksum_sha256: str | None = None
+    channels: list[str] = Field(default=["IR_WINDBAND"], min_length=1, max_length=20)
+    box_size_deg: float = Field(default=4.0, gt=0, le=180)
+    spatial_resolution_km: float = Field(default=8.0, gt=0, le=100)
+    preprocessing_version: str = Field(default="hursat_b1_v06_cropped", min_length=1, max_length=40)
+    checksum_sha256: str | None = Field(default=None, pattern=r"^[a-fA-F0-9]{64}$")
 
 
 class GenerateSamplesInput(BaseModel):
     storm_id: str
     split: Literal["train", "validation", "test"]
-    sequence_hours: int = 24
-    notes: str | None = None
+    sequence_hours: int = Field(default=24, ge=6, le=48)
+    notes: str | None = Field(default=None, max_length=500)
 
 
 class InferenceRequest(BaseModel):
@@ -165,10 +134,10 @@ def ocean_node(
             detail="Coordinate outside North Indian Ocean domain (lat 0-30, lon 45-100).",
         )
 
+    if land_mask(lat, lon):
+        raise HTTPException(status_code=422, detail="Selected point is on land in the coastline reference.")
     basin = infer_basin(lat, lon)
-    result = get_ocean_node(lat, lon, basin)
-    result["basin"] = basin
-    return result
+    return {**get_ocean_node(lat, lon, basin), "basin": basin}
 
 
 @app.api_route("/health", methods=["GET", "HEAD"])
@@ -198,23 +167,46 @@ def health():
 SCENARIOS: dict[str, dict] = {}
 
 
-def _building_centroid(feature: dict) -> tuple[float, float]:
-    ring = feature["geometry"]["coordinates"][0][:-1]
-    return (
-        sum(point[0] for point in ring) / len(ring),
-        sum(point[1] for point in ring) / len(ring),
-    )
+_SCENARIO_LOCK = Lock()
 
 
-def _containing_risk_cell(point: tuple[float, float], features: list[dict]) -> dict | None:
-    lon, lat = point
+def _store_scenario(record: dict) -> None:
+    db_save_scenario(record)
+    with _SCENARIO_LOCK:
+        if len(SCENARIOS) >= 10:
+            SCENARIOS.pop(next(iter(SCENARIOS)))
+        SCENARIOS[record["id"]] = record
+
+
+def _grid_extents(features: list[dict]) -> list[tuple[float, float, float, float]]:
+    # A dateline-crossing scenario has two local extents, never a global bbox.
+    rings = []
     for feature in features:
-        ring = feature["geometry"]["coordinates"][0]
-        west, east = min(p[0] for p in ring), max(p[0] for p in ring)
-        south, north = min(p[1] for p in ring), max(p[1] for p in ring)
-        if west <= lon <= east and south <= lat <= north:
-            return feature
-    return None
+        geometry = feature["geometry"]
+        polygons = geometry["coordinates"] if geometry["type"] == "MultiPolygon" else [geometry["coordinates"]]
+        rings.extend(polygon[0] for polygon in polygons)
+    if not rings:
+        return []
+
+    def bounds(group):
+        xs, ys = zip(*(point[:2] for ring in group for point in ring))
+        return min(ys), min(xs), max(ys), max(xs)
+
+    south, west, north, east = bounds(rings)
+    if east - west <= 180:
+        return [(south, west, north, east)]
+    groups = [[ring for ring in rings if (sum(p[0] for p in ring) >= 0) == eastern] for eastern in (False, True)]
+    return [bounds(group) for group in groups if group]
+
+
+def _fetch_grid_layer(features, fetch):
+    layers = [fetch(*extent) for extent in _grid_extents(features)]
+    if len(layers) == 1:
+        return layers[0]
+    combined = [feature for layer in layers for feature in layer["features"]]
+    return {"type": "FeatureCollection", "features": combined,
+            "metadata": {"status": "PARTIAL" if combined else "UNAVAILABLE",
+                         "parts": [layer.get("metadata", {}) for layer in layers]}}
 
 
 @app.post("/api/ai/analyze-cyclone")
@@ -251,45 +243,18 @@ def analyze_cyclone_ai(req: CycloneAnalysisRequest):
 @app.post("/api/v2/scenarios", status_code=201)
 def create_scenario(scenario: ScenarioInput):
     """Create a reproducible 200 m cyclone risk-grid screening scenario."""
-    import time
-    t0 = time.time()
-    
     basin = None
     ocean_node = None
-    in_ocean_domain = 0 <= scenario.center_lat <= 30 and 45 <= scenario.center_lon <= 100
-    
-    t1 = time.time()
-    if in_ocean_domain:
+    if 0 <= scenario.center_lat <= 30 and 45 <= scenario.center_lon <= 100:
         basin = infer_basin(scenario.center_lat, scenario.center_lon)
-        if scenario.include_ocean_node:
+        if scenario.include_ocean_node and not land_mask(scenario.center_lat, scenario.center_lon):
             ocean_node = get_ocean_node(scenario.center_lat, scenario.center_lon, basin, live_first=False)
-    t2 = time.time()
-
     try:
         record = new_scenario_record(scenario, basin, ocean_node)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    t3 = time.time()
-    
-    if len(SCENARIOS) >= 10:
-        oldest_keys = list(SCENARIOS.keys())[: -5]
-        for k in oldest_keys:
-            SCENARIOS.pop(k, None)
-    SCENARIOS[record["id"]] = record
-    
-    t4 = time.time()
-    print(f"[TIMING] Scenario {record['id']}: Basin={t2-t1:.2f}s, Grid={t3-t2:.2f}s, Store={t4-t3:.3f}s, Total={t4-t0:.2f}s", flush=True)
-    
-    # Return scenario with full risk_grid features so the frontend map renders immediately!
-    return {
-        "id": record["id"],
-        "created_at": record["created_at"],
-        "input": record["input"],
-        "basin": record["basin"],
-        "ocean_node": record["ocean_node"],
-        "model": record["model"],
-        "risk_grid": record["risk_grid"],
-    }
+    _store_scenario(record)
+    return record
 
 
 @app.get("/api/v2/scenarios/{scenario_id}")
@@ -344,85 +309,37 @@ def get_scenario_cell(scenario_id: str, cell_id: str):
 @app.get("/api/v2/scenarios/{scenario_id}/buildings")
 def get_scenario_buildings(scenario_id: str):
     """Return OpenStreetMap buildings for the scenario extent, when available."""
-    import time
-    t0 = time.time()
+    from copy import deepcopy
+    from shapely import STRtree
+    from shapely.geometry import shape
 
-    scenario = SCENARIOS.get(scenario_id) or db_get_scenario(scenario_id)
-    if scenario is None:
-        raise HTTPException(status_code=404, detail="Scenario not found.")
+    scenario = get_scenario(scenario_id)
     features = scenario["risk_grid"]["features"]
-    if not features:
-        return {"type": "FeatureCollection", "features": [], "metadata": {}}
-    points = [point for feature in features for point in feature["geometry"]["coordinates"][0]]
-    west = min(point[0] for point in points)
-    east = max(point[0] for point in points)
-    south = min(point[1] for point in points)
-    north = max(point[1] for point in points)
-
-    t1 = time.time()
-    print(f"[TIMING] Building bbox extraction: {t1-t0:.3f}s", flush=True)
-
-    try:
-        # The adapter owns bounded HTTP timeouts and cached fallbacks. A second
-        # shorter timeout used to discard valid results while still waiting for
-        # the worker thread to finish on context-manager exit.
-        from copy import deepcopy
-        buildings = deepcopy(fetch_buildings(south, west, north, east))
-        t2 = time.time()
-        for building in buildings["features"]:
-            cell = _containing_risk_cell(_building_centroid(building), features)
-            if cell is None:
-                building["properties"].update(
-                    {
-                        "damage_score": None,
-                        "classification": "OUTSIDE_RISK_GRID",
-                        "display_colour": "#0a2a57",
-                    }
-                )
-                continue
-            risk = cell["properties"]
-            building["properties"].update(
-                {
-                    "damage_score": risk.get("damage_score"),
-                    "classification": risk.get("classification"),
-                    "display_colour": risk.get("colour", "#d4483b"),
-                    "colour_source": "containing_risk_cell",
-                    "wind_kph": risk.get("wind_kph", 145),
-                    "dynamic_pressure_pa": risk.get("dynamic_pressure_pa", 1250),
-                    "load_to_resistance_ratio": risk.get("load_to_resistance_ratio", 0.65),
-                    "cell_id": cell.get("id"),
-                }
-            )
-        t3 = time.time()
-        print(f"[TIMING] Building enrichment: {t3-t2:.2f}s for {len(buildings['features'])} buildings", flush=True)
+    buildings = deepcopy(_fetch_grid_layer(features, fetch_buildings))
+    if not buildings["features"]:
         return buildings
-    except Exception:
-        return {
-            "type": "FeatureCollection",
-            "features": [],
-            "metadata": {
-                "status": "unavailable",
-                "notice": "Building footprint service is temporarily unavailable or coordinate is over open ocean.",
-            },
-        }
+    cells = STRtree([shape(feature["geometry"]) for feature in features])
+    for building in buildings["features"]:
+        point = shape(building["geometry"]).representative_point()
+        matches = cells.query(point, predicate="intersects")
+        if not len(matches):
+            building["properties"].update(damage_score=None, classification="OUTSIDE_RISK_GRID", display_colour="#0a2a57")
+            continue
+        cell = features[min(matches)]
+        risk = cell["properties"]
+        building["properties"].update(
+            damage_score=risk.get("damage_score"), classification=risk.get("classification"),
+            display_colour=risk.get("colour"), colour_source="containing_risk_cell",
+            wind_kph=risk.get("wind_kph"), dynamic_pressure_pa=risk.get("dynamic_pressure_pa"),
+            load_to_resistance_ratio=risk.get("load_to_resistance_ratio"), cell_id=cell.get("id"),
+        )
+    return buildings
 
 
 @app.get("/api/v2/scenarios/{scenario_id}/zones")
 def get_scenario_zones(scenario_id: str):
-    """Return OpenStreetMap land-use zone polygons with vulnerability classifications."""
-    scenario = SCENARIOS.get(scenario_id) or db_get_scenario(scenario_id)
-    if scenario is None:
-        raise HTTPException(status_code=404, detail="Scenario not found.")
-    features = scenario["risk_grid"]["features"]
-    if not features:
-        return {"type": "FeatureCollection", "features": [], "metadata": {}}
-    points = [point for feature in features for point in feature["geometry"]["coordinates"][0]]
-    west = min(point[0] for point in points)
-    east = max(point[0] for point in points)
-    south = min(point[1] for point in points)
-    north = max(point[1] for point in points)
-
-    return fetch_zones(south, west, north, east)
+    """Return synthesized screening zones for the scenario extent."""
+    return _fetch_grid_layer(get_scenario(scenario_id)["risk_grid"]["features"], fetch_zones)
 
 
 @app.get("/api/v2/scenarios/{scenario_id}/shelters-evacuation")
@@ -440,18 +357,19 @@ def get_scenario_shelters(scenario_id: str):
 
 
 
-@app.post("/api/v3/observations/ingest", status_code=201)
+@app.post("/api/v3/observations/ingest", status_code=201, dependencies=[Depends(require_admin)])
 def ingest_observation(observation: SatelliteObservation):
     """Register a provenance-rich satellite product for ML preparation."""
     identifier, stored = register_observation(observation)
     return {"observation_id": identifier, "observation": stored}
 
 
-@app.post("/api/v3/observations/hursat", status_code=201)
+@app.post("/api/v3/observations/hursat", status_code=201, dependencies=[Depends(require_admin)])
 def ingest_hursat_observation(input_data: HursatObservationInput):
     """Convenience endpoint to register a HURSAT-B1 storm-centred satellite scene."""
     observation = create_hursat_observation(
         product=input_data.product,
+        storm_id=input_data.storm_id,
         acquired_at=input_data.acquired_at,
         centre_lat=input_data.centre_lat,
         centre_lon=input_data.centre_lon,
@@ -466,7 +384,7 @@ def ingest_hursat_observation(input_data: HursatObservationInput):
     return {"observation_id": identifier, "observation": stored}
 
 
-@app.post("/api/v3/training-samples", status_code=201)
+@app.post("/api/v3/training-samples", status_code=201, dependencies=[Depends(require_admin)])
 def create_training_sample(sample: TrainingSample):
     """Register a labelled ML sample after all referenced observations exist."""
     try:
@@ -476,7 +394,7 @@ def create_training_sample(sample: TrainingSample):
     return stored
 
 
-@app.post("/api/v3/training-samples/generate", status_code=201)
+@app.post("/api/v3/training-samples/generate", status_code=201, dependencies=[Depends(require_admin)])
 def generate_training_samples(request: GenerateSamplesInput):
     """Generate storm-centred sequence samples linking registered observations to IBTrACS labels."""
     try:
@@ -491,10 +409,13 @@ def generate_training_samples(request: GenerateSamplesInput):
     return {"generated_count": len(samples), "samples": samples}
 
 
-@app.post("/api/v3/best-tracks/ibtracs", status_code=201)
+@app.post("/api/v3/best-tracks/ibtracs", status_code=201, dependencies=[Depends(require_admin)])
 def import_ibtracs_labels(import_request: IBTracsCsvImport):
     """Import a bounded North Indian IBTrACS CSV extract as supervised labels."""
-    labels = parse_ibtracs_csv(import_request)
+    try:
+        labels = parse_ibtracs_csv(import_request)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {
         "imported_labels": register_best_track_labels(labels),
         "authority": "IBTRACS",
@@ -502,17 +423,42 @@ def import_ibtracs_labels(import_request: IBTracsCsvImport):
     }
 
 
-@app.post("/api/v3/baseline/train", status_code=200)
+_baseline_train_lock = Lock()
+
+
+@app.post("/api/v3/baseline/train", status_code=200, dependencies=[Depends(require_admin)])
 def train_baseline_model():
-    """Train gradient-boosted baseline ML classifier & regressor on registered samples."""
-    samples = list(SAMPLES.values())
-    if not samples:
-        raise HTTPException(
-            status_code=400,
-            detail="No training samples registered. Ingest HURSAT observations and generate samples first.",
-        )
-    result = BASELINE_PIPELINE.train(samples)
-    return result
+    """Publish a fully trained pipeline while existing requests use the previous fit."""
+    global BASELINE_PIPELINE
+    with _baseline_train_lock:
+        candidate = CycloneMLPipeline()
+        try:
+            result = candidate.train(list(SAMPLES.values()))
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        BASELINE_PIPELINE = candidate
+        return result
+
+
+def _latest_storm_features(storm_id: str) -> dict[str, float]:
+    from feature_extractor import previous_motion
+
+    samples = (s for s in SAMPLES.values() if s.storm_id == storm_id)
+    sample = max(samples, key=lambda s: s.target_time, default=None)
+    labels = (label for label in BEST_TRACK_LABELS.values() if label.storm_id == storm_id)
+    label = max(labels, key=lambda label: label.valid_at, default=None)
+    if sample is not None and (label is None or sample.target_time >= label.valid_at):
+        return extract_sample_features(sample)
+    if label is None:
+        raise HTTPException(status_code=404, detail=f"Storm '{storm_id}' not found.")
+    heading, speed = previous_motion(label)
+    return {
+        "centre_lat": label.centre_lat, "centre_lon": label.centre_lon,
+        "max_sustained_wind_kph": label.max_sustained_wind_kph,
+        "central_pressure_hpa": label.central_pressure_hpa if label.central_pressure_hpa is not None else 1008.0,
+        "heading_deg": heading, "speed_kph": speed,
+        **ocean_features(label.centre_lat, label.centre_lon),
+    }
 
 
 @app.post("/api/v3/inference")
@@ -526,22 +472,12 @@ def run_inference(request: InferenceRequest):
             raise HTTPException(status_code=404, detail=f"Sample '{request.sample_id}' not found.")
         features = extract_sample_features(sample)
     elif request.storm_id:
-        storm_samples = [s for s in SAMPLES.values() if s.storm_id == request.storm_id]
-        if not storm_samples:
-            raise HTTPException(status_code=404, detail=f"No samples found for storm '{request.storm_id}'.")
-        features = extract_sample_features(storm_samples[-1])
+        features = _latest_storm_features(request.storm_id)
     else:
         lat = request.centre_lat if request.centre_lat is not None else 15.0
         lon = request.centre_lon if request.centre_lon is not None else 85.0
         wind = request.max_sustained_wind_kph if request.max_sustained_wind_kph is not None else 100.0
         pressure = request.central_pressure_hpa if request.central_pressure_hpa is not None else 970.0
-
-        basin = infer_basin(lat, lon)
-        ocean = get_ocean_node(lat, lon, basin, live_first=False)
-
-        # Extract thermal buffer (SST at 0m) and ventilation depth (D26 isotherm depth)
-        tb_val = float(ocean.get("TB", {}).get(0, 27.5))
-        vf_val = float(ocean.get("VF", {}).get("depth_of_26c_isotherm_m", 45.0))
 
         features = {
             "centre_lat": lat,
@@ -550,13 +486,8 @@ def run_inference(request: InferenceRequest):
             "central_pressure_hpa": pressure,
             "heading_deg": request.heading_deg if request.heading_deg is not None else 315.0,
             "speed_kph": request.speed_kph if request.speed_kph is not None else 25.0,
-            "tb_deg_c": tb_val,
-            "vf_m": vf_val,
-            "obs_count": 4.0,
-            "avg_spatial_resolution_km": 8.0,
-            "avg_box_width_deg": 4.0,
-            "avg_box_height_deg": 4.0,
-            "sequence_duration_hours": 24.0,
+            **ocean_features(lat, lon),
+            "obs_count": 0.0,
         }
 
     prediction = BASELINE_PIPELINE.predict(features)
@@ -573,24 +504,7 @@ def run_inference(request: InferenceRequest):
 @app.get("/api/v3/storms/{storm_id}/forecast")
 def get_storm_forecast(storm_id: str):
     """Retrieve operational ML forecast for a registered storm ID."""
-    storm_samples = [s for s in SAMPLES.values() if s.storm_id == storm_id]
-    if not storm_samples:
-        labels = [l for l in BEST_TRACK_LABELS.values() if l.storm_id == storm_id]
-        if not labels:
-            raise HTTPException(status_code=404, detail=f"Storm '{storm_id}' not found.")
-        latest_label = sorted(labels, key=lambda l: l.valid_at)[-1]
-        lat, lon, wind, pressure = latest_label.centre_lat, latest_label.centre_lon, latest_label.max_sustained_wind_kph, latest_label.central_pressure_hpa or 980.0
-        features = {
-            "centre_lat": lat,
-            "centre_lon": lon,
-            "max_sustained_wind_kph": wind,
-            "central_pressure_hpa": pressure,
-            "tb_deg_c": 27.5,
-            "vf_m": 45.0,
-        }
-    else:
-        features = extract_sample_features(storm_samples[-1])
-
+    features = _latest_storm_features(storm_id)
     prediction = BASELINE_PIPELINE.predict(features)
     return {"storm_id": storm_id, "forecast": prediction}
 
@@ -600,12 +514,12 @@ def generate_storm_impact_grid(storm_id: str, input_params: StormImpactRunInput)
     """Generate 200 m building risk grid directly from an ML storm forecast."""
     forecast_data = get_storm_forecast(storm_id)["forecast"]
     horizon_key = f"forecast_{input_params.forecast_horizon_hours}h" if input_params.forecast_horizon_hours > 0 else "identification"
-    horizon_data = forecast_data.get(horizon_key, forecast_data["identification"])
+    horizon_data = forecast_data[horizon_key]
 
-    center_lat = horizon_data.get("centre_lat", 15.0)
-    center_lon = horizon_data.get("centre_lon", 85.0)
-    wind_kph = horizon_data.get("max_sustained_wind_kph", 120.0)
-    pressure_hpa = horizon_data.get("central_pressure_hpa", 960.0)
+    center_lat = horizon_data["centre_lat"]
+    center_lon = horizon_data["centre_lon"]
+    wind_kph = horizon_data["max_sustained_wind_kph"]
+    pressure_hpa = horizon_data["central_pressure_hpa"]
 
     scenario_in = ScenarioInput(
         name=f"ML-Forecast-{storm_id}-{input_params.forecast_horizon_hours}h"[:80],
@@ -613,11 +527,16 @@ def generate_storm_impact_grid(storm_id: str, input_params: StormImpactRunInput)
         center_lon=center_lon,
         max_wind_kph=wind_kph,
         central_pressure_hpa=pressure_hpa,
+        speed_kph=forecast_data["identification"]["speed_kph"],
+        heading_deg=forecast_data["identification"]["heading_deg"],
         include_ocean_node=True,
     )
 
-    basin = infer_basin(center_lat, center_lon)
-    ocean_node = get_ocean_node(center_lat, center_lon, basin)
+    from geo import land_mask
+    basin = infer_basin(center_lat, center_lon) if in_forecast_domain(center_lat, center_lon) else "OUTSIDE_NORTH_INDIAN_OCEAN"
+    ocean_node = None
+    if in_forecast_domain(center_lat, center_lon) and not land_mask(center_lat, center_lon).item():
+        ocean_node = get_ocean_node(center_lat, center_lon, basin)
     record = new_scenario_record(scenario_in, basin, ocean_node)
 
     record["ml_provenance"] = {
@@ -629,7 +548,7 @@ def generate_storm_impact_grid(storm_id: str, input_params: StormImpactRunInput)
         "model_algorithm": BASELINE_PIPELINE.algorithm,
     }
 
-    SCENARIOS[record["id"]] = record
+    _store_scenario(record)
     return record
 
 
@@ -639,7 +558,7 @@ def dataset_summary():
     """Expose dataset counts, split status, and baseline model training state."""
     split_summary = get_split_summary()
     total_samples = len(SAMPLES)
-    ready_for_baseline = total_samples > 0 and len(OBSERVATIONS) > 0 and len(BEST_TRACK_LABELS) > 0
+    ready_for_baseline = split_summary["train"]["samples"] > 0 and bool(BEST_TRACK_LABELS)
 
     status = "NOT_TRAINED"
     if BASELINE_PIPELINE.is_trained:
@@ -677,6 +596,7 @@ def validation_dashboard():
 
     ml_trained = BASELINE_PIPELINE.is_trained
     ml_metrics = BASELINE_PIPELINE.metrics if ml_trained else None
+    evaluated = bool(ml_metrics and ml_metrics.get("n_test_samples"))
 
     return {
         "system": "CYCLONEX v2.1 Hydro-Meteorological & Damage Intelligence Engine",
@@ -690,29 +610,29 @@ def validation_dashboard():
             "AI_ML_STATUS": {
                 "status": "TRAINED_AI_ML" if ml_trained else "HEURISTIC",
                 "label": "TRAINED AI/ML (Scikit-Learn GBDT)" if ml_trained else "HEURISTIC — NOT AI/ML",
-                "model_status": MODEL_STATUS,
-                "validation_status": VALIDATION_STATUS,
+                "model_status": MODEL_STATUS if ml_trained else "HEURISTIC",
+                "validation_status": ml_metrics["status"] if ml_metrics else "NOT_VALIDATED",
                 "details": (
-                    "Trained on historical North Indian Ocean storm sequences (Amphan, Fani, Bulbul, Nisarga, Hudhud, Titli) with storm-based test split."
+                    "Gradient-boosted best-track model. Metrics cover storms and forecast horizons with matched future reports."
                     if ml_trained
                     else "Track model uses advection drift extrapolation."
                 ),
             },
             "TRACK_PERFORMANCE": {
-                "status": "VALIDATED" if ml_trained else "NOT_VALIDATED",
-                "label": "VALIDATED ON HELD-OUT TEST STORMS" if ml_trained else "NOT VALIDATED",
+                "status": "EVALUATED" if evaluated else "NOT_VALIDATED",
+                "label": "EVALUATED ON HELD-OUT TEST STORMS" if evaluated else "NOT VALIDATED",
                 "metrics": ml_metrics,
                 "details": (
                     f"Held-out test errors: 6h={ml_metrics.get('track_error_6h_km_mean', 0)} km, "
                     f"12h={ml_metrics.get('track_error_12h_km_mean', 0)} km, "
                     f"24h={ml_metrics.get('track_error_24h_km_mean', 0)} km."
-                    if ml_trained and ml_metrics
+                    if evaluated
                     else "No track error metrics available."
                 ),
             },
             "INTENSITY_PERFORMANCE": {
-                "status": "VALIDATED" if ml_trained else "NOT_VALIDATED",
-                "label": "VALIDATED ON HELD-OUT TEST STORMS" if ml_trained else "NOT VALIDATED",
+                "status": "EVALUATED" if evaluated else "NOT_VALIDATED",
+                "label": "EVALUATED ON HELD-OUT TEST STORMS" if evaluated else "NOT VALIDATED",
                 "metrics": {
                     "wind_mae_kph": ml_metrics.get("wind_mae_kph_mean") if ml_metrics else None,
                     "pressure_mae_hpa": ml_metrics.get("pressure_mae_hpa_mean") if ml_metrics else None,
@@ -720,7 +640,7 @@ def validation_dashboard():
                 "details": (
                     f"Held-out test MAE: Wind={ml_metrics.get('wind_mae_kph_mean', 0)} km/h, "
                     f"Pressure={ml_metrics.get('pressure_mae_hpa_mean', 0)} hPa."
-                    if ml_trained and ml_metrics
+                    if evaluated
                     else "No intensity metrics available."
                 ),
             },
@@ -797,8 +717,8 @@ def developer_health():
     return {
         "timestamp": datetime.now().isoformat(),
         "ml_pipeline": {
-            "model_status": MODEL_STATUS,
-            "validation_status": VALIDATION_STATUS,
+            "model_status": MODEL_STATUS if BASELINE_PIPELINE.is_trained else "HEURISTIC",
+            "validation_status": BASELINE_PIPELINE.metrics["status"],
             "is_trained_on_samples": BASELINE_PIPELINE.is_trained,
             "training_sample_count": BASELINE_PIPELINE.training_sample_count,
             "metrics": BASELINE_PIPELINE.metrics,
@@ -881,9 +801,9 @@ def cell_trace(
 # =========================================================
 
 class NewsSourceInput(BaseModel):
-    name: str
-    url: str
-    scrape_type: str = "html"
+    name: str = Field(min_length=1, max_length=150)
+    url: str = Field(min_length=1, max_length=2048)
+    scrape_type: Literal["html", "rss"] = "html"
 
 
 @app.get("/api/v2/news/sources")
@@ -892,15 +812,16 @@ def api_get_news_sources():
     return get_news_sources()
 
 
-@app.post("/api/v2/news/sources")
+@app.post("/api/v2/news/sources", dependencies=[Depends(require_admin)])
 def api_add_news_source(payload: NewsSourceInput):
     """Add a new news website or RSS URL for automated cyclone news scraping."""
-    if not payload.name or not payload.url:
-        raise HTTPException(status_code=400, detail="Name and valid URL are required.")
-    return add_news_source(payload.name, payload.url, payload.scrape_type)
+    try:
+        return add_news_source(payload.name, payload.url, payload.scrape_type)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-@app.delete("/api/v2/news/sources/{source_id}")
+@app.delete("/api/v2/news/sources/{source_id}", dependencies=[Depends(require_admin)])
 def api_delete_news_source(source_id: str):
     """Delete a configured news website source."""
     success = delete_news_source(source_id)
@@ -930,31 +851,28 @@ def api_get_realtime_weather(
     lat: float = Query(21.62, ge=-90, le=90),
     lon: float = Query(87.51, ge=-180, le=180),
 ):
-    """Fetches real-time live meteorological telemetry for specified coordinate."""
+    """Read current modelled weather for the requested location."""
+    variables = {"wind_speed_kph": "wind_speed_10m", "wind_gusts_kph": "wind_gusts_10m",
+                 "wind_direction_deg": "wind_direction_10m", "surface_pressure_hpa": "surface_pressure",
+                 "precipitation_mm": "precipitation", "temperature_c": "temperature_2m",
+                 "humidity_pct": "relative_humidity_2m"}
     try:
-        url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m"
-        resp = requests.get(url, timeout=3)
-        if resp.status_code == 200:
-            data = resp.json()
-            curr = data.get("current", {})
-            return {
-                "source": "OPEN_METEO_LIVE",
-                "lat": lat,
-                "lon": lon,
-                "timestamp": curr.get("time", datetime.now(timezone.utc).isoformat()),
-                "wind_speed_kph": round(curr.get("wind_speed_10m", 25.0) * 1.0, 1),
-                "wind_gusts_kph": round(curr.get("wind_gusts_10m", 35.0) * 1.0, 1),
-                "wind_direction_deg": curr.get("wind_direction_10m", 315),
-                "surface_pressure_hpa": curr.get("surface_pressure", 1008.0),
-                "precipitation_mm": curr.get("precipitation", 0.0),
-                "temperature_c": curr.get("temperature_2m", 28.5),
-                "humidity_pct": curr.get("relative_humidity_2m", 82),
-                "status": "LIVE_FEED_SYNCED",
-            }
-    except Exception as e:
-        print(f"Open-meteo live fallback used: {e}")
-
-    raise HTTPException(status_code=503, detail="Live weather provider unavailable. No simulated telemetry was substituted.")
+        response = requests.get("https://api.open-meteo.com/v1/forecast",
+                                params={"latitude": lat, "longitude": lon, "timezone": "GMT",
+                                        "wind_speed_unit": "kmh", "current": ",".join(variables.values())},
+                                timeout=(3, 6))
+        response.raise_for_status()
+        current = response.json()["current"]
+        timestamp = datetime.fromisoformat(current["time"])
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+        readings = {key: current[name] for key, name in variables.items()}
+        if not all(type(v) in (float, int) and math.isfinite(v) for v in readings.values()):
+            raise ValueError("Incomplete current weather")
+    except (requests.RequestException, ValueError, KeyError, TypeError, OverflowError) as exc:
+        raise HTTPException(status_code=503, detail="Current weather unavailable or incomplete.") from exc
+    return {"source": "OPEN_METEO_LIVE", "lat": lat, "lon": lon, "timestamp": timestamp.isoformat(),
+            "status": "LIVE_FEED_SYNCED", "data_kind": "MODELLED_CURRENT_WEATHER", **readings}
 
 
 # =========================================================
@@ -989,17 +907,17 @@ from gemini_resilience_service import (
     generate_cap_alert_xml,
     resilience_service,
 )
-from fastapi.responses import Response
 
 
 class ResilienceAssessmentRequest(BaseModel):
-    storm_name: str = "Cyclone Nisarga"
+    storm_name: str = Field(default="Cyclone Nisarga", min_length=1, max_length=120)
     eye_lat: float = Field(default=18.35, ge=-90.0, le=90.0)
     eye_lon: float = Field(default=72.98, ge=-180.0, le=180.0)
     max_wind_kmh: float = Field(default=120.0, ge=0.0, le=350.0)
     central_pressure_hpa: float = Field(default=984.0, ge=800.0, le=1050.0)
     heading_deg: float = Field(default=315.0, ge=0.0, le=360.0)
     forward_speed_kmh: float = Field(default=22.0, ge=0.0, le=120.0)
+    rain_rate_mm_hr: float = Field(default=75, ge=0, le=500)
     simulate_failure_gemini: bool = False
     simulate_failure_gee: bool = False
     simulate_failure_weather: bool = False
@@ -1014,7 +932,7 @@ class DroneInspectionRequest(BaseModel):
 
 @app.post("/api/resilience/assess")
 def api_assess_resilience_post(req: ResilienceAssessmentRequest):
-    """Execute complete Challenge 05 Resilience Assessment combining GEE, Surge, Infrastructure and Gemini 3.7 Flash."""
+    """Evaluate scenario hazards, reference infrastructure, and optional recommendations."""
     try:
         return resilience_service.evaluate_resilience_assessment(
             storm_name=req.storm_name,
@@ -1024,6 +942,7 @@ def api_assess_resilience_post(req: ResilienceAssessmentRequest):
             central_pressure_hpa=req.central_pressure_hpa,
             heading_deg=req.heading_deg,
             forward_speed_kmh=req.forward_speed_kmh,
+            rain_rate_mm_hr=req.rain_rate_mm_hr,
             simulate_failure_gemini=req.simulate_failure_gemini,
             simulate_failure_gee=req.simulate_failure_gee,
             simulate_failure_weather=req.simulate_failure_weather,
@@ -1036,36 +955,15 @@ def api_assess_resilience_post(req: ResilienceAssessmentRequest):
 
 @app.get("/api/resilience/assess")
 def api_assess_resilience_get(
-    storm_name: str = "Cyclone Dana",
-    eye_lat: float = 20.4,
-    eye_lon: float = 86.8,
-    max_wind_kmh: float = 125.0,
-    central_pressure_hpa: float = 980.0,
-    heading_deg: float = 320.0,
-    forward_speed_kmh: float = 18.0,
-    simulate_failure_gemini: bool = False,
-    simulate_failure_gee: bool = False,
-    simulate_failure_weather: bool = False,
-    deploy_countermeasure: bool = False,
+    storm_name: str = Query("Cyclone Dana", min_length=1, max_length=120),
+    eye_lat: float = Query(20.4, ge=-90, le=90), eye_lon: float = Query(86.8, ge=-180, le=180),
+    max_wind_kmh: float = Query(125, ge=0, le=350), central_pressure_hpa: float = Query(980, ge=800, le=1050),
+    heading_deg: float = Query(320, ge=0, le=360), forward_speed_kmh: float = Query(18, ge=0, le=120),
+    rain_rate_mm_hr: float = Query(75, ge=0, le=500), simulate_failure_gemini: bool = False,
+    simulate_failure_gee: bool = False, simulate_failure_weather: bool = False, deploy_countermeasure: bool = False,
 ):
-    """GET endpoint for Challenge 05 Resilience Assessment."""
-    try:
-        return resilience_service.evaluate_resilience_assessment(
-            storm_name=storm_name,
-            eye_lat=eye_lat,
-            eye_lon=eye_lon,
-            max_wind_kmh=max_wind_kmh,
-            central_pressure_hpa=central_pressure_hpa,
-            heading_deg=heading_deg,
-            forward_speed_kmh=forward_speed_kmh,
-            simulate_failure_gemini=simulate_failure_gemini,
-            simulate_failure_gee=simulate_failure_gee,
-            simulate_failure_weather=simulate_failure_weather,
-            deploy_countermeasure=deploy_countermeasure,
-        )
-    except Exception as e:
-        print(f"[RESILIENCE SERVICE ERROR] {e}", flush=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    """Evaluate a scenario with the same service as POST."""
+    return api_assess_resilience_post(ResilienceAssessmentRequest(**locals()))
 
 
 @app.post("/api/resilience/inspect-drone-damage")
@@ -1088,13 +986,13 @@ def api_inspect_drone_damage(req: DroneInspectionRequest):
 
 @app.get("/api/resilience/cap-alert.xml")
 def api_get_cap_alert_xml(
-    storm_name: str = "Cyclone Dana",
-    max_wind_kmh: float = 125.0,
-    peak_surge_m: float = 2.8,
-    eye_lat: float = 20.4,
-    eye_lon: float = 86.8,
+    storm_name: str = Query("Cyclone Dana", min_length=1, max_length=120),
+    max_wind_kmh: float = Query(125.0, ge=0, le=350),
+    peak_surge_m: float = Query(2.8, ge=0, le=20),
+    eye_lat: float = Query(20.4, ge=-90, le=90),
+    eye_lon: float = Query(86.8, ge=-180, le=180),
 ):
-    """Generate and return OASIS CAP v1.2 standard XML disaster warning alert compliant with NDMA SACHET."""
+    """Export a CAP exercise scenario as XML."""
     try:
         xml_content = generate_cap_alert_xml(
             storm_name=storm_name,

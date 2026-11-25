@@ -29,7 +29,7 @@ class ForecastPoint(BaseModel):
     lon: float
     max_wind_kmh: float
     central_pressure_hpa: float
-    uncertainty_radius_km: float
+    uncertainty_radius_km: float | None
 
 
 class LandfallEstimate(BaseModel):
@@ -45,7 +45,7 @@ class RainfallForecast(BaseModel):
     projected_24h_rainfall_mm: float
     soil_saturation_index: str  # "MODERATE", "HIGH", "SATURATED"
     runoff_coefficient: float
-    drainage_utilization_pct: float
+    drainage_utilization_pct: float | None
     flash_flood_risk_level: str  # "LOW", "MODERATE", "HIGH", "EXTREME"
 
 
@@ -67,10 +67,10 @@ class PredictionConfidence(BaseModel):
 
 
 class DataSourceStatus(BaseModel):
-    meteorological: Literal["LIVE", "CACHED", "SIMULATION"] = "LIVE"
-    storm_track: Literal["LIVE", "CACHED", "SIMULATION"] = "CACHED"
-    satellite_feeds: Literal["LIVE", "CACHED", "SIMULATION"] = "CACHED"
-    terrain_srtm: Literal["LIVE", "CACHED"] = "CACHED"
+    meteorological: Literal["LIVE", "CACHED", "SIMULATION", "SCENARIO_INPUT"] = "SCENARIO_INPUT"
+    storm_track: Literal["LIVE", "CACHED", "SIMULATION", "CONSTANT_MOTION"] = "CONSTANT_MOTION"
+    satellite_feeds: Literal["LIVE", "CACHED", "SIMULATION", "CATALOG_ONLY"] = "CATALOG_ONLY"
+    terrain_srtm: Literal["LIVE", "CACHED", "NOT_INGESTED"] = "NOT_INGESTED"
     last_updated: str = Field(default_factory=lambda: datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"))
     provider: str = "IMD / JTWC / GEE Multi-Sensor Ingest"
 
@@ -83,7 +83,7 @@ class CycloneState(BaseModel):
     intensity: Dict[str, Any]  # {"maxWindKmh": float, "centralPressureHpa": float, "category": str}
     motion: Dict[str, float]  # {"headingDeg": float, "forwardSpeedKmh": float}
     forecast: List[ForecastPoint]
-    landfall: LandfallEstimate
+    landfall: LandfallEstimate | None
     rainfall: RainfallForecast
     surge: SurgeAssessment
     confidence: PredictionConfidence
@@ -172,11 +172,11 @@ class EvacuationAssessment(BaseModel):
     source: str = "OSRM_ROAD_NETWORK"
     notice: str = "No verified shelter allocation or flood clearance."
     recommended_routes: List[EvacuationRouteOption]
-    estimated_evacuee_target: int
+    estimated_evacuee_target: int | None
     assigned_shelter_count: int
-    shelter_capacity_margin_pct: float
+    shelter_capacity_margin_pct: float | None
     bottleneck_warnings: List[str]
-    transit_evacuation_window_hours: float
+    transit_evacuation_window_hours: float | None
 
 
 # ---------------------------------------------------------------------------
@@ -247,24 +247,24 @@ class ProvenanceRecord(BaseModel):
     output_domain: str
     data_sources: List[str]
     dataset_collection: str
-    observation_timestamp: str
+    observation_timestamp: str | None
     model_version: str
-    processing_latency_ms: int
-    status: Literal["LIVE", "CACHED", "SIMULATION", "MODEL_ESTIMATE"]
+    processing_latency_ms: int | None
+    status: Literal["LIVE", "CACHED", "SIMULATION", "MODEL_ESTIMATE", "CATALOG_ONLY"]
 
 
 class SystemStatus(BaseModel):
     meteorology: Literal["LIVE", "CACHED", "SIMULATION", "SCENARIO_INPUT"] = "SCENARIO_INPUT"
-    gee_sentinel1: Literal["CONNECTED", "CACHED", "SIMULATION"] = "CACHED"
-    gee_srtm: Literal["CONNECTED", "CACHED", "SIMULATION"] = "CACHED"
-    gee_dynamic_world: Literal["CONNECTED", "CACHED", "SIMULATION"] = "CACHED"
-    gee_viirs: Literal["CONNECTED", "CACHED", "SIMULATION"] = "CACHED"
+    gee_sentinel1: Literal["CONNECTED", "CACHED", "SIMULATION", "CATALOG_ONLY"] = "CATALOG_ONLY"
+    gee_srtm: Literal["CONNECTED", "CACHED", "SIMULATION", "CATALOG_ONLY"] = "CATALOG_ONLY"
+    gee_dynamic_world: Literal["CONNECTED", "CACHED", "SIMULATION", "CATALOG_ONLY"] = "CATALOG_ONLY"
+    gee_viirs: Literal["CONNECTED", "CACHED", "SIMULATION", "CATALOG_ONLY"] = "CATALOG_ONLY"
     ml_engine: Literal["ACTIVE", "STANDBY", "FALLBACK"] = "ACTIVE"
     gemini_ai: Literal["ACTIVE", "STANDBY", "FALLBACK"] = "ACTIVE"
     rule_engine: Literal["ACTIVE", "STANDBY"] = "STANDBY"
-    database: Literal["ACTIVE", "CACHED"] = "ACTIVE"
+    database: Literal["ACTIVE", "CACHED", "NOT_CHECKED"] = "NOT_CHECKED"
     routing_engine: Literal["ACTIVE", "FALLBACK"] = "ACTIVE"
-    tts_speech: Literal["READY", "UNSUPPORTED"] = "READY"
+    tts_speech: Literal["READY", "UNSUPPORTED", "CLIENT_DEPENDENT"] = "CLIENT_DEPENDENT"
 
 
 # ---------------------------------------------------------------------------
@@ -272,10 +272,10 @@ class SystemStatus(BaseModel):
 # ---------------------------------------------------------------------------
 
 class PostLandfallAssessment(BaseModel):
-    phase: Literal["PRE_LANDFALL", "LANDFALL", "POST_LANDFALL"] = "PRE_LANDFALL"
+    phase: Literal["PRE_LANDFALL", "LANDFALL", "POST_LANDFALL", "SCENARIO"] = "SCENARIO"
     sar_flood_observation_notes: str
     viirs_nightlight_blackout_status: str
-    power_outage_risk_area_km2: float
+    power_outage_risk_area_km2: float | None
     restoration_priority_manifest: List[Dict[str, str]]
 
 

@@ -7,12 +7,16 @@ RSS feeds, and disaster bulletins, storing articles, and classifying impact.
 from __future__ import annotations
 
 import html
-import json
+import ipaddress
 import re
+import socket
+from urllib.parse import urljoin, urlsplit
+from uuid import uuid4
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from typing import Any
 import requests
+import urllib3
 
 from storage import get_connection
 
@@ -21,6 +25,54 @@ DEFAULT_NEWS_SOURCES = [
     {"id": "src_bbc_rss", "name": "BBC Science & Environment", "url": "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml", "scrape_type": "rss", "active": 1},
     {"id": "src_imd_rsmc", "name": "IMD RSMC Tropical Cyclone Bulletins", "url": "https://rsmcnewdelhi.imd.gov.in/", "scrape_type": "html", "active": 1},
 ]
+
+
+def _feed_target(url: str):
+    parsed = urlsplit(url)
+    if (parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username is not None
+            or parsed.password is not None or parsed.port not in (None, 80, 443)):
+        raise ValueError("Enter a public HTTP or HTTPS feed URL on a standard web port")
+    try:
+        records = socket.getaddrinfo(parsed.hostname, parsed.port or (443 if parsed.scheme == "https" else 80),
+                                     type=socket.SOCK_STREAM)
+    except OSError as exc:
+        raise ValueError("The feed hostname could not be resolved") from exc
+    if not records or any(not ipaddress.ip_address(r[4][0]).is_global or
+                          ipaddress.ip_address(r[4][0]).is_multicast for r in records):
+        raise ValueError("The feed must resolve to a public web server")
+    return parsed, records[0][4][0]
+
+
+def _read_feed(url: str) -> tuple[str, str, str]:
+    """Read a bounded response from the vetted address, including every redirect."""
+    limit = 4 * 1024 * 1024
+    for _ in range(5):
+        parsed, address = _feed_target(url)
+        if parsed.scheme == "https":
+            pool = urllib3.HTTPSConnectionPool(address, port=parsed.port or 443,
+                server_hostname=parsed.hostname, assert_hostname=parsed.hostname,
+                cert_reqs="CERT_REQUIRED", ca_certs=requests.certs.where())
+        else:
+            pool = urllib3.HTTPConnectionPool(address, port=parsed.port or 80)
+        with pool:
+            path = parsed.path or "/"
+            if parsed.query:
+                path += "?" + parsed.query
+            with pool.urlopen("GET", requests.utils.requote_uri(path),
+                    headers={"Host": parsed.netloc, "User-Agent": "CYCLONEX feed reader", "Accept-Encoding": "identity"},
+                    timeout=urllib3.Timeout(connect=3, read=8), retries=False, redirect=False,
+                    preload_content=False) as response:
+                if response.status in {301, 302, 303, 307, 308} and response.headers.get("Location"):
+                    url = urljoin(url, response.headers["Location"])
+                    continue
+                if not 200 <= response.status < 300:
+                    raise ValueError(f"Feed returned HTTP {response.status}")
+                charset = requests.utils.get_encoding_from_headers(requests.structures.CaseInsensitiveDict(response.headers))
+                body = response.read(limit + 1, decode_content=True)
+                if len(body) > limit:
+                    raise ValueError("Feed exceeds the supported response size")
+                return url, response.headers.get("Content-Type", ""), body.decode(charset or "utf-8", errors="replace")
+    raise ValueError("Too many feed redirects")
 
 
 def init_news_tables() -> None:
@@ -58,14 +110,14 @@ def init_news_tables() -> None:
         conn.commit()
 
         conn.execute("CREATE TABLE IF NOT EXISTS app_migrations (name TEXT PRIMARY KEY)")
-        if not conn.execute("SELECT 1 FROM app_migrations WHERE name='news_sources_v2'").fetchone():
+        migration = conn.execute("INSERT OR IGNORE INTO app_migrations(name) VALUES ('news_sources_v2')")
+        if migration.rowcount:
             now = datetime.now(timezone.utc).isoformat()
             # Migrate once, so removing a default feed remains effective.
             conn.execute("UPDATE news_sources SET active=0 WHERE id IN ('src_imd_bulletin','src_reliefweb','src_ndtv_weather','src_bbc_weather')")
             for src in DEFAULT_NEWS_SOURCES:
                 conn.execute("INSERT OR IGNORE INTO news_sources (id,name,url,scrape_type,active,created_at) VALUES (?,?,?,?,?,?)",
                              (src["id"], src["name"], src["url"], src["scrape_type"], src["active"], now))
-            conn.execute("INSERT INTO app_migrations(name) VALUES ('news_sources_v2')")
         conn.commit()
 
 
@@ -82,12 +134,15 @@ def get_news_sources() -> list[dict[str, Any]]:
 def add_news_source(name: str, url: str, scrape_type: str = "html") -> dict[str, Any]:
     """Add a new custom news website/feed source URL."""
     init_news_tables()
-    source_id = f"src_{int(datetime.now(timezone.utc).timestamp() * 1000)}"
+    source_id = f"src_{uuid4().hex}"
     created_at = datetime.now(timezone.utc).isoformat()
     
-    # Clean URL format
+    name, url = name.strip(), url.strip()
+    if not name:
+        raise ValueError("A feed name is required")
     if not url.startswith(("http://", "https://")):
-        url = "https://" + url.strip()
+        url = "https://" + url
+    _feed_target(url)
 
     with get_connection() as conn:
         conn.execute(
@@ -158,7 +213,7 @@ def get_news_articles(
         if conditions:
             sql += " WHERE " + " AND ".join(conditions)
 
-        sql += " ORDER BY published_at DESC LIMIT ?;"
+        sql += " ORDER BY julianday(published_at) DESC, scraped_at DESC, id LIMIT ?;"
         params.append(limit)
 
         cursor = conn.execute(sql, params)
@@ -199,22 +254,22 @@ _SCRAPE_RESULTS: dict[str, dict] = {}
 def scrape_source(source_id: str, source_name: str, url: str, scrape_type: str) -> int:
     """Persist only source-provided headlines. Never invent a bulletin."""
     from hashlib import sha256
-    from urllib.parse import urljoin, urlparse
+    from urllib.parse import urlparse
     from email.utils import parsedate_to_datetime
     from html.parser import HTMLParser
 
     now = datetime.now(timezone.utc).isoformat()
     articles = []
     try:
-        resp = requests.get(url, headers={"User-Agent": "CYCLONEX/2.2 (research news reader)"}, timeout=(3, 8))
-        resp.raise_for_status()
-        content = resp.text
-        is_xml = scrape_type == "rss" or "xml" in resp.headers.get("Content-Type", "")
+        url, content_type, content = _read_feed(url)
+        is_xml = scrape_type == "rss" or "xml" in content_type.lower()
         def relevant(title, snippet=""):
             return any(word in (title + " " + snippet).lower() for word in ("cyclone", "storm", "flood", "landfall", "hurricane", "typhoon", "heavy rain", "tropical depression"))
         def add(title, link, snippet, published=""):
             title = html.unescape(re.sub(r"<[^>]+>", "", title)).strip()
-            link = urljoin(url, link)
+            if not link or not link.strip():
+                return
+            link = urljoin(url, link.strip())
             if not title or urlparse(link).scheme not in ("http", "https") or not relevant(title, snippet):
                 return
             impact, tag = classify_article_impact(title + " " + snippet)
@@ -240,7 +295,7 @@ def scrape_source(source_id: str, source_name: str, url: str, scrape_type: str) 
                             published = datetime.fromisoformat(published.replace("Z", "+00:00")).isoformat()
                         except ValueError:
                             published = ""
-                add(value(child("title")), link.get("href", "") or value(link) if link is not None else url,
+                add(value(child("title")), link.get("href", "") or value(link) if link is not None else "",
                     value(child("description", "summary")), published)
         else:
             class Links(HTMLParser):
@@ -265,7 +320,7 @@ def scrape_source(source_id: str, source_name: str, url: str, scrape_type: str) 
             conn.commit()
         _SCRAPE_RESULTS[source_id] = {"status": "OK" if articles else "NO_RELEVANT_ARTICLES", "scraped_articles": len(articles[:50])}
         return len(articles[:50])
-    except (requests.RequestException, ET.ParseError, ValueError) as exc:
+    except (urllib3.exceptions.HTTPError, OSError, LookupError, ET.ParseError, ValueError) as exc:
         _SCRAPE_RESULTS[source_id] = {"status": "UNAVAILABLE", "scraped_articles": 0, "error": type(exc).__name__}
         return 0
 

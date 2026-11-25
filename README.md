@@ -15,7 +15,7 @@ Cyclone scenario screening, baseline forecasting, and experimental image analysi
 - Satellite analysis accepts base64 PNG/JPEG channels (`infrared`, `water_vapor`, `microwave`, `visible`). Uploaded pixels enter the model input in training channel order. Missing channels use explicitly labelled synthetic scene data. Ordinary images have no radiometric calibration, so no measured Dvorak CI is claimed from an upload.
 - CNN checkpoints were trained on synthetic scenes and are **not validated on observed satellite storms**. The API reports `LOADED_EXPERIMENTAL` or `HEURISTIC_FALLBACK` per component. No calibrated confidence is claimed. Satellite lab diagrams are illustrations.
 - Buildings use bundled reference footprints or a bounded live Overpass query. Missing footprints are never replaced with invented buildings. Metadata distinguishes cached/unverified footprints, partial live coverage and unavailable providers. Heights and materials may be unknown or inferred.
-- Land-use partitions are synthesized screening zones, not observed land-use measurements.
+- Land/ocean screening uses generalized Natural Earth 1:50m polygons. Land-use zones come from OpenStreetMap. A failed zone query returns its availability status or a labelled cached response.
 - Shelter inventories are reference data. OSRM computes road-network routes to nearby reference shelters where possible. Live occupancy, flood clearance, safest-route optimization and capacity allocation are **not available**; no route is certified safe.
 - GDACS/BBC RSS and IMD source links provide actual headlines. RSS publication dates are retained; unknown dates stay unknown. Legacy demo articles are excluded. Scrape results report individual provider failures.
 - Open-Meteo weather returns live data when available, otherwise HTTP 503. It never substitutes synthetic readings.
@@ -43,6 +43,9 @@ In `frontend`, run `npm ci` then `npm run dev`. `VITE_API_BASE_URL` can override
 Run `npm run build` in `frontend` for TypeScript and production build verification.
 
 ## Optional integrations and deployment
+
+Shared administration covers observation and best-track imports, training sample changes, baseline retraining, and adding or deleting news sources. Set `CYCLONEX_ADMIN_TOKEN` to a secret on the backend and send it in the `Authorization: Bearer <token>` header for these operations. Without a token, only direct loopback development requests can modify shared data. Render and Vercel require a configured token for admin requests. Public forecasts, scenarios, and news reading or refreshing remain available.
+
 
 The core requirements intentionally omit PyTorch to fit the existing Render free service. For experimental CNN inference, install `requirements-ml.txt` on a machine with sufficient memory. The core service transparently uses heuristics when torch is absent. Loading checkpoints does not establish scientific validity.
 
