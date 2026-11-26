@@ -149,13 +149,11 @@ def health():
         "revision": __import__("os").getenv("RENDER_GIT_COMMIT", "local"),
         "ai_models": ai_service.get_models_status(),
         "integrations": {
-            "google_maps": "configured"
-            if settings.google_maps_browser_api_key
-            else "not_configured",
-            "cyclone_forecast": "configured"
-            if settings.cyclone_forecast_api_key
-            else "not_configured",
-            "database": "configured" if settings.database_url else "not_configured",
+            "google_maps": "browser_build_configuration",
+            "cyclone_forecast": "local_best_track_baseline",
+            "database": "sqlite",
+            "earth_engine": "catalogue_references_only",
+            "gemini": "configured" if __import__("os").getenv("GEMINI_API_KEY") else "rules_fallback",
         },
         "model_constraints": {
             "grid_size_m": settings.grid_size_m,

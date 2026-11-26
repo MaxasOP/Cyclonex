@@ -1152,7 +1152,7 @@ def generate_cap_alert_xml(
     <headline>SCENARIO EXERCISE: {storm_name} with +{peak_surge_m}m peak surge and {max_wind_kmh} km/h winds</headline>
     <description>Scenario center at latitude {eye_lat}, longitude {eye_lon}. Inputs specify wind of {max_wind_kmh} km/h and a peak surge of {peak_surge_m} m. Inundation extent is unverified.</description>
     <instruction>EXERCISE ONLY. Confirm all scenario estimates with the responsible authority before taking operational action.</instruction>
-    <web>https://cyclonex.vercel.app/#resilience</web>
+    <web>https://cyclonex.vercel.app/app#resilience</web>
     <contact>Research prototype; no official alert has been issued.</contact>
     <area>
       <areaDesc>{blocks_str}</areaDesc>

@@ -9,7 +9,7 @@ from typing import Optional
 import requests
 
 ERDDAP_BASE = os.getenv("HYCOM_ERDDAP_URL", "https://oos.soest.hawaii.edu/erddap/griddap/HYCOM_Global_3D.json")
-HYCOM_NCSS_URL = os.getenv("HYCOM_NCSS_URL", "https://ncss.hycom.org/thredds/ncss/grid/GLBy0.08/latest")
+HYCOM_NCSS_URL = os.getenv("HYCOM_NCSS_URL", "https://ncss.hycom.org/thredds/ncss/grid/FMRC_ESPC-D-V02_ts3z/FMRC_ESPC-D-V02_ts3z_best.ncd")
 TB_DEPTHS = [0, 10, 50, 100, 200, 300, 500, 700]
 SEAWATER_DENSITY_KG_M3 = 1025
 SEAWATER_SPECIFIC_HEAT_J_KGC = 3993
@@ -77,7 +77,7 @@ def _fetch_ncss_profile(lat: float, lon: float) -> Optional[dict]:
     if len({row[3] for row in rows}) != 1:
         return None
     depths = [r[0] for r in rows]
-    return {"source": _provider_source(rows[0][3]), "provider": "HYCOM GOFS / NCSS Global Analysis",
+    return {"source": _provider_source(rows[0][3]), "provider": "HYCOM / NCSS temperature and salinity model",
             "sampled_depths_m": depths, "interpolated_depths_m": [d for d in TB_DEPTHS if d not in depths],
             "temperature_c": {d: round(_linear_interp(d, depths, [r[1] for r in rows]), 2) for d in TB_DEPTHS},
             "salinity_psu": {d: round(_linear_interp(d, depths, [r[2] for r in rows]), 2) for d in TB_DEPTHS},
